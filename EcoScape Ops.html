@@ -1,0 +1,1843 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>EcoScape Ops</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --moss-900:#182B21;
+  --moss-800:#213A2C;
+  --moss-700:#33513F;
+  --moss-600:#4A6B55;
+  --sage:#8FA888;
+  --paper:#F3F1E9;
+  --paper-2:#EAE7DA;
+  --ink:#201F1B;
+  --ink-soft:#5B5A52;
+  --line:#D9D4C4;
+  --sky:#4A7A94;
+  --sky-soft:#DCE9EE;
+  --clay:#B5622D;
+  --clay-soft:#F3E0D2;
+  --storm:#6E4FA3;
+  --storm-soft:#E8E0F3;
+  --sun:#C9962E;
+  --sun-soft:#F2E6C7;
+  --danger:#A23B34;
+  --white:#FFFEFC;
+  --radius:3px;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#15130F; --paper-2:#1D1B15; --ink:#EDE9DD; --ink-soft:#B6B1A0; --line:#3A3627; --white:#1F1D17;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15130F; --paper-2:#1D1B15; --ink:#EDE9DD; --ink-soft:#B6B1A0; --line:#3A3627; --white:#1F1D17;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+:root{ padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  font-size:14px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.display{font-family:'Fraunces',Georgia,serif;}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace; letter-spacing:0.01em;}
+button{font-family:inherit; cursor:pointer;}
+a{color:inherit;}
+::selection{background:var(--sun-soft);}
+
+#app{display:flex; min-height:100vh; max-width:1400px; margin:0 auto;}
+
+/* ---------- Sidebar ---------- */
+.sidebar{
+  width:230px; flex-shrink:0; background:var(--moss-900); color:#EFE9D8;
+  display:flex; flex-direction:column; min-height:100vh; position:sticky; top:0;
+}
+.brand{padding:22px 20px 16px; border-bottom:1px solid rgba(255,255,255,0.08);}
+.brand .name{font-family:'Fraunces',serif; font-weight:600; font-size:19px; line-height:1.15;}
+.brand .sub{font-size:11px; color:#A9C2AE; margin-top:3px;}
+.rolebar{padding:14px 20px; border-bottom:1px solid rgba(255,255,255,0.08);}
+.rolebar label{display:block; font-size:10px; text-transform:none; color:#9FB6A6; margin-bottom:6px;}
+.roleToggle{display:flex; background:rgba(255,255,255,0.06); border-radius:var(--radius); padding:2px;}
+.roleToggle button{flex:1; border:none; background:transparent; color:#CFE0D3; font-size:12px; padding:6px 4px; border-radius:2px;}
+.roleToggle button.active{background:var(--sage); color:var(--moss-900); font-weight:600;}
+nav{flex:1; padding:10px 0; overflow-y:auto;}
+nav .item{
+  display:flex; align-items:center; gap:10px; padding:10px 20px; font-size:13.5px;
+  color:#CFE0D3; border-left:3px solid transparent; cursor:pointer;
+}
+nav .item:hover{background:rgba(255,255,255,0.05);}
+nav .item.active{border-left-color:var(--sage); background:rgba(255,255,255,0.07); color:#fff; font-weight:600;}
+nav .item .dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:0.55;}
+.sidebar-foot{padding:14px 20px; font-size:11px; color:#7E9686; border-top:1px solid rgba(255,255,255,0.08);}
+
+/* ---------- Main ---------- */
+main{flex:1; min-width:0; padding:28px 34px 60px; overflow-x:hidden;}
+.pagehead{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:10px;}
+.pagehead h1{font-size:24px; font-weight:600; margin:0;}
+.pagehead .meta{color:var(--ink-soft); font-size:12.5px;}
+
+.btn{
+  border:1px solid var(--moss-700); background:var(--moss-800); color:#fff;
+  padding:8px 14px; border-radius:var(--radius); font-size:13px; font-weight:600;
+}
+.btn:hover{background:var(--moss-700);}
+.btn.secondary{background:transparent; color:var(--ink); border-color:var(--line);}
+.btn.secondary:hover{background:var(--paper-2);}
+.btn.danger{background:var(--danger); border-color:var(--danger);}
+.btn.small{padding:5px 10px; font-size:12px;}
+.btn:disabled{opacity:0.45; cursor:not-allowed;}
+
+/* Dashboard grid */
+.grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px;}
+.grid.g3{grid-template-columns:repeat(3,1fr);}
+.card{background:var(--white); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px;}
+.card .label{font-size:11px; color:var(--ink-soft); margin-bottom:8px;}
+.card .big{font-family:'Fraunces',serif; font-size:30px; font-weight:600; line-height:1;}
+.card .sub{font-size:12px; color:var(--ink-soft); margin-top:6px;}
+.card.accent-clay{border-left:3px solid var(--clay);}
+.card.accent-sun{border-left:3px solid var(--sun);}
+.card.accent-sky{border-left:3px solid var(--sky);}
+.card.accent-sage{border-left:3px solid var(--sage);}
+
+.panel{background:var(--white); border:1px solid var(--line); border-radius:var(--radius); margin-bottom:20px;}
+.panel-head{padding:14px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between;}
+.panel-head h3{margin:0; font-size:15px; font-weight:600;}
+.panel-body{padding:16px 18px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
+
+table{width:100%; min-width:520px; border-collapse:collapse; font-size:13px;}
+th{text-align:left; font-size:11px; color:var(--ink-soft); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--line);}
+td{padding:10px 10px; border-bottom:1px solid var(--line); vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr.clickable:hover{background:var(--paper-2); cursor:pointer;}
+
+.pill{display:inline-flex; align-items:center; gap:5px; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;}
+.pill.completed{background:#E3ECE0; color:#385C3F;}
+.pill.scheduled{background:var(--sky-soft); color:var(--sky);}
+.pill.attention{background:var(--sun-soft); color:#8A6414;}
+.pill.weather{background:var(--storm-soft); color:var(--storm);}
+.pill.cancelled{background:#E7E4D8; color:var(--ink-soft);}
+.pill.paid{background:#E3ECE0; color:#385C3F;}
+.pill.unpaid{background:var(--sun-soft); color:#8A6414;}
+.pill.overdue{background:var(--clay-soft); color:var(--clay);}
+.pill.draft{background:#E7E4D8; color:var(--ink-soft);}
+
+/* Status shapes — so job status reads by silhouette, not color alone (helps on tiny
+   calendar dots, and for anyone who has trouble telling amber from orange apart). */
+.status-shape{display:inline-block; vertical-align:middle; flex-shrink:0; width:9px; height:9px;}
+.status-shape.scheduled{border-radius:50%; background:var(--sky);}
+.status-shape.completed{border-radius:2px; background:#2F6844;}
+.status-shape.attention{background:#8A6414; clip-path:polygon(50% 0%, 0% 100%, 100% 100%);}
+.status-shape.weather{background:var(--storm); clip-path:polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);}
+.status-shape.cancelled{width:10px; height:3px; border-radius:2px; background:var(--ink-soft);}
+
+.empty{padding:30px 10px; text-align:center; color:var(--ink-soft); font-size:13px;}
+.empty .big{font-family:'Fraunces',serif; font-size:17px; color:var(--ink); margin-bottom:4px;}
+
+/* forms */
+.field{margin-bottom:12px;}
+.field label{display:block; font-size:11.5px; color:var(--ink-soft); margin-bottom:4px;}
+.field input, .field select, .field textarea{
+  width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:var(--radius);
+  background:var(--white); color:var(--ink); font-size:13.5px; font-family:inherit;
+}
+.field textarea{resize:vertical; min-height:60px;}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;}
+
+/* modal */
+.overlay{position:fixed; left:0; top:0; width:100%; height:var(--vvh, 100vh); background:rgba(20,20,15,0.45); display:flex; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto; z-index:50;}
+.modal{background:var(--white); border-radius:var(--radius); width:100%; max-width:560px; border:1px solid var(--line);}
+.modal.wide{max-width:700px;}
+.modal-head{padding:16px 20px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;}
+.modal-head h3{margin:0; font-size:16px;}
+.modal-body{padding:20px; max-height:70vh; overflow-y:auto;}
+.modal-foot{padding:14px 20px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:8px;}
+.x{background:none; border:none; font-size:18px; color:var(--ink-soft); line-height:1;}
+
+.tabbar{display:flex; gap:2px; margin-bottom:16px; border-bottom:1px solid var(--line);}
+.tabbar button{background:none; border:none; padding:9px 14px; font-size:13px; color:var(--ink-soft); border-bottom:2px solid transparent; margin-bottom:-1px;}
+.tabbar button.active{color:var(--ink); font-weight:600; border-bottom-color:var(--moss-700);}
+
+.service-row{display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;}
+.service-row:last-child{border-bottom:none;}
+
+.calendar{display:grid; grid-template-columns:repeat(7,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;}
+.cal-dow{background:var(--paper-2); padding:6px 8px; font-size:10.5px; font-weight:600; color:var(--ink-soft);}
+.cal-cell{background:var(--white); min-height:88px; padding:6px; font-size:11.5px;}
+.cal-cell .datenum{font-size:11px; color:var(--ink-soft); margin-bottom:4px;}
+.cal-cell.other-month{background:var(--paper);}
+.cal-cell.other-month .datenum{opacity:0.4;}
+.cal-job{padding:2px 5px; border-radius:2px; margin-bottom:2px; font-size:10.5px; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.cal-job .status-shape{margin-right:4px;}
+.cal-job.scheduled, .legend-swatch.scheduled{background:var(--sky-soft); color:#2E5A6E;}
+.cal-job.completed, .legend-swatch.completed{background:#E3ECE0; color:#385C3F;}
+.cal-job.attention, .legend-swatch.attention{background:var(--sun-soft); color:#8A6414;}
+.cal-job.weather, .legend-swatch.weather{background:var(--storm-soft); color:var(--storm);}
+.cal-job.cancelled{background:#E7E4D8; color:var(--ink-soft); text-decoration:line-through;}
+.legend-swatch{padding:1px 6px; border-radius:2px; display:inline-block;}
+.cal-legend{font-size:11.5px; color:var(--ink-soft); display:flex; gap:12px; flex-wrap:wrap;}
+.cal-legend .status-shape{margin-right:4px;}
+.cal-header-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:10px;}
+.cal-cell.clickable-day{cursor:pointer;}
+
+.weather-banner{background:var(--clay-soft); border:1px solid #E0B698; border-radius:var(--radius); padding:14px 16px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;}
+.weather-banner .msg{font-size:13.5px; color:#7A3A1B;}
+.weather-banner .msg b{display:block; font-size:14.5px; margin-bottom:2px; font-family:'Fraunces',serif;}
+
+.notice{border:1px solid var(--line); background:var(--paper-2); border-radius:var(--radius); padding:10px 14px; font-size:12.5px; color:var(--ink-soft); margin-bottom:16px;}
+
+.jobitem{border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; margin-bottom:10px; background:var(--white);}
+.jobitem .top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+.jobitem .cust{font-weight:600; font-size:14.5px;}
+.jobitem .addr{color:var(--ink-soft); font-size:12px; margin-top:2px;}
+.jobitem .svc{font-size:12.5px; margin-top:6px;}
+.jobitem .actions{margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;}
+
+.reschedule-row{display:grid; grid-template-columns:1.4fr 1fr auto 1fr; gap:10px; align-items:center; padding:9px 0; border-bottom:1px solid var(--line); font-size:12.5px;}
+.reschedule-row:last-child{border-bottom:none;}
+.arrow{color:var(--ink-soft);}
+
+.toast{position:fixed; bottom:20px; right:20px; background:var(--moss-900); color:#fff; padding:11px 16px; border-radius:var(--radius); font-size:13px; z-index:80; box-shadow:0 4px 16px rgba(0,0,0,0.2);}
+
+@media (max-width:900px){
+  #app{flex-direction:column;}
+  .sidebar{width:100%; position:relative; min-height:auto; padding-top:env(safe-area-inset-top,0px);}
+  .brand{padding:12px 16px 10px;}
+  .brand .sub{display:none;}
+  .rolebar{padding:8px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; border-bottom:none;}
+  .rolebar label{display:none;}
+  .roleToggle{width:auto; min-width:140px;}
+  nav{display:flex; overflow-x:auto; padding:2px 10px 8px; -webkit-overflow-scrolling:touch;}
+  nav .item{border-left:none; border-bottom:3px solid transparent; white-space:nowrap; padding:10px 14px; font-size:14px;}
+  nav .item.active{border-bottom-color:var(--sage);}
+  .sidebar-foot{display:none;}
+  .grid, .grid.g3, .row2, .row3{grid-template-columns:1fr;}
+  main{padding:14px 14px calc(24px + env(safe-area-inset-bottom,0px));}
+  .reschedule-row{grid-template-columns:1fr;}
+  .pagehead{gap:12px;}
+  .pagehead h1{font-size:20px;}
+
+  /* iOS Safari zooms the page when a focused input is under 16px — keep form fields at 16px+ */
+  .field input, .field select, .field textarea{font-size:16px; padding:10px 12px;}
+  .btn{padding:11px 16px; font-size:14px;}
+  .btn.small{padding:8px 12px; font-size:13px;}
+  table{font-size:12.5px;}
+  td, th{padding:9px 8px;}
+
+  .overlay{padding:0; align-items:flex-end;}
+  .modal{max-width:100%; width:100%; border-radius:12px 12px 0 0; max-height:calc(var(--vvh, 100vh) * 0.85); display:flex; flex-direction:column;}
+  .modal-body{max-height:none; flex:1;}
+  .modal-foot{padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));}
+  .toast{left:14px; right:14px; bottom:calc(16px + env(safe-area-inset-bottom,0px)); text-align:center;}
+
+  /* Calendar: names don't fit 7 columns on a phone — show a shape per day, tap the day for the list.
+     The outer .cal-job becomes just a layout wrapper; the inner .status-shape carries the actual
+     color+shape, sized up a bit so triangle/diamond read clearly at a glance. */
+  .cal-dow{padding:4px 2px; font-size:9.5px; text-align:center;}
+  .cal-cell{min-height:46px; padding:4px 2px;}
+  .cal-cell .datenum{font-size:10px; text-align:center; margin-bottom:3px;}
+  .cal-job{
+    background:transparent !important; color:transparent !important;
+    font-size:0; line-height:0; height:auto; width:auto; min-width:0; padding:0;
+    margin:0 2px 3px; display:inline-flex; text-overflow:clip; white-space:normal;
+  }
+  .cal-job .status-shape{ width:9px; height:9px; margin-right:0; }
+  .cal-job.attention .status-shape, .cal-job.weather .status-shape{ width:10px; height:10px; }
+  .cal-job.cancelled .status-shape{ width:11px; height:4px; }
+  .cal-cell > div:not(.datenum){ display:flex; justify-content:center; flex-wrap:wrap; align-items:center; }
+  .cal-cell .more-count{font-size:0;} /* hide "+N more" text, shapes already show density */
+  .cal-legend{font-size:10.5px; gap:8px; justify-content:center; width:100%; margin-top:4px;}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(function(){
+
+/* ============================ STATE ============================ */
+const S = {
+  role: 'owner',
+  tab: 'dashboard',
+  customers: [],
+  jobs: [],
+  invoices: [],
+  expenses: [],
+  settings: { businessName: 'EcoScape', autoInvoice: false, nextInvoiceNum: 1001, homeBase: '61 Clarendon Road', crewMembers: [{name:'Kyle', pin:null}], ownerPin: null },
+  ready: false,
+  calMonth: (()=>{const d=new Date(); return {y:d.getFullYear(), m:d.getMonth()};})(),
+  scheduleView: 'calendar'
+};
+
+let db = null;
+let mcpClient = null;
+let weatherState = { status:'idle', forecast:null, error:null }; // idle|loading|ready|error|unavailable
+
+async function initWeather(){
+  try{ mcpClient = await claude.use('mcp'); }catch(e){ mcpClient = null; }
+  if(!mcpClient){ weatherState.status='unavailable'; return; }
+  try{
+    if(!S.settings.weatherLocationKey){
+      const res = await mcpClient.callTool('AccuWeather®','widgets-search-claude',{queryParams:{query:'Lake Ronkonkoma, NY'}});
+      const results = res.payload && res.payload.results;
+      if(results && results[0]){ S.settings.weatherLocationKey = results[0].locationKey; saveSettings(); }
+    }
+  }catch(e){ /* leave unset — loadWeatherForecast degrades below */ }
+  loadWeatherForecast();
+}
+
+/* ============================ REAL ROUTE ORDERING (TomTom) ============================ */
+let routeCalcState = 'idle'; // idle|working|error
+function haversineMeters(a, b){
+  const R = 6371000, toRad = d=>d*Math.PI/180;
+  const dLat = toRad(b.lat-a.lat), dLon = toRad(b.lon-a.lon);
+  const s = Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+}
+async function geocodeAddress(address){
+  const res = await mcpClient.callTool('TomTom Maps','tomtom-geocode',{query: address, limit: 1, countries: ['US']});
+  const f = res.payload && res.payload.features && res.payload.features[0];
+  if(!f) return null;
+  const [lon, lat] = f.geometry.coordinates;
+  return {lat, lon};
+}
+async function ensureHomeBaseCoords(){
+  if(S.settings.homeBaseCoords) return S.settings.homeBaseCoords;
+  const coords = await geocodeAddress(S.settings.homeBase + ', Lake Ronkonkoma, NY');
+  if(coords){ S.settings.homeBaseCoords = coords; saveSettings(); }
+  return coords;
+}
+async function ensureCustomerCoords(c){
+  if(c.geo) return c.geo;
+  // A bare street address with no city/state is ambiguous worldwide — TomTom will happily
+  // match "Clarendon Road" to Sydney or Manchester instead of Lake Ronkonkoma. Anchor every
+  // customer geocode to the service area the same way the shop address already is.
+  const coords = await geocodeAddress(c.address + ', Lake Ronkonkoma, NY');
+  if(coords){ c.geo = coords; saveCustomer(c); }
+  return coords;
+}
+
+// Orders a day's jobs by actual road-network-adjacent straight-line distance from the shop,
+// nearest stop first each step (a standard, fast route heuristic — not a full TSP solve).
+// Then makes one real TomTom routing call on the final order to show actual drive time.
+async function calculateRealRouteOrder(dateStr, startAddressOverride){
+  if(!mcpClient){ toast('TomTom Maps is not connected'); return; }
+  routeCalcState = 'working'; render();
+  try{
+    const home = startAddressOverride ? await geocodeAddress(startAddressOverride) : await ensureHomeBaseCoords();
+    if(!home){ toast('Could not locate that starting address'); routeCalcState='idle'; render(); return; }
+    const jobs = S.jobs.filter(j=>j.date===dateStr && j.status!=='cancelled');
+    const stops = [];
+    for(const j of jobs){
+      const c = getCustomer(j.customerId);
+      if(!c) continue;
+      const coords = await ensureCustomerCoords(c);
+      if(coords) stops.push({job:j, coords});
+    }
+    // Greedy nearest-neighbor from the shop.
+    const remaining = stops.slice();
+    const ordered = [];
+    let current = home;
+    while(remaining.length){
+      let bestIdx = 0, bestDist = Infinity;
+      remaining.forEach((s,i)=>{ const d = haversineMeters(current, s.coords); if(d<bestDist){ bestDist=d; bestIdx=i; } });
+      const [next] = remaining.splice(bestIdx,1);
+      ordered.push(next);
+      current = next.coords;
+    }
+    ordered.forEach((s,i)=>{ s.job.routeOrder = i; saveJob(s.job); });
+
+    // One real routing call for actual drive time across the whole ordered route.
+    if(ordered.length){
+      const locations = [[home.lon,home.lat], ...ordered.map(s=>[s.coords.lon, s.coords.lat])];
+      try{
+        const routeRes = await mcpClient.callTool('TomTom Maps','tomtom-routing',{locations, response_detail:'compact'});
+        const summary = routeRes.payload.features[0].properties.summary;
+        const miles = (summary.lengthInMeters/1609.34).toFixed(1);
+        const mins = Math.round(summary.travelTimeInSeconds/60);
+        toast(`Route set — ${miles} mi, about ${mins} min driving`);
+      }catch(e){ toast('Route order set (drive time unavailable)'); }
+    } else {
+      toast('Nothing to route that day');
+    }
+  }catch(e){
+    toast('Could not calculate route right now');
+  }
+  routeCalcState = 'idle';
+  render();
+}
+
+function loadWeatherForecast(){
+  if(!mcpClient || !S.settings.weatherLocationKey){ weatherState = {status:'unavailable', forecast:null, error:null}; render(); return; }
+  weatherState.status='loading'; render();
+  mcpClient.watchTool('AccuWeather®','widgets-daily-claude',
+    {queryParams:{locationKey:S.settings.weatherLocationKey, unit:'imperial'}},
+    (ev)=>{
+      if(ev.type==='data'){
+        weatherState = { status:'ready', forecast: ev.result.payload.dailyForecast, error:null };
+      } else {
+        // Keep any stale forecast visible for transient failures; only clear it on an auth/consent problem.
+        const retract = ['needs_reauth','server_not_connected','blocked_by_policy','consent_required'].includes(ev.error.code);
+        weatherState = { status:'error', forecast: retract? null : weatherState.forecast, error: ev.error };
+      }
+      render();
+    },
+    { refetchInterval: 60*60*1000 } // hourly is plenty for a daily forecast
+  );
+}
+
+// Rain risk for a specific app date string ("2026-09-22"), reading the live forecast.
+function rainChanceForDate(dateStr){
+  if(!weatherState.forecast) return null;
+  const day = weatherState.forecast.find(d=>d.date && d.date.slice(0,10)===dateStr);
+  return day ? Math.max(day.day.rainProbabilityValue||0, day.night.rainProbabilityValue||0) : null;
+}
+function topRainRisk(){
+  const candidates = [todayStr(), addDays(todayStr(),1), addDays(todayStr(),2)];
+  let best = null;
+  candidates.forEach(d=>{
+    const chance = rainChanceForDate(d);
+    if(chance!=null && (best===null || chance>best.chance)) best = {date:d, chance};
+  });
+  return best;
+}
+function renderWeatherCardInner(){
+  const btn = `<button id="weatherBtn" style="background:none;border:none;padding:0;color:var(--clay);font-weight:600;font-size:12px;cursor:pointer">Text customers →</button>`;
+  if(!weatherState.forecast){
+    // Not connected, still loading, or a hard auth failure with nothing cached — fall back to the plain manual card.
+    const sub = weatherState.status==='loading' ? `<span style="color:var(--ink-soft)">Checking forecast…</span>` : btn;
+    return `<div class="label">WEATHER</div><div class="big">☂</div><div class="sub">${sub}</div>`;
+  }
+  const risk = topRainRisk();
+  const big = risk ? risk.chance+'%' : '☂';
+  const dayLabel = !risk ? '' : risk.date===todayStr() ? 'today' : risk.date===addDays(todayStr(),1) ? 'tomorrow' : fmtDate(risk.date);
+  const staleTag = weatherState.status==='error' ? ' <span title="Could not refresh — showing last known forecast">⚠</span>' : '';
+  return `<div class="label">WEATHER</div><div class="big">${big}${staleTag}</div><div class="sub">${risk?`rain chance ${dayLabel} · `:'no rain risk this week · '}${btn}</div>`;
+}
+
+
+const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
+const todayStr = () => fmtISO(new Date());
+function fmtISO(d){ const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+function parseISO(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function addDays(dateStr, n){ const d=parseISO(dateStr); d.setDate(d.getDate()+n); return fmtISO(d); }
+function fmtDate(s){ if(!s) return '—'; const d=parseISO(s); return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function fmtDateFull(s){ if(!s) return '—'; const d=parseISO(s); return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}); }
+function money(n){ n=n||0; const sign = n<0?'-':''; return sign + '$' + Math.abs(Math.round(n*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(msg){
+  const el = document.createElement('div'); el.className='toast'; el.textContent=msg;
+  document.body.appendChild(el); setTimeout(()=>el.remove(), 2600);
+}
+
+const FREQ_DAYS = { 'weekly':7, 'biweekly':14, 'triweekly':21 };
+// Accept whatever the person actually types — "bi weekly", "Bi-Weekly", "tri weekly", etc. —
+// not just the exact dropdown value.
+function normalizeFrequency(raw){
+  const s = (raw||'').toLowerCase().replace(/[\s-]+/g,'');
+  if(s==='weekly') return 'weekly';
+  if(s==='biweekly'||s==='everytwoweeks'||s==='every2weeks') return 'biweekly';
+  if(s==='triweekly'||s==='everythreeweeks'||s==='every3weeks') return 'triweekly';
+  if(s==='onetime'||s==='once'||s==='') return 'one-time';
+  return raw.trim(); // custom/unrecognized text is kept as-is and treated like one-time for scheduling
+}
+
+function freqLabel(freq){
+  if(freq==='one-time') return 'one-time';
+  return 'every ' + ({weekly:'week', biweekly:'2 weeks', triweekly:'3 weeks'}[freq] || freq);
+}
+function customerName(c){
+  if(!c) return 'Deleted customer';
+  const n = `${c.firstName||''} ${c.lastName||''}`.trim();
+  return n || c.phone || c.email || 'Unnamed customer';
+}
+let _customerIndex = new Map();
+function reindexCustomers(){ _customerIndex = new Map(S.customers.map(c=>[c.id,c])); }
+function getCustomer(id){ return _customerIndex.get(id); }
+function jobsForCustomer(id){ return S.jobs.filter(j=>j.customerId===id).sort((a,b)=>b.date.localeCompare(a.date)); }
+function invoicesForCustomer(id){ return S.invoices.filter(i=>i.customerId===id).sort((a,b)=>b.date.localeCompare(a.date)); }
+
+/* ============================ PERSISTENCE ============================ */
+async function initDb(){
+  try{
+    db = await claude.use('db');
+  }catch(e){ db = null; }
+  if(!db){
+    S.ready = true;
+    seedIfEmpty();
+    reindexCustomers();
+    render();
+    return;
+  }
+  try{
+    const [custSnap, jobSnap, invSnap, expSnap, setSnap] = await Promise.all([
+      db.collection('customers').get(),
+      db.collection('jobs').get(),
+      db.collection('invoices').get(),
+      db.collection('expenses').get(),
+      db.doc('app/settings').get()
+    ]);
+    // The db layer returns protected/non-extensible snapshot data — pushing into a loaded
+    // array (e.g. c.services.push(...)) throws "object is not extensible". Deep-clone
+    // everything on the way in so it's ordinary, fully mutable data from here on.
+    const clone = (x) => JSON.parse(JSON.stringify(x));
+    S.customers = custSnap.docs.map(d=>{ const data=clone(d.data()); return {id:d.id, ...data, services: Array.isArray(data.services)?data.services:[]}; });
+    S.jobs = jobSnap.docs.map(d=>({id:d.id, ...clone(d.data())}));
+    S.invoices = invSnap.docs.map(d=>({id:d.id, ...clone(d.data())}));
+    S.expenses = expSnap.docs.map(d=>({id:d.id, ...clone(d.data())}));
+    if(setSnap && setSnap.exists) S.settings = {...S.settings, ...clone(setSnap.data())};
+  }catch(e){ console.warn('db load failed', e); }
+  // Migrate an older plain-string crew list (from before PINs existed) into the new shape.
+  S.settings.crewMembers = (S.settings.crewMembers||[]).map(m => typeof m==='string' ? {name:m, pin:null} : m);
+  // If an owner PIN is set, don't land in Owner view by default — that would make the PIN pointless.
+  if(S.settings.ownerPin) S.role = 'crew';
+  S.ready = true;
+  if(S.customers.length===0 && S.jobs.length===0){ seedIfEmpty(); }
+  reindexCustomers();
+  render();
+}
+
+function saveCustomer(c){ if(db) db.collection('customers').doc(c.id).set(stripId(c)).catch(()=>toast('Could not save — check your connection')); }
+function saveJob(j){ if(db) db.collection('jobs').doc(j.id).set(stripId(j)).catch(()=>toast('Could not save — check your connection')); }
+function saveInvoice(i){ if(db) db.collection('invoices').doc(i.id).set(stripId(i)).catch(()=>toast('Could not save — check your connection')); }
+function saveExpense(e){ if(db) db.collection('expenses').doc(e.id).set(stripId(e)).catch(()=>toast('Could not save — check your connection')); }
+function saveSettings(){ if(db) db.doc('app/settings').set(S.settings).catch(()=>toast('Could not save setting')); }
+function deleteCustomer(id){ if(db) db.collection('customers').doc(id).delete().catch(()=>toast('Could not delete — check your connection')); }
+function deleteJob(id){ if(db) db.collection('jobs').doc(id).delete().catch(()=>toast('Could not delete — check your connection')); }
+function deleteInvoice(id){ if(db) db.collection('invoices').doc(id).delete().catch(()=>toast('Could not delete — check your connection')); }
+function stripId(o){ const {id, ...rest} = o; return rest; }
+
+function seedIfEmpty(){
+  const c1 = {id:uid(), firstName:'John', lastName:'Smith', phone:'(631) 555-0142', email:'jsmith@example.com',
+    address:'123 Example Street, Lake Ronkonkoma, NY', billingAddress:'Same as property', gateNotes:'Side gate, code 4471',
+    serviceNotes:'Dog in backyard on weekends — call ahead.', preferredDay:'Tuesday', status:'active', paymentStatus:'current',
+    customerSince:'2026-04-01', smsOptIn:true, notifyChannel:'text',
+    services:[{id:uid(), name:'Mowing', price:65, frequency:'biweekly'}]};
+  const c2 = {id:uid(), firstName:'Mike', lastName:'Jones', phone:'(631) 555-0198', email:'mjones@example.com',
+    address:'48 Harbor Rd, Lake Grove, NY', billingAddress:'Same as property', gateNotes:'',
+    serviceNotes:'', preferredDay:'Wednesday', status:'active', paymentStatus:'current',
+    customerSince:'2026-05-12', smsOptIn:true, notifyChannel:'text',
+    services:[{id:uid(), name:'Mowing', price:70, frequency:'weekly'}]};
+  const c3 = {id:uid(), firstName:'Dana', lastName:'Reyes', phone:'(631) 555-0177', email:'dreyes@example.com',
+    address:'9 Birchwood Ln, Ronkonkoma, NY', billingAddress:'Same as property', gateNotes:'No gate',
+    serviceNotes:'Prefers morning service.', preferredDay:'Wednesday', status:'active', paymentStatus:'overdue',
+    customerSince:'2026-03-20', smsOptIn:false, notifyChannel:'email',
+    services:[{id:uid(), name:'Mowing', price:60, frequency:'triweekly'}]};
+  S.customers = [c1,c2,c3];
+  S.customers.forEach(saveCustomer);
+
+  // generate jobs: some past completed, some this week
+  const wed = nextWeekdayOnOrAfter(todayStr(), 3); // Wednesday
+  const jobsToAdd = [];
+  [ [c1,'Mowing',65,addDays(todayStr(),-6),'completed'],
+    [c1,'Mowing',65,addDays(todayStr(),8),'scheduled'],
+    [c2,'Mowing',70,addDays(todayStr(),-1),'completed'],
+    [c2,'Mowing',70,addDays(todayStr(),6),'scheduled'],
+    [c3,'Mowing',60,wed,'scheduled'],
+    [c3,'Mowing',60,addDays(wed,21),'scheduled']
+  ].forEach(([c,svc,price,date,status])=>{
+    jobsToAdd.push({id:uid(), customerId:c.id, service:svc, price, date, employee:'Kyle', status,
+      notes:'', photos:[], completedAt: status==='completed'? date:null});
+  });
+  S.jobs = jobsToAdd;
+  S.jobs.forEach(saveJob);
+
+  S.expenses = [
+    {id:uid(), date:addDays(todayStr(),-10), category:'Fuel', amount:62.4, vendor:'Speedway', notes:''},
+    {id:uid(), date:addDays(todayStr(),-20), category:'Equipment', amount:410, vendor:'Craigslist — used blower', notes:'Echo backpack blower'}
+  ];
+  S.expenses.forEach(saveExpense);
+}
+
+function nextWeekdayOnOrAfter(dateStr, weekday){ // 0=Sun..6=Sat
+  let d = parseISO(dateStr);
+  while(d.getDay() !== weekday) d.setDate(d.getDate()+1);
+  return fmtISO(d);
+}
+
+/* ============================ RECURRENCE ============================ */
+function generateOccurrences(startDate, frequency, count){
+  const interval = FREQ_DAYS[frequency];
+  const out = [startDate];
+  if(!interval) return out; // one-time or custom
+  let cur = startDate;
+  for(let i=1;i<count;i++){ cur = addDays(cur, interval); out.push(cur); }
+  return out;
+}
+
+/* ============================ DERIVED ============================ */
+function jobsToday(){ return jobsForDateInRouteOrder(todayStr()); }
+function jobsTomorrow(){ return S.jobs.filter(j=>j.date===addDays(todayStr(),1)); }
+function jobsThisWeek(){ const end = addDays(todayStr(),7); return S.jobs.filter(j=>j.date>=todayStr() && j.date<=end); }
+function monthRevenue(){
+  const ym = todayStr().slice(0,7);
+  // "Estimated" — this counts every active (non-cancelled) job booked this month at its
+  // price, whether or not it's been marked completed yet. It's a projection for the month,
+  // not a strict paid-and-received figure — that distinction belongs to invoicing, not here.
+  return S.jobs.filter(j=>j.date.startsWith(ym) && j.status!=='cancelled').reduce((sum,j)=>sum+(j.price||0),0);
+}
+function monthExpenses(){
+  const ym = todayStr().slice(0,7);
+  return S.expenses.filter(e=>e.date.startsWith(ym)).reduce((sum,e)=>sum+(e.amount||0),0);
+}
+function outstandingTotal(){ return S.invoices.filter(i=>i.status!=='paid' && i.status!=='cancelled' && i.status!=='draft').reduce((s,i)=>s+(i.total-(i.paidAmount||0)),0); }
+function overdueTotal(){ return S.invoices.filter(i=>invoiceStatusLive(i)==='overdue').reduce((s,i)=>s+(i.total-(i.paidAmount||0)),0); }
+function invoiceStatusLive(inv){
+  if(inv.status==='paid' || inv.status==='cancelled' || inv.status==='draft') return inv.status;
+  const bal = inv.total - (inv.paidAmount||0);
+  if(bal<=0) return 'paid';
+  if(inv.dueDate && inv.dueDate < todayStr()) return 'overdue';
+  if((inv.paidAmount||0) > 0) return 'partial';
+  return 'sent';
+}
+
+/* ============================ RENDER ROOT ============================ */
+let _lastShellRole = null;
+function render(){
+  const app = document.getElementById('app');
+  if(!S.ready){ app.innerHTML = `<div style="padding:60px;text-align:center;color:var(--ink-soft)">Loading EcoScape Ops…</div>`; _lastShellRole=null; return; }
+  const isOwner = S.role==='owner';
+  const navItems = isOwner ? [
+    ['dashboard','Home'],['customers','Customers'],['schedule','Schedule'],['money','Money']
+  ] : [ ['myday','My Jobs Today'] ];
+  if(!isOwner && S.tab!=='myday') S.tab='myday';
+  if(isOwner && S.tab==='myday') S.tab='dashboard';
+
+  // The sidebar (nav items, role toggle) only changes shape when the role changes.
+  // Rebuilding the whole shell (sidebar + main) on every click/save was wasted work —
+  // only rebuild it when we actually switch role; otherwise just repaint #main and
+  // update the active-state classes in place.
+  if(_lastShellRole !== S.role){
+    app.innerHTML = `
+      <div class="sidebar">
+        <div class="brand">
+          <div class="name">EcoScape Ops</div>
+          <div class="sub">Lake Ronkonkoma · Suffolk County</div>
+        </div>
+        <div class="rolebar">
+          <label>Signed in as</label>
+          <div class="roleToggle">
+            <button data-role="owner" class="${isOwner?'active':''}">Owner</button>
+            <button data-role="employee" class="${!isOwner?'active':''}">Crew</button>
+          </div>
+        </div>
+        <nav>
+          ${navItems.map(([key,label])=>`<div class="item ${S.tab===key?'active':''}" data-tab="${key}"><span class="dot"></span>${label}</div>`).join('')}
+        </nav>
+        <div class="sidebar-foot">Prototype — mock data.<br>No live payments, SMS, or weather feed.</div>
+      </div>
+      <main id="main"></main>
+    `;
+    document.querySelectorAll('.roleToggle button').forEach(b=>b.onclick=()=>{
+      const target = b.dataset.role;
+      if(target==='owner' && S.role!=='owner' && S.settings.ownerPin){
+        promptVerifyPin('Owner PIN', S.settings.ownerPin, ()=>{ S.role='owner'; render(); });
+      } else {
+        S.role=target; render();
+      }
+    });
+    document.querySelectorAll('nav .item').forEach(el=>el.onclick=()=>{ S.tab=el.dataset.tab; render(); });
+    _lastShellRole = S.role;
+  } else {
+    document.querySelectorAll('nav .item').forEach(el=>el.classList.toggle('active', el.dataset.tab===S.tab));
+  }
+
+  const main = document.getElementById('main');
+  const renderers = {
+    dashboard: renderDashboard, customers: renderCustomers, schedule: renderSchedule,
+    money: renderMoney, myday: renderMyDay
+  };
+  (renderers[S.tab] || renderDashboard)(main);
+}
+
+/* ============================ DASHBOARD ============================ */
+function renderDashboard(main){
+  const today = jobsToday(), tmrw = jobsTomorrow(), week = jobsThisWeek();
+  const completed = today.filter(j=>j.status==='completed').length;
+  const remaining = today.length - completed;
+
+  main.innerHTML = `
+    <div class="pagehead"><h1>Home</h1><div class="meta">${fmtDateFull(todayStr())}</div></div>
+
+    <div class="grid">
+      <div class="card accent-sage"><div class="label">TODAY</div><div class="big">${today.length}</div><div class="sub">${completed} completed · ${remaining} remaining</div></div>
+      <div class="card accent-sky"><div class="label">TOMORROW</div><div class="big">${tmrw.length}</div><div class="sub">jobs scheduled</div></div>
+      <div class="card accent-sun"><div class="label">DUE THIS WEEK</div><div class="big">${week.length}</div><div class="sub">across all customers</div></div>
+      <div class="card accent-clay">${renderWeatherCardInner()}</div>
+    </div>
+
+    <div class="grid">
+      <div class="card accent-sun"><div class="label">OUTSTANDING</div><div class="big">${money(outstandingTotal())}</div><div class="sub">unpaid balance</div></div>
+      <div class="card accent-sage"><div class="label">REVENUE THIS MONTH</div><div class="big">${money(monthRevenue())}</div><div class="sub">booked jobs this month, completed or not</div></div>
+      <div class="card"><div class="label">EST. PROFIT THIS MONTH</div><div class="big">${money(monthRevenue()-monthExpenses())}</div><div class="sub">revenue − ${money(monthExpenses())} expenses</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Quick actions</h3></div>
+      <div class="panel-body" style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn secondary small" id="qaAddCustomer">+ Add customer</button>
+        <button class="btn secondary small" id="qaBookJob">+ Book a job</button>
+        <button class="btn secondary small" id="qaLogGas">⛽ Log gas</button>
+        <button class="btn secondary small" id="qaLogEquip">🔧 Log equipment</button>
+        <button class="btn secondary small" id="qaAddExpense">+ Other expense</button>
+        <button class="btn secondary small" id="qaMoveDay">🌧 Move a day (weather)</button>
+        <button class="btn secondary small" id="qaManageCrew">👥 Manage crew</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Today's jobs</h3><button class="btn secondary small" data-go="schedule">View schedule</button></div>
+      <div class="panel-body">
+        ${today.length? renderJobTable(today) : `<div class="empty"><div class="big">Nothing scheduled today</div>No jobs are booked for today.</div>`}
+      </div>
+    </div>
+  `;
+  main.querySelectorAll('[data-go]').forEach(b=>b.onclick=(e)=>{ e.preventDefault(); S.tab=b.dataset.go; render(); });
+  main.querySelector('#qaAddCustomer').onclick = ()=>openCustomerModal(null);
+  main.querySelector('#qaBookJob').onclick = ()=>openBookingModal();
+  main.querySelector('#qaLogGas').onclick = ()=>openAddExpenseModal('Fuel');
+  main.querySelector('#qaLogEquip').onclick = ()=>openAddExpenseModal('Equipment');
+  main.querySelector('#qaAddExpense').onclick = ()=>openAddExpenseModal();
+  main.querySelector('#qaMoveDay').onclick = ()=>openMoveDayModal();
+  main.querySelector('#qaManageCrew').onclick = ()=>openManageCrewModal();
+  const wb = main.querySelector('#weatherBtn');
+  if(wb) wb.onclick = ()=>{
+    const recipients = getWeatherRecipients();
+    if(recipients.length===0){ toast('No active customers opted in to text'); return; }
+    openWeatherBlastModal(recipients);
+  };
+  wireJobTableRows(main);
+}
+
+function fmtDateDow(s){ if(!s) return '—'; const d=parseISO(s); return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
+function renderJobTable(jobs){
+  return `<table><thead><tr><th>Date</th><th>Customer</th><th>Service</th><th>Address</th><th>Status</th><th></th></tr></thead><tbody>
+    ${jobs.map(j=>{
+      const c = getCustomer(j.customerId);
+      return `<tr class="clickable" data-job="${j.id}">
+        <td>${fmtDateDow(j.date)}</td>
+        <td>${esc(customerName(c))}</td>
+        <td>${esc(j.service)} · ${money(j.price)}</td>
+        <td>${esc(c?c.address:'')}</td>
+        <td>${statusPill(j.status)}</td>
+        <td><button class="btn secondary small" data-open-job="${j.id}">Open</button></td>
+      </tr>`;
+    }).join('')}
+  </tbody></table>`;
+}
+function wireJobTableRows(scope){
+  scope.querySelectorAll('[data-open-job]').forEach(b=>{ b.onclick=(e)=>{ e.stopPropagation(); openJobModal(b.dataset.openJob); }; });
+  scope.querySelectorAll('tr[data-job]').forEach(r=>{ r.onclick=()=>openJobModal(r.dataset.job); });
+}
+function statusPill(status){
+  const map = { scheduled:'scheduled', assigned:'scheduled', 'en route':'scheduled', 'in progress':'scheduled',
+    completed:'completed', 'unable to complete':'attention', 'weather delay':'weather', cancelled:'cancelled' };
+  const cls = map[status] || 'scheduled';
+  return `<span class="pill ${cls}"><span class="status-shape ${cls}"></span>${esc(status)}</span>`;
+}
+
+/* ============================ CUSTOMERS ============================ */
+function renderCustomers(main){
+  main.innerHTML = `
+    <div class="pagehead"><h1>Customers</h1><button class="btn" id="addCust">+ Add customer</button></div>
+    <div class="panel"><div class="panel-body" style="padding:0">
+      ${S.customers.length ? `<table><thead><tr><th>Name</th><th>Address</th><th>Services</th><th>Preferred day</th><th>Status</th><th>Payment</th><th></th></tr></thead><tbody>
+        ${S.customers.map(c=>`
+          <tr class="clickable" data-cust="${c.id}">
+            <td><b>${esc(customerName(c))}</b><br><span style="color:var(--ink-soft);font-size:11.5px">${esc(c.phone)}</span></td>
+            <td>${esc(c.address)}</td>
+            <td>${c.services.map(s=>`${esc(s.name)} (${money(s.price)}${s.frequency!=='one-time'? ' / '+s.frequency:''})`).join('<br>')}</td>
+            <td>${esc(c.preferredDay||'—')}</td>
+            <td><span class="pill ${c.status==='active'?'completed':'cancelled'}">${c.status}</span></td>
+            <td><span class="pill ${c.paymentStatus==='overdue'?'overdue':'paid'}">${c.paymentStatus||'current'}</span></td>
+            <td><button class="btn secondary small" data-open-cust="${c.id}">View</button></td>
+          </tr>`).join('')}
+      </tbody></table>` : `<div class="empty"><div class="big">No customers yet</div>Add your first customer to start scheduling.</div>`}
+    </div></div>
+  `;
+  main.querySelector('#addCust').onclick = ()=>openCustomerModal(null);
+  main.querySelectorAll('[data-open-cust]').forEach(b=>b.onclick=(e)=>{e.stopPropagation(); openCustomerDetail(b.dataset.openCust);});
+  main.querySelectorAll('tr[data-cust]').forEach(r=>r.onclick=()=>openCustomerDetail(r.dataset.cust));
+}
+
+function openCustomerModal(existing){
+  const c = existing || { id:uid(), firstName:'', lastName:'', phone:'', email:'', address:'', billingAddress:'',
+    gateNotes:'', serviceNotes:'', preferredDay:'Monday', status:'active', paymentStatus:'current',
+    customerSince: todayStr(), smsOptIn:false, notifyChannel:'text', services:[] };
+  const isNew = !existing;
+  showModal(isNew? 'Add customer':'Edit customer', `
+    <div class="row2">
+      <div class="field"><label>First name</label><input id="f_fn" value="${esc(c.firstName)}"></div>
+      <div class="field"><label>Last name</label><input id="f_ln" value="${esc(c.lastName)}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Phone</label><input id="f_phone" value="${esc(c.phone)}"></div>
+      <div class="field"><label>Email</label><input id="f_email" value="${esc(c.email)}"></div>
+    </div>
+    <div class="field"><label>Property address</label><input id="f_addr" value="${esc(c.address)}"></div>
+    <div class="field"><label>Billing address</label><input id="f_baddr" value="${esc(c.billingAddress)}"></div>
+    <div class="field"><label>Gate / access instructions</label><input id="f_gate" value="${esc(c.gateNotes)}"></div>
+    <div class="field"><label>Service notes</label><textarea id="f_notes">${esc(c.serviceNotes)}</textarea></div>
+    <div class="row3">
+      <div class="field"><label>Preferred day</label>
+        <select id="f_day">${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map(d=>`<option ${c.preferredDay===d?'selected':''}>${d}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Status</label>
+        <select id="f_status"><option value="active" ${c.status==='active'?'selected':''}>Active</option><option value="inactive" ${c.status==='inactive'?'selected':''}>Inactive</option></select>
+      </div>
+      <div class="field"><label>Notification preference</label>
+        <select id="f_notify"><option value="text" ${c.notifyChannel==='text'?'selected':''}>Text</option><option value="email" ${c.notifyChannel==='email'?'selected':''}>Email</option></select>
+      </div>
+    </div>
+    <div class="field"><label><input type="checkbox" id="f_sms" ${c.smsOptIn?'checked':''} style="width:auto;margin-right:6px;">Customer has opted in to SMS</label></div>
+  `, ()=>{
+    c.firstName=val('f_fn'); c.lastName=val('f_ln'); c.phone=val('f_phone'); c.email=val('f_email');
+    c.address=val('f_addr'); c.billingAddress=val('f_baddr'); c.gateNotes=val('f_gate'); c.serviceNotes=val('f_notes');
+    c.preferredDay=val('f_day'); c.status=val('f_status'); c.notifyChannel=val('f_notify');
+    c.smsOptIn = document.getElementById('f_sms').checked;
+    const digits = s=>(s||'').replace(/\D/g,'');
+    if(isNew && digits(c.phone)){
+      const dup = S.customers.find(x=>digits(x.phone)===digits(c.phone));
+      if(dup){
+        confirmAction(`${customerName(dup)} already has this phone number on file — could this be the same customer? Add ${customerName(c)} anyway?`, ()=>finishSaveCustomer(c, isNew), 'Add anyway');
+        return false;
+      }
+    }
+    finishSaveCustomer(c, isNew);
+    return true;
+  });
+}
+function finishSaveCustomer(c, isNew){
+    if(isNew){
+      c.paymentStatus='current'; S.customers.push(c);
+    } else {
+      const existingRef = getCustomer(c.id);
+      if(existingRef) Object.assign(existingRef, c); else S.customers.push(c);
+    }
+    reindexCustomers();
+    saveCustomer(c); closeModal();
+    if(isNew) promptRecurringSetup(c); else render();
+}
+function val(id){ return document.getElementById(id).value.trim(); }
+
+const DOW = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+// After adding a brand-new customer, offer to set up their recurring service right away —
+// defaulting the first visit to the next occurrence of their preferred day — without
+// making the person leave the Customers tab to go find the Schedule tab.
+function promptRecurringSetup(c){
+  const overlay = showModal('Customer added', `
+    <p style="margin:0 0 4px">${esc(customerName(c))} has been added.</p>
+    <p style="margin:0;color:var(--ink-soft)">Set up their recurring service now?</p>
+  `, null, {noFooter:true});
+  const modal = overlay.querySelector('.modal');
+  const footer = document.createElement('div');
+  footer.className = 'modal-foot';
+  footer.innerHTML = `<button class="btn secondary" data-no>Not now</button><button class="btn" data-yes>Yes, set it up</button>`;
+  modal.appendChild(footer);
+  modal.querySelector('[data-no]').onclick = ()=>{ closeModal(); render(); };
+  modal.querySelector('[data-yes]').onclick = ()=>{ closeModal(); openRecurringSetupForm(c); };
+}
+
+function openRecurringSetupForm(c){
+  const dayIdx = DOW.indexOf(c.preferredDay);
+  const defaultStart = dayIdx>=0 ? nextWeekdayOnOrAfter(todayStr(), dayIdx) : todayStr();
+  const showAssign = S.settings.crewMembers.length>1;
+  showModal(`Recurring service — ${customerName(c)}`, `
+    <div class="row2">
+      <div class="field"><label>Service</label><input id="rs_svc" placeholder="Mowing"></div>
+      <div class="field"><label>Price</label><input id="rs_price" type="number" step="0.01" placeholder="65"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Frequency</label>
+        <input id="rs_freq" list="freqOptions" placeholder="weekly, biweekly, triweekly...">
+        <datalist id="freqOptions"><option value="weekly"><option value="biweekly"><option value="triweekly"><option value="one-time"></datalist>
+      </div>
+      <div class="field"><label>First visit</label><input id="rs_start" type="date" value="${defaultStart}"></div>
+    </div>
+    ${showAssign? `<div class="field"><label>Assign to</label><select id="rs_emp">${S.settings.crewMembers.map(m=>`<option>${esc(m.name)}</option>`).join('')}</select></div>`:''}
+    <div class="notice">${c.preferredDay ? `Defaulted to their preferred day (${esc(c.preferredDay)}) — change it if that's not right.` : ''} This books the next 6 visits, or just the one if you set frequency to one-time. Weather or scheduling conflicts can still be moved on a per-job basis afterward from the Schedule tab, or texted out from the Home tab — this just sets the pattern.</div>
+  `, ()=>{
+    const svc = val('rs_svc'); const price = parseFloat(val('rs_price'));
+    const freq = normalizeFrequency(val('rs_freq')); const start = document.getElementById('rs_start').value;
+    if(!svc || isNaN(price) || !start){ toast('Fill in service, price, and first visit date'); return false; }
+    const employee = showAssign ? val('rs_emp') : S.settings.crewMembers[0].name;
+    if(!Array.isArray(c.services)) c.services = [];
+    c.services.push({id:uid(), name:svc, price, frequency:freq});
+    saveCustomer(c);
+    const dates = generateOccurrences(start, freq, freq==='one-time'?1:6);
+    dates.forEach(d=>{
+      const j = {id:uid(), customerId:c.id, service:svc, price, date:d, employee, status:'scheduled', notes:'', photos:[], completedAt:null, frequency:freq};
+      S.jobs.push(j); saveJob(j);
+    });
+    closeModal();
+    S.tab = 'schedule'; S.scheduleView = 'calendar';
+    render(); toast(`${dates.length} visit${dates.length>1?'s':''} scheduled for ${customerName(c)} — ${freqLabel(freq)}, starting ${fmtDateDow(dates[0])}`);
+    return true;
+  });
+}
+
+function openCustomerDetail(id){
+  const c = getCustomer(id); if(!c) return;
+  const jobs = jobsForCustomer(id); const invoices = invoicesForCustomer(id);
+  const activeTab = { t:'history' };
+  function mismatchedJobs(){
+    if(!c.preferredDay) return [];
+    const wantDow = DOW.indexOf(c.preferredDay);
+    if(wantDow<0) return [];
+    return jobs.filter(j=> !['completed','cancelled'].includes(j.status) && parseISO(j.date).getDay()!==wantDow);
+  }
+  function body(){
+    const mismatches = mismatchedJobs();
+    return `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:20px;font-weight:600">${esc(customerName(c))}</div>
+        <div style="color:var(--ink-soft);font-size:12.5px;margin-top:2px">${esc(c.address)}</div>
+        <div style="color:var(--ink-soft);font-size:12.5px">${esc(c.phone)} · ${esc(c.email)}</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn secondary small" id="editCustBtn">Edit</button>
+        <button class="btn small" id="addServiceBtn">+ Add service</button>
+        <button class="btn danger small" id="deleteCustBtn">Delete</button>
+      </div>
+    </div>
+    ${c.gateNotes? `<div class="notice">Access: ${esc(c.gateNotes)}</div>`:''}
+    ${c.serviceNotes? `<div class="notice">Notes: ${esc(c.serviceNotes)}</div>`:''}
+    ${mismatches.length? `<div class="notice" style="border-color:var(--sun);background:var(--sun-soft)">
+      ${mismatches.length} upcoming visit${mismatches.length===1?'':'s'} ${mismatches.length===1?"doesn't":"don't"} fall on their preferred day (${esc(c.preferredDay)}) — probably booked before that was set.
+      ${mismatches.map(j=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <span>${fmtDateDow(j.date)} — ${esc(j.service)}</span>
+        <button class="btn secondary small" data-fix-day="${j.id}">Move to ${esc(c.preferredDay)}</button>
+      </div>`).join('')}
+    </div>`:''}
+
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-head"><h3>Services</h3></div>
+      <div class="panel-body">
+        ${c.services.length? c.services.map(s=>`
+          <div class="service-row">
+            <div><b>${esc(s.name)}</b> — ${money(s.price)} <span style="color:var(--ink-soft)">${s.frequency==='one-time'?'one-time':'every '+({weekly:'week',biweekly:'2 weeks',triweekly:'3 weeks'}[s.frequency]||s.frequency)}</span></div>
+            <div style="display:flex;gap:6px">
+              <button class="btn secondary small" data-edit-svc="${s.id}">Edit</button>
+              <button class="btn secondary small" data-remove-svc="${s.id}">Remove</button>
+            </div>
+          </div>`).join('') : `<div class="empty">No services yet.</div>`}
+      </div>
+    </div>
+
+    <div class="tabbar">
+      <button data-t="history" class="${activeTab.t==='history'?'active':''}">Job history</button>
+      <button data-t="invoices" class="${activeTab.t==='invoices'?'active':''}">Invoices</button>
+    </div>
+    <div id="custTabBody"></div>
+    `;
+  }
+  const overlay = showModal('Customer', body(), null, {wide:true, noFooter:true});
+  const mb = overlay.querySelector('[data-modal-body]');
+  function wireTop(){
+    mb.querySelector('#editCustBtn').onclick=()=>{ closeModal(); openCustomerModal(c); };
+    mb.querySelector('#addServiceBtn').onclick=()=>{ closeModal(); openRecurringSetupForm(c); };
+    mb.querySelectorAll('[data-fix-day]').forEach(b=>b.onclick=()=>{
+      const j = S.jobs.find(x=>x.id===b.dataset.fixDay); if(!j) return;
+      const wantDow = DOW.indexOf(c.preferredDay);
+      j.date = nextWeekdayOnOrAfter(j.date, wantDow);
+      saveJob(j); closeModal(); openCustomerDetail(id); toast(`Moved to ${fmtDateDow(j.date)}`);
+    });
+    mb.querySelector('#deleteCustBtn').onclick=()=>{
+      const hasHistory = jobs.length>0 || invoices.length>0;
+      const msg = hasHistory
+        ? `Delete ${customerName(c)}? This also permanently deletes their ${jobs.length} job${jobs.length===1?'':'s'} and ${invoices.length} invoice${invoices.length===1?'':'s'}. This can't be undone.`
+        : `Delete ${customerName(c)}? This can't be undone.`;
+      confirmAction(msg, ()=>{
+        const jobIds = new Set(jobs.map(j=>j.id));
+        const invoiceIds = new Set(invoices.map(i=>i.id));
+        S.customers = S.customers.filter(x=>x.id!==c.id);
+        S.jobs = S.jobs.filter(j=>!jobIds.has(j.id));
+        S.invoices = S.invoices.filter(i=>!invoiceIds.has(i.id));
+        reindexCustomers();
+        jobs.forEach(j=>deleteJob(j.id));
+        invoices.forEach(i=>deleteInvoice(i.id));
+        deleteCustomer(c.id);
+        closeModal(); render(); toast(`${customerName(c)} and their history deleted`);
+      });
+    };
+    mb.querySelectorAll('[data-remove-svc]').forEach(b=>b.onclick=()=>{
+      c.services = c.services.filter(s=>s.id!==b.dataset.removeSvc); saveCustomer(c); closeModal(); openCustomerDetail(id);
+    });
+    mb.querySelectorAll('[data-edit-svc]').forEach(b=>b.onclick=()=>{
+      const svc = c.services.find(s=>s.id===b.dataset.editSvc); if(!svc) return;
+      closeModal(); openEditServiceModal(c, svc);
+    });
+    mb.querySelectorAll('.tabbar button').forEach(b=>b.onclick=()=>{ activeTab.t=b.dataset.t; mb.innerHTML=body(); wireTop(); renderTabBody(); });
+    renderTabBody();
+  }
+  function renderTabBody(){
+    const holder = mb.querySelector('#custTabBody');
+    if(activeTab.t==='history'){
+      holder.innerHTML = jobs.length? `<table><thead><tr><th>Date</th><th>Service</th><th>Price</th><th>Status</th><th></th></tr></thead><tbody>
+        ${jobs.map(j=>`<tr class="clickable" data-job="${j.id}"><td>${fmtDate(j.date)}</td><td>${esc(j.service)}</td><td>${money(j.price)}</td><td>${statusPill(j.status)}</td><td><button class="btn secondary small" data-open-job="${j.id}">Open</button></td></tr>`).join('')}
+      </tbody></table>` : `<div class="empty">No jobs yet.</div>`;
+      wireJobTableRows(holder);
+    } else {
+      holder.innerHTML = invoices.length? `<table><thead><tr><th>Invoice</th><th>Date</th><th>Total</th><th>Status</th></tr></thead><tbody>
+        ${invoices.map(i=>`<tr><td>#${i.number}</td><td>${fmtDate(i.date)}</td><td>${money(i.total)}</td><td><span class="pill ${invoiceStatusLive(i)}">${invoiceStatusLive(i)}</span></td></tr>`).join('')}
+      </tbody></table>` : `<div class="empty">No invoices yet.</div>`;
+    }
+  }
+  wireTop();
+}
+
+function openEditServiceModal(c, svc){
+  const oldName = svc.name, oldPrice = svc.price, oldFreq = svc.frequency;
+  showModal('Edit service', `
+    <div class="field"><label>Service name</label><input id="s_name" value="${esc(svc.name)}"></div>
+    <div class="row2">
+      <div class="field"><label>Price</label><input id="s_price" type="number" step="0.01" value="${svc.price}"></div>
+      <div class="field"><label>Frequency</label>
+        <input id="s_freq" list="freqOptions" value="${esc(svc.frequency)}">
+        <datalist id="freqOptions"><option value="weekly"><option value="biweekly"><option value="triweekly"><option value="one-time"></datalist>
+      </div>
+    </div>
+    <div class="notice">This changes the service going forward. Any already-booked upcoming visits are separate — you'll get the option to update those too, if there are any.</div>
+  `, ()=>{
+    const name = val('s_name'); const price = parseFloat(val('s_price'));
+    if(!name || isNaN(price)){ toast('Enter a service name and price'); return false; }
+    const freq = normalizeFrequency(val('s_freq'));
+    svc.name = name; svc.price = price; svc.frequency = freq;
+    saveCustomer(c);
+
+    const changed = (name!==oldName || price!==oldPrice || freq!==oldFreq);
+    const futureJobs = jobsForCustomer(c.id)
+      .filter(j=>j.service===oldName && !['completed','cancelled'].includes(j.status) && j.date>=todayStr())
+      .sort((a,b)=>a.date.localeCompare(b.date));
+
+    closeModal();
+    if(changed && futureJobs.length>0){
+      confirmUpdateFutureVisits(c, futureJobs, {name, price, freq, oldFreq});
+    } else {
+      openCustomerDetail(c.id);
+    }
+    return true;
+  });
+}
+
+function confirmUpdateFutureVisits(c, futureJobs, {name, price, freq, oldFreq}){
+  const overlay = showModal('Update upcoming visits too?', `
+    <p style="margin:0 0 8px">${customerName(c)} has ${futureJobs.length} upcoming visit${futureJobs.length===1?'':'s'} already booked under the old details.</p>
+    <p style="margin:0;color:var(--ink-soft)">${freq!==oldFreq ? `Since the frequency changed, updating will re-space those visits starting from ${fmtDateDow(futureJobs[0].date)} using the new ${freqLabel(freq)} cadence.` : 'Updating will just refresh the name and price on those visits — dates stay the same.'}</p>
+  `, null, {noFooter:true});
+  const modal = overlay.querySelector('.modal');
+  const footer = document.createElement('div');
+  footer.className = 'modal-foot';
+  footer.innerHTML = `<button class="btn secondary" data-skip>Leave them as-is</button><button class="btn" data-update>Update ${futureJobs.length===1?'it':'them'}</button>`;
+  modal.appendChild(footer);
+  modal.querySelector('[data-skip]').onclick = ()=>{ closeModal(); openCustomerDetail(c.id); };
+  modal.querySelector('[data-update]').onclick = ()=>{
+    if(freq!==oldFreq){
+      const dates = generateOccurrences(futureJobs[0].date, freq, futureJobs.length);
+      futureJobs.forEach((j,i)=>{ j.date = dates[i]; j.service = name; j.price = price; j.frequency = freq; saveJob(j); });
+    } else {
+      futureJobs.forEach(j=>{ j.service = name; j.price = price; saveJob(j); });
+    }
+    closeModal(); openCustomerDetail(c.id); toast(`Updated ${futureJobs.length} upcoming visit${futureJobs.length===1?'':'s'}`);
+  };
+}
+
+/* ============================ SCHEDULE ============================ */
+function orphanedJobs(){ return S.jobs.filter(j=>!getCustomer(j.customerId)); }
+
+// Manual route order for a single day's jobs — real turn-by-turn distance needs a mapping
+// service this page can't call directly, so instead the owner sets the closest-to-furthest
+// order themselves once (starting from the shop address) and the app remembers it per job.
+function jobsForDateInRouteOrder(dateStr){
+  return S.jobs.filter(j=>j.date===dateStr)
+    .sort((a,b)=>(a.routeOrder??9999)-(b.routeOrder??9999) || a.id.localeCompare(b.id));
+}
+function moveJobInRoute(dateStr, jobId, delta){
+  const ordered = jobsForDateInRouteOrder(dateStr);
+  const idx = ordered.findIndex(j=>j.id===jobId);
+  const swapWith = idx+delta;
+  if(idx<0 || swapWith<0 || swapWith>=ordered.length) return;
+  [ordered[idx], ordered[swapWith]] = [ordered[swapWith], ordered[idx]];
+  ordered.forEach((j,i)=>{ j.routeOrder = i; saveJob(j); });
+  render();
+}
+
+function renderSchedule(main){
+  const orphans = orphanedJobs();
+  main.innerHTML = `
+    <div class="pagehead">
+      <h1>Schedule</h1>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn secondary" id="viewToggle">${S.scheduleView==='calendar'?'List view':'Calendar view'}</button>
+        <button class="btn secondary" id="moveDayBtn">Move a day (weather)</button>
+        <button class="btn" id="bookBtn">+ Book a job</button>
+      </div>
+    </div>
+    ${orphans.length? `<div class="notice" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <span>${orphans.length} appointment${orphans.length===1?'':'s'} belong${orphans.length===1?'s':''} to a deleted customer.</span>
+      <button class="btn secondary small" id="cleanupOrphans">Remove ${orphans.length===1?'it':'them'}</button>
+    </div>`:''}
+    <div id="scheduleBody"></div>
+  `;
+  main.querySelector('#bookBtn').onclick = openBookingModal;
+  main.querySelector('#moveDayBtn').onclick = openMoveDayModal;
+  main.querySelector('#viewToggle').onclick = ()=>{ S.scheduleView = S.scheduleView==='calendar'?'list':'calendar'; render(); };
+  const cleanupBtn = main.querySelector('#cleanupOrphans');
+  if(cleanupBtn) cleanupBtn.onclick = ()=>{
+    confirmAction(`Delete ${orphans.length} appointment${orphans.length===1?'':'s'} left over from deleted customer${orphans.length===1?'':'s'}? This can't be undone.`, ()=>{
+      orphans.forEach(j=>{ deleteJob(j.id); });
+      const orphanIds = new Set(orphans.map(j=>j.id));
+      S.jobs = S.jobs.filter(j=>!orphanIds.has(j.id));
+      render(); toast('Cleaned up');
+    });
+  };
+  const body = main.querySelector('#scheduleBody');
+  if(S.scheduleView==='calendar') renderCalendar(body); else renderScheduleList(body);
+}
+
+// Bulk-move every active job from one day to another — e.g. "move all Monday's jobs to
+// Tuesday" after a rainout — instead of dragging each one individually.
+function openManageCrewModal(){
+  function bodyHtml(){
+    return `
+      <div class="notice">Add each crew member's name so you can assign jobs to them. An optional PIN stops someone else from picking their name on the Crew screen.</div>
+      ${S.settings.crewMembers.map(m=>`
+        <div class="service-row">
+          <div><b>${esc(m.name)}</b>${m.pin? ' <span style="color:var(--ink-soft);font-size:11.5px">· PIN set</span>':''}</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn secondary small" data-set-pin="${esc(m.name)}">${m.pin?'Change PIN':'Set PIN'}</button>
+            ${S.settings.crewMembers.length>1? `<button class="btn secondary small" data-remove-crew="${esc(m.name)}">Remove</button>`:''}
+          </div>
+        </div>`).join('')}
+      <div class="field" style="margin-top:12px"><label>Add crew member</label>
+        <div style="display:flex;gap:8px"><input id="newCrewName" placeholder="Name"><button class="btn small" id="addCrewBtn">Add</button></div>
+      </div>
+      <div class="panel" style="margin-top:16px"><div class="panel-head"><h3>Owner access</h3></div>
+        <div class="panel-body">
+          <p style="margin:0 0 10px;color:var(--ink-soft);font-size:12.5px">${S.settings.ownerPin? 'A PIN is required to switch into Owner view.' : 'Anyone with the link can currently switch to Owner view with no PIN.'}</p>
+          <button class="btn secondary small" id="setOwnerPinBtn">${S.settings.ownerPin?'Change owner PIN':'Set owner PIN'}</button>
+          ${S.settings.ownerPin? `<button class="btn secondary small" id="clearOwnerPinBtn">Remove PIN</button>`:''}
+        </div>
+      </div>
+    `;
+  }
+  const overlay = showModal('Manage crew', bodyHtml(), null, {okOnly:true});
+  function wire(){
+    const mb = overlay.querySelector('[data-modal-body]');
+    mb.querySelectorAll('[data-remove-crew]').forEach(b=>b.onclick=()=>{
+      S.settings.crewMembers = S.settings.crewMembers.filter(m=>m.name!==b.dataset.removeCrew);
+      saveSettings(); mb.innerHTML=bodyHtml(); wire(); render();
+    });
+    mb.querySelectorAll('[data-set-pin]').forEach(b=>b.onclick=()=>{
+      promptForPin(`Set a PIN for ${b.dataset.setPin}`, (pin)=>{
+        const m = S.settings.crewMembers.find(x=>x.name===b.dataset.setPin);
+        if(m){ m.pin = pin; saveSettings(); mb.innerHTML=bodyHtml(); wire(); toast('PIN set'); }
+      });
+    });
+    mb.querySelector('#addCrewBtn').onclick = ()=>{
+      const name = mb.querySelector('#newCrewName').value.trim();
+      if(!name){ toast('Enter a name'); return; }
+      if(S.settings.crewMembers.some(m=>m.name===name)){ toast('Already on the list'); return; }
+      S.settings.crewMembers.push({name, pin:null}); saveSettings(); mb.innerHTML=bodyHtml(); wire(); render();
+    };
+    mb.querySelector('#setOwnerPinBtn').onclick = ()=>{
+      promptForPin('Set the Owner PIN', (pin)=>{
+        S.settings.ownerPin = pin; saveSettings(); mb.innerHTML=bodyHtml(); wire(); toast('Owner PIN set');
+      });
+    };
+    const clearBtn = mb.querySelector('#clearOwnerPinBtn');
+    if(clearBtn) clearBtn.onclick = ()=>{
+      S.settings.ownerPin = null; saveSettings(); mb.innerHTML=bodyHtml(); wire(); toast('Owner PIN removed');
+    };
+  }
+  wire();
+}
+
+function openMoveDayModal(){
+  const todayRain = rainChanceForDate(todayStr());
+  const tmrwRain = rainChanceForDate(addDays(todayStr(),1));
+  const forecastLine = weatherState.forecast
+    ? `<div class="notice">Live forecast: ${todayRain!=null?`${todayRain}% rain today`:'—'}${tmrwRain!=null?`, ${tmrwRain}% tomorrow`:''}.</div>`
+    : '';
+  showModal('Move a day\'s jobs', `
+    ${forecastLine}
+    <div class="row2">
+      <div class="field"><label>Move jobs from</label><input id="md_from" type="date" value="${todayStr()}"></div>
+      <div class="field"><label>To</label><input id="md_to" type="date" value="${addDays(todayStr(),1)}"></div>
+    </div>
+    <div class="notice">Moves every scheduled job on that day (skips ones already completed or cancelled) and marks them as weather-delayed so they're easy to spot on the calendar. You can text affected customers afterward from the Home tab.</div>
+  `, ()=>{
+    const from = document.getElementById('md_from').value;
+    const to = document.getElementById('md_to').value;
+    if(!from || !to){ toast('Pick both dates'); return false; }
+    if(from===to){ toast('Pick two different dates'); return false; }
+    const affected = S.jobs.filter(j=>j.date===from && !['completed','cancelled'].includes(j.status));
+    if(affected.length===0){ toast(`No active jobs on ${fmtDateDow(from)}`); return false; }
+    affected.forEach(j=>{
+      j.date = to; j.status = 'weather delay';
+      j.notes = (j.notes? j.notes+' — ' : '') + `Moved from ${fmtDateDow(from)} due to weather`;
+      saveJob(j);
+    });
+    closeModal(); render();
+    toast(`Moved ${affected.length} job${affected.length===1?'':'s'} from ${fmtDateDow(from)} to ${fmtDateDow(to)}`);
+    return true;
+  });
+}
+
+function renderCalendar(holder){
+  const {y,m} = S.calMonth;
+  const first = new Date(y,m,1); const startDow = first.getDay();
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const prevDays = new Date(y,m,0).getDate();
+  const cells = [];
+  for(let i=0;i<startDow;i++) cells.push({day: prevDays-startDow+1+i, other:true, dateStr: fmtISO(new Date(y,m-1,prevDays-startDow+1+i))});
+  for(let d=1; d<=daysInMonth; d++) cells.push({day:d, other:false, dateStr: fmtISO(new Date(y,m,d))});
+  while(cells.length % 7 !== 0) { const n = cells.length - (startDow+daysInMonth) + 1; cells.push({day:n, other:true, dateStr: fmtISO(new Date(y,m+1,n))}); }
+
+  const monthLabel = first.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  holder.innerHTML = `
+    <div class="cal-header-row">
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn secondary small" id="prevM">←</button>
+        <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:600;min-width:170px;text-align:center">${monthLabel}</div>
+        <button class="btn secondary small" id="nextM">→</button>
+      </div>
+      <div class="cal-legend">
+        <span><span class="status-shape scheduled"></span> Scheduled</span>
+        <span><span class="status-shape completed"></span> Completed</span>
+        <span><span class="status-shape attention"></span> Needs attention</span>
+        <span><span class="status-shape weather"></span> Weather affected</span>
+      </div>
+    </div>
+    <div class="calendar">
+      ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}
+      ${cells.map(cell=>{
+        const dayJobs = S.jobs.filter(j=>j.date===cell.dateStr);
+        return `<div class="cal-cell ${cell.other?'other-month':''} ${dayJobs.length?'clickable-day':''}" data-date="${cell.dateStr}">
+          <div class="datenum">${cell.day}</div>
+          ${dayJobs.slice(0,4).map(j=>{
+            const cls = j.status==='completed'?'completed': j.status==='weather delay'?'weather': j.status==='unable to complete'?'attention': j.status==='cancelled'?'cancelled':'scheduled';
+            const name = esc(customerName(getCustomer(j.customerId)));
+            return `<div class="cal-job ${cls}" data-job="${j.id}" title="${name}"><span class="status-shape ${cls}"></span>${name}</div>`;
+          }).join('')}
+          ${dayJobs.length>4? `<div class="more-count" style="font-size:10px;color:var(--ink-soft)">+${dayJobs.length-4} more</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+  holder.querySelector('#prevM').onclick=()=>{ S.calMonth.m--; if(S.calMonth.m<0){S.calMonth.m=11;S.calMonth.y--;} render(); };
+  holder.querySelector('#nextM').onclick=()=>{ S.calMonth.m++; if(S.calMonth.m>11){S.calMonth.m=0;S.calMonth.y++;} render(); };
+  holder.querySelectorAll('[data-job]').forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); openJobModal(el.dataset.job); });
+  holder.querySelectorAll('.cal-cell.clickable-day').forEach(cell=>cell.onclick=()=>{
+    const jobs = S.jobs.filter(j=>j.date===cell.dataset.date);
+    if(jobs.length===1) openJobModal(jobs[0].id); else openDayJobsModal(cell.dataset.date, jobs);
+  });
+}
+
+function openDayJobsModal(dateStr, jobs){
+  function bodyHtml(){
+    const ordered = jobsForDateInRouteOrder(dateStr);
+    return `
+      <div class="notice">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+          <label style="font-size:11.5px;color:var(--ink-soft);white-space:nowrap">Starting from</label>
+          <input id="dayStartFromInput" value="${esc(S.settings.homeBase)}" style="flex:1;min-width:160px;padding:5px 8px;border:1px solid var(--line);border-radius:3px;font-size:12.5px">
+          <button class="btn secondary small" data-calc-route ${routeCalcState==='working'?'disabled':''}>${routeCalcState==='working'?'Calculating…':'📍 Calculate route'}</button>
+        </div>
+        <div style="font-size:11.5px;color:var(--ink-soft)">Use the arrows to reorder, or change the start above and calculate.</div>
+      </div>
+      ${ordered.map((j,i)=>{
+        const c = getCustomer(j.customerId);
+        return `<div class="jobitem" data-job="${j.id}">
+          <div class="top">
+            <div style="display:flex;gap:10px;align-items:flex-start">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding-top:2px">
+                <button class="btn secondary small" data-route-up="${j.id}" ${i===0?'disabled':''} style="padding:2px 7px;line-height:1">▲</button>
+                <span class="mono" style="font-size:11px;color:var(--ink-soft)">${i+1}</span>
+                <button class="btn secondary small" data-route-down="${j.id}" ${i===ordered.length-1?'disabled':''} style="padding:2px 7px;line-height:1">▼</button>
+              </div>
+              <div><div class="cust">${esc(customerName(c))}</div><div class="addr">${esc(c?c.address:'')}</div></div>
+            </div>
+            ${statusPill(j.status)}
+          </div>
+          <div class="svc">${esc(j.service)} · ${money(j.price)}</div>
+          <div class="actions"><button class="btn secondary small" data-open-job="${j.id}">Open</button></div>
+        </div>`;
+      }).join('')}
+    `;
+  }
+  const overlay = showModal(fmtDateFull(dateStr), bodyHtml(), null, {wide:true, okOnly:true});
+  function wire(){
+    const mb = overlay.querySelector('[data-modal-body]');
+    mb.querySelectorAll('[data-open-job]').forEach(b=>b.onclick=()=>openJobModal(b.dataset.openJob));
+    const calcBtn = mb.querySelector('[data-calc-route]');
+    if(calcBtn) calcBtn.onclick = async ()=>{
+      const startFrom = mb.querySelector('#dayStartFromInput').value.trim();
+      await calculateRealRouteOrder(dateStr, startFrom && startFrom!==S.settings.homeBase ? startFrom : undefined);
+      mb.innerHTML=bodyHtml(); wire();
+    };
+    mb.querySelectorAll('[data-route-up]').forEach(b=>b.onclick=()=>{ moveJobInRoute(dateStr, b.dataset.routeUp, -1); mb.innerHTML=bodyHtml(); wire(); });
+    mb.querySelectorAll('[data-route-down]').forEach(b=>b.onclick=()=>{ moveJobInRoute(dateStr, b.dataset.routeDown, 1); mb.innerHTML=bodyHtml(); wire(); });
+  }
+  wire();
+}
+
+function renderScheduleList(holder){
+  const filter = S.scheduleFilter || 'upcoming';
+  let list = S.jobs.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if(filter==='upcoming') list = list.filter(j=>j.date>=todayStr() && j.status!=='cancelled');
+  if(filter==='today') list = list.filter(j=>j.date===todayStr());
+  if(filter==='completed') list = list.filter(j=>j.status==='completed');
+  if(filter==='attention') list = list.filter(j=>['unable to complete','weather delay'].includes(j.status));
+  holder.innerHTML = `
+    <div class="tabbar">
+      ${[['upcoming','Upcoming'],['today','Today'],['completed','Completed'],['attention','Needs attention'],['all','All']].map(([k,l])=>
+        `<button data-f="${k}" class="${filter===k?'active':''}">${l}</button>`).join('')}
+    </div>
+    <div class="panel"><div class="panel-body" style="padding:0">
+    ${list.length? renderJobTable(list) : `<div class="empty"><div class="big">Nothing here</div>Book a recurring service to fill the schedule.</div>`}
+    </div></div>`;
+  holder.querySelectorAll('.tabbar button').forEach(b=>b.onclick=()=>{ S.scheduleFilter=b.dataset.f; render(); });
+  wireJobTableRows(holder);
+}
+
+function openBookingModal(){
+  if(S.customers.length===0){ toast('Add a customer first'); return; }
+  const showAssign = S.settings.crewMembers.length>1;
+  showModal('Book a job', `
+    <div class="field"><label>Customer</label>
+      <select id="b_cust">${S.customers.map(c=>`<option value="${c.id}">${esc(customerName(c))}</option>`).join('')}</select>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Service</label><input id="b_svc" placeholder="Mowing"></div>
+      <div class="field"><label>Price</label><input id="b_price" type="number" step="0.01" placeholder="65"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Frequency</label>
+        <input id="b_freq" list="freqOptions" placeholder="weekly, biweekly, triweekly...">
+        <datalist id="freqOptions"><option value="weekly"><option value="biweekly"><option value="triweekly"><option value="one-time"></datalist>
+      </div>
+      <div class="field"><label>Start date</label><input id="b_start" type="date" value="${todayStr()}"></div>
+    </div>
+    ${showAssign? `<div class="field"><label>Assign to</label><select id="b_emp">${S.settings.crewMembers.map(m=>`<option>${esc(m.name)}</option>`).join('')}</select></div>`:''}
+    <div class="notice">This generates the next 6 appointments automatically and remembers the interval for future rescheduling — or just the one visit if you set frequency to one-time.</div>
+  `, ()=>{
+    const custId = val('b_cust'); const svc = val('b_svc'); const price = parseFloat(val('b_price'));
+    const freq = normalizeFrequency(val('b_freq')); const start = document.getElementById('b_start').value;
+    if(!svc || isNaN(price) || !start){ toast('Fill in service, price, and start date'); return false; }
+    const c = getCustomer(custId);
+    if(!c){ toast('That customer could not be found — please pick again'); return false; }
+    const employee = showAssign ? val('b_emp') : S.settings.crewMembers[0].name;
+    if(!Array.isArray(c.services)) c.services = [];
+    c.services.push({id:uid(), name:svc, price, frequency:freq});
+    saveCustomer(c);
+    const dates = generateOccurrences(start, freq, freq==='one-time'?1:6);
+    dates.forEach(d=>{
+      const j = {id:uid(), customerId:custId, service:svc, price, date:d, employee, status:'scheduled', notes:'', photos:[], completedAt:null, frequency:freq};
+      S.jobs.push(j); saveJob(j);
+    });
+    closeModal();
+    S.tab = 'schedule'; S.scheduleView = 'calendar';
+    render(); toast(`${dates.length} visit${dates.length>1?'s':''} scheduled for ${customerName(c)} — ${freqLabel(freq)}, starting ${fmtDateDow(dates[0])}`);
+    return true;
+  });
+}
+
+function openJobModal(id){
+  const j = S.jobs.find(x=>x.id===id); if(!j) return;
+  const c = getCustomer(j.customerId);
+  const statuses = ['scheduled','assigned','en route','in progress','completed','unable to complete','weather delay','cancelled'];
+  const overlay = showModal('Job details', `
+    <div style="margin-bottom:10px">
+      <div style="font-weight:600;font-size:15px">${esc(customerName(c))}</div>
+      <div style="color:var(--ink-soft);font-size:12.5px">${esc(c?c.address:'')}</div>
+      ${c && c.gateNotes? `<div class="notice" style="margin-top:8px">Access: ${esc(c.gateNotes)}</div>`:''}
+    </div>
+    <div class="row2">
+      <div class="field"><label>Service</label><input id="j_svc" value="${esc(j.service)}"></div>
+      <div class="field"><label>Price</label><input id="j_price" type="number" step="0.01" value="${j.price}"></div>
+    </div>
+    <div class="field"><label>Date</label><input id="j_date" type="date" value="${j.date}"></div>
+    <div class="row2">
+      <div class="field"><label>Status</label>
+        <select id="j_status">${statuses.map(s=>`<option value="${s}" ${j.status===s?'selected':''}>${s}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Employee</label><input id="j_emp" list="crewOptions" value="${esc(j.employee||'')}"><datalist id="crewOptions">${S.settings.crewMembers.map(m=>`<option value="${esc(m.name)}">`).join('')}</datalist></div>
+    </div>
+    <div class="field"><label>Notes${S.role==='employee'?' / photos':''}</label><textarea id="j_notes">${esc(j.notes||'')}</textarea></div>
+    ${S.role==='employee'? `<div class="field"><label>Photo note (photo upload not available in this prototype)</label><input id="j_photo" placeholder="e.g. photo taken of completed lawn"></div>`:''}
+  `, ()=>{
+    j.service=val('j_svc'); j.price=parseFloat(val('j_price'))||j.price; j.date=document.getElementById('j_date').value;
+    const newStatus = val('j_status'); const wasCompleted = j.status==='completed';
+    j.status=newStatus; j.employee=val('j_emp'); j.notes=val('j_notes');
+    if(newStatus==='completed' && !wasCompleted){
+      j.completedAt = todayStr();
+      if(S.settings.autoInvoice) createInvoiceForJob(j);
+    }
+    saveJob(j); closeModal(); render();
+    return true;
+  }, {extraFooter: S.role==='owner' ? `<button class="btn danger small" id="delJobBtn" style="margin-right:auto">Delete job</button>` : ''});
+  const delBtn = overlay.querySelector('#delJobBtn');
+  if(delBtn) delBtn.onclick=()=>{
+    confirmAction(`Delete this ${esc(j.service)} job for ${esc(customerName(c))} on ${fmtDate(j.date)}? This can't be undone.`, ()=>{
+      S.jobs = S.jobs.filter(x=>x.id!==j.id); deleteJob(j.id); closeModal(); render();
+    });
+  };
+}
+
+function createInvoiceForJob(job){
+  const c = getCustomer(job.customerId);
+  const num = S.settings.nextInvoiceNum++; saveSettings();
+  const inv = {
+    id: uid(), customerId: job.customerId, jobIds:[job.id], number: num,
+    date: todayStr(), dueDate: addDays(todayStr(),14),
+    items: [{desc: job.service, qty:1, price: job.price}],
+    total: job.price, paidAmount: 0, status: 'sent'
+  };
+  S.invoices.push(inv); saveInvoice(inv);
+  toast(`Invoice #${num} created for ${customerName(c)}`);
+}
+
+/* ============================ WEATHER TEXT BLAST ============================ */
+function digitsOnly(phone){ return (phone||'').replace(/\D/g,''); }
+function weatherMessageFor(c){
+  const greeting = c.firstName ? `Hi ${c.firstName}` : 'Hi';
+  return `${greeting}, this is EcoScape. Because of the weather, we can't cut today — we'll be out tomorrow instead. Thanks for your patience! Reply STOP to opt out.`;
+}
+
+function getWeatherRecipients(){
+  return S.customers.filter(c=>c.status==='active' && c.smsOptIn);
+}
+
+function openWeatherBlastModal(customers){
+  const rows = customers.map(c=>({ c, message: weatherMessageFor(c) }));
+  const allText = rows.map(r=>`${customerName(r.c)} (${r.c.phone}):\n${r.message}`).join('\n\n');
+  const overlay = showModal('Weather text — ready to send', `
+    <div class="notice">Tap "Open text" for each customer — it opens your Messages app with their number and this message already filled in. Just hit send.</div>
+    ${rows.map(r=>`
+      <div class="jobitem" style="margin-bottom:8px">
+        <div class="top">
+          <div><div class="cust">${esc(customerName(r.c))}</div><div class="addr">${esc(r.c.phone)}</div></div>
+        </div>
+        <div class="svc">${esc(r.message)}</div>
+        <div class="actions">
+          <a class="btn small" style="text-decoration:none;display:inline-block" href="sms:${digitsOnly(r.c.phone)}?body=${encodeURIComponent(r.message)}">Open text</a>
+          <button class="btn secondary small" data-copy="${esc(r.message)}">Copy message</button>
+        </div>
+      </div>
+    `).join('')}
+    <div class="field" style="margin-top:14px"><label>Copy everything (for a group text or another app)</label><textarea readonly style="min-height:120px">${esc(allText)}</textarea></div>
+  `, null, {wide:true, okOnly:true});
+  overlay.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>{
+    navigator.clipboard.writeText(b.dataset.copy).then(()=>toast('Message copied')).catch(()=>toast('Could not copy — select and copy manually'));
+  });
+}
+
+/* ============================ MONEY (Invoices + Expenses) ============================ */
+function renderMoney(main){
+  const sub = S.moneySub || 'invoices';
+  main.innerHTML = `<div class="pagehead"><h1>Money</h1></div>
+    <div class="tabbar" id="moneySubTabs">
+      <button data-s="invoices" class="${sub==='invoices'?'active':''}">Invoicing</button>
+      <button data-s="expenses" class="${sub==='expenses'?'active':''}">Expenses</button>
+    </div>
+    <div id="moneyBody"></div>`;
+  main.querySelectorAll('#moneySubTabs button').forEach(b=>b.onclick=()=>{ S.moneySub=b.dataset.s; render(); });
+  const body = main.querySelector('#moneyBody');
+  if(sub==='invoices') renderInvoices(body); else renderExpenses(body);
+}
+
+function renderInvoices(main){
+  const filter = S.invoiceFilter || 'all';
+  let list = S.invoices.slice().sort((a,b)=>b.date.localeCompare(a.date));
+  if(filter!=='all') list = list.filter(i=>invoiceStatusLive(i)===filter);
+  main.innerHTML = `
+    <div class="pagehead" style="margin-top:14px">
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="autoInv" ${S.settings.autoInvoice?'checked':''}> Auto-create invoice on job completion
+        </label>
+        ${overdueTotal()>0? `<span class="pill overdue">${money(overdueTotal())} overdue</span>`:''}
+      </div>
+      <button class="btn" id="newInv">+ New invoice</button>
+    </div>
+    <div class="tabbar">
+      ${[['all','All'],['sent','Sent'],['partial','Partial'],['paid','Paid'],['overdue','Overdue'],['draft','Draft']].map(([k,l])=>
+        `<button data-f="${k}" class="${filter===k?'active':''}">${l}</button>`).join('')}
+    </div>
+    <div class="panel"><div class="panel-body" style="padding:0">
+      ${list.length? `<table><thead><tr><th>#</th><th>Customer</th><th>Date</th><th>Due</th><th>Total</th><th>Balance</th><th>Status</th><th></th></tr></thead><tbody>
+        ${list.map(i=>{
+          const c = getCustomer(i.customerId); const st = invoiceStatusLive(i); const bal = i.total-(i.paidAmount||0);
+          return `<tr><td class="mono">#${i.number}</td><td>${esc(customerName(c))}</td><td>${fmtDate(i.date)}</td><td>${fmtDate(i.dueDate)}</td>
+            <td>${money(i.total)}</td><td>${money(bal)}</td><td><span class="pill ${st}">${st}</span></td>
+            <td><button class="btn secondary small" data-open-inv="${i.id}">Open</button></td></tr>`;
+        }).join('')}
+      </tbody></table>`: `<div class="empty"><div class="big">No invoices yet</div>Create one manually or complete a job with auto-invoicing on.</div>`}
+    </div></div>
+  `;
+  main.querySelector('#autoInv').onchange=(e)=>{ S.settings.autoInvoice = e.target.checked; saveSettings(); toast('Setting saved'); };
+  main.querySelector('#newInv').onclick = openNewInvoiceModal;
+  main.querySelectorAll('.tabbar button').forEach(b=>b.onclick=()=>{ S.invoiceFilter=b.dataset.f; render(); });
+  main.querySelectorAll('[data-open-inv]').forEach(b=>b.onclick=()=>openInvoiceModal(b.dataset.openInv));
+}
+
+function openNewInvoiceModal(){
+  if(S.customers.length===0){ toast('Add a customer first'); return; }
+  showModal('New invoice', `
+    <div class="field"><label>Customer</label><select id="i_cust">${S.customers.map(c=>`<option value="${c.id}">${esc(customerName(c))}</option>`).join('')}</select></div>
+    <div class="row2">
+      <div class="field"><label>Description</label><input id="i_desc" placeholder="Mowing"></div>
+      <div class="field"><label>Amount</label><input id="i_amt" type="number" step="0.01" placeholder="65"></div>
+    </div>
+    <div class="field"><label>Due date</label><input id="i_due" type="date" value="${addDays(todayStr(),14)}"></div>
+  `, ()=>{
+    const custId = val('i_cust'); const desc = val('i_desc'); const amt = parseFloat(val('i_amt'));
+    if(!desc || isNaN(amt)){ toast('Enter a description and amount'); return false; }
+    const num = S.settings.nextInvoiceNum++; saveSettings();
+    const inv = {id:uid(), customerId:custId, jobIds:[], number:num, date:todayStr(), dueDate: document.getElementById('i_due').value,
+      items:[{desc, qty:1, price:amt}], total:amt, paidAmount:0, status:'sent'};
+    S.invoices.push(inv); saveInvoice(inv); closeModal(); render();
+    return true;
+  });
+}
+
+function openInvoiceModal(id){
+  const inv = S.invoices.find(i=>i.id===id); if(!inv) return;
+  const c = getCustomer(inv.customerId);
+  const st = invoiceStatusLive(inv);
+  const overlay = showModal(`Invoice #${inv.number}`, `
+    <div class="row2" style="margin-bottom:10px">
+      <div><div style="color:var(--ink-soft);font-size:11px">BILL TO</div><div style="font-weight:600">${esc(customerName(c))}</div><div style="font-size:12.5px">${esc(c?c.billingAddress:'')}</div></div>
+      <div style="text-align:right"><div style="color:var(--ink-soft);font-size:11px">STATUS</div><span class="pill ${st}">${st}</span></div>
+    </div>
+    <table style="margin-bottom:10px"><thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead><tbody>
+      ${inv.items.map(it=>`<tr><td>${esc(it.desc)}</td><td>${it.qty}</td><td>${money(it.price)}</td></tr>`).join('')}
+    </tbody></table>
+    <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span>Total</span><b>${money(inv.total)}</b></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span>Paid</span><span>${money(inv.paidAmount||0)}</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-top:1px solid var(--line);margin-top:4px;padding-top:8px"><span>Balance</span><b>${money(inv.total-(inv.paidAmount||0))}</b></div>
+    <div class="row2" style="margin-top:16px">
+      <div class="field"><label>Record payment</label><input id="pay_amt" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label>Method</label><select id="pay_method"><option>Card</option><option>Cash</option><option>Check</option><option>Other</option></select></div>
+    </div>
+    <div class="notice">Card payments are simulated here — connect Stripe on the backend for live processing. Never store raw card numbers.</div>
+  `, null, {noFooter:true});
+  const modal = overlay.querySelector('.modal');
+  const footer = document.createElement('div');
+  footer.className='modal-foot';
+  footer.innerHTML = `<button class="btn secondary" id="cancelInv">Cancel invoice</button><button class="btn" id="recordPay">Record payment</button>`;
+  modal.appendChild(footer);
+  modal.querySelector('#recordPay').onclick=()=>{
+    const amt = parseFloat(modal.querySelector('#pay_amt').value);
+    if(isNaN(amt) || amt<=0){ toast('Enter a payment amount'); return; }
+    inv.paidAmount = (inv.paidAmount||0) + amt;
+    if(inv.paidAmount >= inv.total) inv.status='paid';
+    saveInvoice(inv); closeModal(); render(); toast('Payment recorded');
+  };
+  modal.querySelector('#cancelInv').onclick=()=>{ inv.status='cancelled'; saveInvoice(inv); closeModal(); render(); };
+}
+
+/* ============================ EXPENSES ============================ */
+function renderExpenses(main){
+  const list = S.expenses.slice().sort((a,b)=>b.date.localeCompare(a.date));
+  main.innerHTML = `
+    <div class="pagehead" style="margin-top:14px"><div></div><button class="btn" id="addExp">+ Add expense</button></div>
+    <div class="grid g3">
+      <div class="card"><div class="label">THIS MONTH</div><div class="big">${money(monthExpenses())}</div></div>
+      <div class="card"><div class="label">ALL TIME</div><div class="big">${money(S.expenses.reduce((s,e)=>s+e.amount,0))}</div></div>
+      <div class="card"><div class="label">ENTRIES</div><div class="big">${S.expenses.length}</div></div>
+    </div>
+    <div class="panel"><div class="panel-body" style="padding:0">
+      ${list.length? `<table><thead><tr><th>Date</th><th>Category</th><th>Vendor</th><th>Amount</th><th>Notes</th></tr></thead><tbody>
+        ${list.map(e=>`<tr><td>${fmtDate(e.date)}</td><td>${esc(e.category)}</td><td>${esc(e.vendor||'—')}</td><td>${money(e.amount)}</td><td>${esc(e.notes||'')}</td></tr>`).join('')}
+      </tbody></table>`: `<div class="empty">No expenses logged yet.</div>`}
+    </div></div>
+  `;
+  main.querySelector('#addExp').onclick=()=>openAddExpenseModal();
+}
+
+function openAddExpenseModal(defaultCategory){
+  const cats = ['Fuel','Equipment','Repairs','Materials','Fertilizer','Mulch','Payroll/labor','Insurance','Advertising','Vehicle','Other'];
+  showModal('Add expense', `
+    <div class="row2">
+      <div class="field"><label>Date</label><input id="e_date" type="date" value="${todayStr()}"></div>
+      <div class="field"><label>Category</label>
+        <select id="e_cat">${cats.map(c=>`<option ${c===defaultCategory?'selected':''}>${c}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Amount</label><input id="e_amt" type="number" step="0.01"></div>
+      <div class="field"><label>Vendor</label><input id="e_vendor"></div>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="e_notes"></textarea></div>
+  `, ()=>{
+    const amt = parseFloat(val('e_amt'));
+    if(isNaN(amt)){ toast('Enter an amount'); return false; }
+    const e = {id:uid(), date:document.getElementById('e_date').value, category:val('e_cat'), amount:amt, vendor:val('e_vendor'), notes:val('e_notes')};
+    S.expenses.push(e); saveExpense(e); closeModal(); render(); toast('Expense logged');
+    return true;
+  });
+}
+
+/* ============================ EMPLOYEE VIEW ============================ */
+// Per-device "who's using this phone" — not real authentication (nothing stops someone
+// from picking a different name), but it's enough to show each crew member only the jobs
+// assigned to them, remembered locally so they don't have to pick every time.
+function getCrewIdentity(){ try{ return localStorage.getItem('ecoscape_crew_identity') || null; }catch(e){ return null; } }
+function setCrewIdentity(name){ try{ localStorage.setItem('ecoscape_crew_identity', name); }catch(e){} }
+function clearCrewIdentity(){ try{ localStorage.removeItem('ecoscape_crew_identity'); }catch(e){} }
+
+function renderMyDay(main){
+  const identity = getCrewIdentity();
+  if(!identity){
+    main.innerHTML = `
+      <div class="pagehead"><h1>Who's this?</h1></div>
+      <div class="notice">Pick your name so you only see the jobs assigned to you. This is remembered on this phone — not a password, just a shortcut.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;max-width:320px">
+        ${S.settings.crewMembers.map(m=>`<button class="btn secondary" data-pick-identity="${esc(m.name)}" style="text-align:left">${esc(m.name)}${m.pin?' 🔒':''}</button>`).join('')}
+      </div>
+    `;
+    main.querySelectorAll('[data-pick-identity]').forEach(b=>b.onclick=()=>{
+      const m = S.settings.crewMembers.find(x=>x.name===b.dataset.pickIdentity);
+      if(m && m.pin){ promptVerifyPin(`PIN for ${m.name}`, m.pin, ()=>{ setCrewIdentity(m.name); render(); }); }
+      else { setCrewIdentity(b.dataset.pickIdentity); render(); }
+    });
+    return;
+  }
+
+  const today = jobsForDateInRouteOrder(todayStr()).filter(j=>j.status!=='cancelled' && j.employee===identity);
+  const next = S.jobs.filter(j=>j.date>todayStr() && j.status!=='cancelled' && j.employee===identity).sort((a,b)=>a.date.localeCompare(b.date))[0];
+
+  // Auto-build today's route the first time it's viewed (or whenever a new job shows up
+  // without a position yet) instead of making the person tap a button for it.
+  if(mcpClient && routeCalcState!=='working' && today.some(j=>j.routeOrder==null)){
+    calculateRealRouteOrder(todayStr());
+  }
+
+  main.innerHTML = `
+    <div class="pagehead"><h1>My jobs — ${fmtDateFull(todayStr())}</h1><button class="btn secondary small" id="switchIdentityBtn">${esc(identity)} · switch</button></div>
+    ${today.length? `<div class="notice">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:${routeCalcState==='working'?'0':'8px'}">
+        <label style="font-size:11.5px;color:var(--ink-soft);white-space:nowrap">Starting from</label>
+        <input id="startFromInput" value="${esc(S.settings.homeBase)}" style="flex:1;min-width:160px;padding:5px 8px;border:1px solid var(--line);border-radius:3px;font-size:12.5px">
+        <button class="btn secondary small" id="calcRouteBtn" ${routeCalcState==='working'?'disabled':''}>${routeCalcState==='working'?'Calculating…':'📍 Recalculate'}</button>
+      </div>
+      ${routeCalcState!=='working'? `<div style="font-size:11.5px;color:var(--ink-soft)">Use the arrows to fine-tune the order, or change the start above and recalculate.</div>`:''}
+    </div>`:''}
+    ${today.length? today.map((j,i)=>{
+      const c = getCustomer(j.customerId);
+      return `<div class="jobitem" data-job="${j.id}">
+        <div class="top">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding-top:2px">
+              <button class="btn secondary small" data-route-up="${j.id}" ${i===0?'disabled':''} style="padding:2px 7px;line-height:1">▲</button>
+              <span class="mono" style="font-size:11px;color:var(--ink-soft)">${i+1}</span>
+              <button class="btn secondary small" data-route-down="${j.id}" ${i===today.length-1?'disabled':''} style="padding:2px 7px;line-height:1">▼</button>
+            </div>
+            <div><div class="cust">${esc(customerName(c))}</div><div class="addr">${esc(c?c.address:'')}</div></div>
+          </div>
+          ${statusPill(j.status)}
+        </div>
+        <div class="svc">${esc(j.service)}${c && c.serviceNotes? ' — '+esc(c.serviceNotes):''}</div>
+        <div class="actions">
+          ${['scheduled','assigned','weather delay'].includes(j.status)? `<button class="btn small" data-start="${j.id}">Start job</button>`:''}
+          ${j.status==='in progress'||j.status==='en route'? `<button class="btn small" data-complete="${j.id}">Mark completed</button>`:''}
+          ${j.status!=='completed'? `<button class="btn secondary small" data-unable="${j.id}">Could not service</button>`:''}
+          <button class="btn secondary small" data-notes="${j.id}">Add note</button>
+          ${jobUndoHistory.has(j.id)? `<button class="btn secondary small" data-undo="${j.id}">↩ Undo</button>`:''}
+        </div>
+      </div>`;
+    }).join('') : `<div class="empty"><div class="big">No jobs assigned today</div>Check back tomorrow or ask the owner to assign jobs.</div>`}
+    ${next? `<div class="notice" style="margin-top:10px">Next up: ${esc(customerName(getCustomer(next.customerId)))} on ${fmtDate(next.date)}</div>`:''}
+  `;
+  main.querySelectorAll('[data-start]').forEach(b=>b.onclick=()=>{ setJobStatus(b.dataset.start,'in progress'); });
+  main.querySelectorAll('[data-complete]').forEach(b=>b.onclick=()=>{ setJobStatus(b.dataset.complete,'completed'); });
+  main.querySelectorAll('[data-unable]').forEach(b=>b.onclick=()=>openCouldNotServiceModal(b.dataset.unable));
+  main.querySelectorAll('[data-notes]').forEach(b=>b.onclick=()=>openJobModal(b.dataset.notes));
+  main.querySelectorAll('[data-route-up]').forEach(b=>b.onclick=()=>moveJobInRoute(todayStr(), b.dataset.routeUp, -1));
+  main.querySelectorAll('[data-route-down]').forEach(b=>b.onclick=()=>moveJobInRoute(todayStr(), b.dataset.routeDown, 1));
+  const calcBtn = main.querySelector('#calcRouteBtn');
+  if(calcBtn) calcBtn.onclick = ()=>{
+    const startFrom = main.querySelector('#startFromInput').value.trim();
+    calculateRealRouteOrder(todayStr(), startFrom && startFrom!==S.settings.homeBase ? startFrom : undefined);
+  };
+  main.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>undoJobAction(b.dataset.undo));
+  main.querySelector('#switchIdentityBtn').onclick = ()=>{ clearCrewIdentity(); render(); };
+}
+
+// "Could not service" isn't a final answer by itself — the real next step is either
+// putting it on a new day or calling it off entirely, so ask which right away.
+function openCouldNotServiceModal(id){
+  const j = S.jobs.find(x=>x.id===id); if(!j) return;
+  const c = getCustomer(j.customerId);
+  const overlay = showModal(`Couldn't service — ${customerName(c)}`, `
+    <p style="margin:0 0 12px;color:var(--ink-soft)">What should happen to this visit?</p>
+    <div class="field"><label>If rescheduling, new date</label><input id="cns_date" type="date" value="${addDays(j.date,1)}"></div>
+  `, null, {noFooter:true});
+  const modal = overlay.querySelector('.modal');
+  const footer = document.createElement('div');
+  footer.className = 'modal-foot';
+  footer.innerHTML = `<button class="btn danger small" data-cns-cancel style="margin-right:auto">Cancel job</button><button class="btn secondary" data-cns-close>Not now</button><button class="btn" data-cns-reschedule>Reschedule</button>`;
+  modal.appendChild(footer);
+  modal.querySelector('[data-cns-close]').onclick = closeModal;
+  modal.querySelector('[data-cns-cancel]').onclick = ()=>{ setJobStatus(id, 'cancelled'); closeModal(); };
+  modal.querySelector('[data-cns-reschedule]').onclick = ()=>{
+    const newDate = modal.querySelector('#cns_date').value;
+    if(!newDate){ toast('Pick a date'); return; }
+    jobUndoHistory.set(id, { prevStatus:j.status, prevCompletedAt:j.completedAt, prevDate:j.date });
+    const oldDate = j.date;
+    j.date = newDate; j.status = 'scheduled';
+    j.notes = (j.notes? j.notes+' — ':'') + `Rescheduled from ${fmtDateDow(oldDate)} — could not service`;
+    saveJob(j); closeModal(); render();
+    toast(`Rescheduled to ${fmtDateDow(newDate)}`);
+  };
+}
+
+let jobUndoHistory = new Map(); // jobId -> {prevStatus, prevCompletedAt} — each job remembers its own last change independently
+function setJobStatus(id, status){
+  const j = S.jobs.find(x=>x.id===id); if(!j) return;
+  if(j.status === status) return; // already there — a double-tap shouldn't overwrite undo history with a no-op
+  jobUndoHistory.set(id, { prevStatus:j.status, prevCompletedAt:j.completedAt });
+  j.status = status;
+  if(status==='completed'){ j.completedAt = todayStr(); if(S.settings.autoInvoice) createInvoiceForJob(j); }
+  saveJob(j); render();
+}
+function undoJobAction(id){
+  const prev = jobUndoHistory.get(id);
+  if(!prev) return;
+  const j = S.jobs.find(x=>x.id===id);
+  if(j){
+    j.status = prev.prevStatus; j.completedAt = prev.prevCompletedAt;
+    if(prev.prevDate) j.date = prev.prevDate;
+    saveJob(j); toast('Undone');
+  }
+  jobUndoHistory.delete(id);
+  render();
+}
+
+/* ============================ MODAL ============================ */
+// Modals can stack (e.g. tapping a job while inside the "day's jobs" popup opens
+// another one on top). Track them as a real stack keyed by element, not by a
+// document-wide id, so closing/wiring always targets the right instance.
+let modalStack = [];
+function showModal(title, bodyHtml, onSave, opts){
+  opts = opts || {};
+  const overlay = document.createElement('div');
+  overlay.className='overlay';
+  overlay.innerHTML = `
+    <div class="modal ${opts.wide?'wide':''}">
+      <div class="modal-head"><h3>${esc(title)}</h3><button class="x" data-close>✕</button></div>
+      <div class="modal-body" data-modal-body>${bodyHtml}</div>
+      ${opts.noFooter? '' : `<div class="modal-foot"><button class="btn secondary" data-close>Cancel</button>${opts.extraFooter||''}<button class="btn" data-save>${opts.okOnly? 'Close':'Save'}</button></div>`}
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  modalStack.push(overlay);
+  overlay.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeModal);
+  overlay.onclick=(e)=>{ if(e.target===overlay) closeModal(); };
+  if(!opts.noFooter){
+    overlay.querySelector('[data-save]').onclick = ()=>{
+      if(opts.okOnly){ closeModal(); return; }
+      // A bug in one save handler used to be able to crash the whole app (blanking
+      // everything behind an already-stuck-open popup). Contain it here instead:
+      // show a toast and leave the form as-is so the person can retry or back out.
+      let ok;
+      try{ ok = onSave && onSave(); }
+      catch(err){ console.error(err); toast('Save error: ' + (err && err.message ? err.message : 'unknown error')); return; }
+      if(ok===false) return;
+    };
+  }
+  return overlay;
+}
+function closeModal(){
+  const overlay = modalStack.pop();
+  if(overlay) overlay.remove();
+}
+function currentModal(){ return modalStack[modalStack.length-1] || null; }
+function currentModalBody(){ const o = currentModal(); return o ? o.querySelector('[data-modal-body]') : null; }
+
+// Published pages run sandboxed — native window.confirm()/alert() get silently blocked
+// and just return false with no dialog shown. Use our own modal for confirmations instead.
+// Set a new PIN (no verification needed — the owner is already in the settings screen).
+function promptForPin(title, onSet){
+  const overlay = showModal(title, `
+    <div class="field"><label>PIN (numbers, at least 4 digits)</label><input id="pinInput" type="tel" inputmode="numeric" maxlength="8" placeholder="1234"></div>
+  `, ()=>{
+    const pin = overlay.querySelector('#pinInput').value.trim();
+    if(!/^\d{4,8}$/.test(pin)){ toast('Enter at least 4 digits'); return false; }
+    closeModal();
+    onSet(pin);
+    return true;
+  });
+}
+// Verify an existing PIN before granting access to something protected.
+function promptVerifyPin(title, correctPin, onSuccess){
+  const overlay = showModal(title, `
+    <div class="field"><label>Enter PIN</label><input id="pinInput" type="tel" inputmode="numeric" maxlength="8" placeholder="1234"></div>
+  `, ()=>{
+    const pin = overlay.querySelector('#pinInput').value.trim();
+    if(pin !== correctPin){ toast('Wrong PIN'); return false; }
+    closeModal();
+    onSuccess();
+    return true;
+  });
+}
+
+function confirmAction(message, onConfirm, confirmLabel){
+  const overlay = showModal('Please confirm', `<p style="margin:0">${esc(message)}</p>`, null, {noFooter:true});
+  const modal = overlay.querySelector('.modal');
+  const label = confirmLabel || 'Delete';
+  const footer = document.createElement('div');
+  footer.className = 'modal-foot';
+  footer.innerHTML = `<button class="btn secondary" data-confirm-no>Cancel</button><button class="btn ${confirmLabel?'':'danger'}" data-confirm-yes>${esc(label)}</button>`;
+  modal.appendChild(footer);
+  modal.querySelector('[data-confirm-no]').onclick = closeModal;
+  modal.querySelector('[data-confirm-yes]').onclick = ()=>{ closeModal(); onConfirm(); };
+}
+
+/* ============================ BOOT ============================ */
+window.addEventListener('error', function(e){
+  const app = document.getElementById('app');
+  if(app) app.innerHTML = '<div style="padding:40px;font-family:sans-serif;max-width:600px;margin:0 auto;">'
+    + '<h2 style="font-family:Georgia,serif">Something went wrong loading EcoScape Ops</h2>'
+    + '<p style="color:#555">' + (e && e.message ? e.message : 'Unknown error') + '</p>'
+    + '<p style="color:#888;font-size:12px">Try reloading. If this keeps happening, let Kyle know what device/browser you\'re using.</p>'
+    + '</div>';
+});
+// iOS Safari doesn't reliably shrink dvh/vh when the on-screen keyboard opens, which can
+// leave a bottom-sheet modal's Save button hidden underneath the keyboard. visualViewport
+// tracks the actual visible area (keyboard included) reliably on iOS, so use it as the
+// source of truth for how tall a modal is allowed to be.
+function updateViewportVar(){
+  const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  document.documentElement.style.setProperty('--vvh', h + 'px');
+}
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', updateViewportVar);
+  window.visualViewport.addEventListener('scroll', updateViewportVar);
+}
+window.addEventListener('resize', updateViewportVar);
+updateViewportVar();
+
+render(); // show a loading state immediately, before capabilities/data resolve
+initDb();
+initWeather();
+
+})();
+</script>
+</body>
+</html>
