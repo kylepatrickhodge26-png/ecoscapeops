@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { requireOwner } from "@/lib/auth";
+import { assigneeOptions, getCrew, showAssignment } from "@/lib/crew";
 import { customerDisplayName } from "@/lib/customers/schema";
 import { formatShortDate } from "@/lib/dates";
 
@@ -12,9 +13,10 @@ import { JobForm } from "./job-form";
 export const metadata: Metadata = { title: "Edit visit · EcoScape Ops" };
 
 export default async function EditJobPage(props: PageProps<"/schedule/jobs/[id]/edit">) {
-  await requireOwner();
+  const { business, user } = await requireOwner();
   const { id } = await props.params;
   const job = await getJobOr404(id);
+  const crew = await getCrew(business.id, user.id);
 
   return (
     <>
@@ -34,7 +36,9 @@ export default async function EditJobPage(props: PageProps<"/schedule/jobs/[id]/
           scheduled_date: job.scheduled_date,
           status: job.status,
           notes: job.notes,
+          assigned_crew_member_id: job.assigned_crew_member_id ?? "",
         }}
+        assignees={showAssignment(crew) ? assigneeOptions(crew, user.id) : undefined}
         cancelHref={`/schedule/jobs/${job.id}`}
       />
     </>

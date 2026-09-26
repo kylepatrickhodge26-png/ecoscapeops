@@ -14,7 +14,7 @@ export async function getJobOr404(id: string) {
   const { data, error } = await supabase
     .from("jobs")
     .select(
-      "*, customer:customers(id, first_name, last_name, phone, email, property_address, access_instructions, service_notes), plan:service_plans(id, frequency, active)",
+      "*, customer:customers(id, first_name, last_name, phone, email, property_address, access_instructions, service_notes), plan:service_plans(id, frequency, active), assignee:crew_members(name)",
     )
     .eq("id", id)
     .maybeSingle();

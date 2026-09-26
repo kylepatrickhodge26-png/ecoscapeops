@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
+import { AssignToField } from "@/components/assign-to-field";
+import type { AssigneeOption } from "@/lib/crew";
 import { JOB_STATUSES, JOB_STATUS_LABELS } from "@/lib/schedule/constants";
 import type { JobField, JobFormValues } from "@/lib/schedule/schema";
 
@@ -11,10 +13,12 @@ import type { JobFormState } from "../../../actions";
 type Props = {
   action: (state: JobFormState, formData: FormData) => Promise<JobFormState>;
   initialValues: JobFormValues;
+  // Only given once the business has more than one crew member.
+  assignees?: AssigneeOption[];
   cancelHref: string;
 };
 
-export function JobForm({ action, initialValues, cancelHref }: Props) {
+export function JobForm({ action, initialValues, assignees, cancelHref }: Props) {
   const [state, formAction, pending] = useActionState(action, { values: initialValues });
   const values = state.values;
   const errors = state.fieldErrors ?? {};
@@ -77,6 +81,13 @@ export function JobForm({ action, initialValues, cancelHref }: Props) {
           {error("status")}
         </div>
       </div>
+      {assignees && (
+        <AssignToField
+          assignees={assignees}
+          defaultValue={values.assigned_crew_member_id}
+          error={errors.assigned_crew_member_id}
+        />
+      )}
       <div className="field">
         <label htmlFor="notes">Notes</label>
         <textarea {...field("notes")} defaultValue={values.notes} maxLength={4000} />

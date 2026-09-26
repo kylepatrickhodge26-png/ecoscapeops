@@ -1,20 +1,21 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { safeNextPath } from "@/lib/redirect";
+import { siteOrigin } from "@/lib/site-origin";
 import { timeZoneFromFormData } from "@/lib/time-zone";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthFormState = {
   error?: string;
   message?: string;
-  values?: { email?: string; business_name?: string };
+  values?: { email?: string; business_name?: string; full_name?: string };
 };
 
 const signUpSchema = z.object({
+  full_name: z.string().trim().min(1, "Enter your name").max(80, "Name must be 80 characters or fewer"),
   business_name: z
     .string()
     .trim()
@@ -29,6 +30,7 @@ const signUpSchema = z.object({
 
 export async function signUp(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {
   const values = {
+    full_name: String(formData.get("full_name") ?? ""),
     business_name: String(formData.get("business_name") ?? ""),
     email: String(formData.get("email") ?? "").trim(),
   };
@@ -44,7 +46,11 @@ export async function signUp(_prev: AuthFormState, formData: FormData): Promise<
     options: {
       // The on_auth_user_created trigger creates the business from this (in the
       // owner's time zone) and makes this user its owner.
-      data: { business_name: parsed.data.business_name, time_zone: timeZoneFromFormData(formData) },
+      data: {
+        full_name: parsed.data.full_name,
+        business_name: parsed.data.business_name,
+        time_zone: timeZoneFromFormData(formData),
+      },
       emailRedirectTo: `${await siteOrigin()}/auth/confirm?next=/customers`,
     },
   });
@@ -83,18 +89,11 @@ export async function signIn(_prev: AuthFormState, formData: FormData): Promise<
     return { error: "Incorrect email or password.", values };
   }
 
-  redirect(safeNextPath(formData.get("next")) ?? "/customers");
+  redirect(safeNextPath(formData.get("next")) ?? "/");
 }
 
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
-}
-
-async function siteOrigin() {
-  const h = await headers();
-  const origin = h.get("origin");
-  if (origin) return origin;
-  return `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
 }

@@ -117,3 +117,19 @@ export function addDays(isoDate: string, days: number) {
   return d.toISOString().slice(0, 10);
 }
 
+
+// Owner adds a crew member; returns their id and the one-time invite token.
+export async function addCrewMember(owner: TestOwner, name: string) {
+  const { data, error } = await owner.client.rpc("add_crew_member", { member_name: name }).single();
+  expect(error).toBeNull();
+  return { crewMemberId: data!.crew_member_id, token: data!.invite_token };
+}
+
+export type TestCrew = TestUser & { crewMemberId: string };
+
+// A crew member signs up through their invite link, the way the join page does.
+export async function joinCrew(owner: TestOwner, name: string): Promise<TestCrew> {
+  const { crewMemberId, token } = await addCrewMember(owner, name);
+  const user = await signUp(name.toLowerCase(), undefined, { crew_invite_token: token });
+  return { ...user, crewMemberId };
+}

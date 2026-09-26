@@ -26,6 +26,10 @@ export function SignupForm() {
         </div>
       )}
       <div className="field">
+        <label htmlFor="full_name">Your name</label>
+        <input id="full_name" name="full_name" autoComplete="name" required maxLength={80} defaultValue={state.values?.full_name} />
+      </div>
+      <div className="field">
         <label htmlFor="business_name">Business name</label>
         <input
           id="business_name"

@@ -42,12 +42,27 @@ export const requireMembership = cache(async (): Promise<Membership> => {
   return { user, role: data.role, business: data.business };
 });
 
-// Customers are owner-only for now (see the RLS policies). The database enforces this
-// regardless; this check just gives a clear error instead of an empty result.
+// Owner-only pages (customers, schedule, crew). Crew members are sent to their own
+// jobs instead. The database enforces this regardless (RLS gives crew no access to
+// these tables); this just routes people to the right place.
 export async function requireOwner(): Promise<Membership> {
   const membership = await requireMembership();
-  if (membership.role !== "owner") {
-    throw new Error("Only the business owner can manage customers.");
-  }
+  if (membership.role !== "owner") redirect("/my-jobs");
   return membership;
 }
+
+// Anyone on the crew list: crew members, and the owner (who is on the crew too).
+export const requireCrewMember = cache(async () => {
+  const membership = await requireMembership();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("crew_members")
+    .select("id, name")
+    .eq("user_id", membership.user.id)
+    .maybeSingle();
+  if (error) throw new Error(`Could not load your crew record: ${error.message}`);
+  if (!data) redirect("/");
+  return { ...membership, crewMember: data };
+});
+
+export const homePathFor = (role: BusinessRole) => (role === "owner" ? "/customers" : "/my-jobs");

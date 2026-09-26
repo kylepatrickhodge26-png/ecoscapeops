@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 
+import { AssignToField } from "@/components/assign-to-field";
+import type { AssigneeOption } from "@/lib/crew";
 import { PREFERRED_DAYS } from "@/lib/customers/schema";
 import { nextWeekdayOnOrAfter } from "@/lib/dates";
 import { FREQUENCIES, FREQUENCY_LABELS, VISITS_AHEAD } from "@/lib/schedule/constants";
@@ -18,9 +20,16 @@ function firstVisitFor(customer: BookingCustomer | undefined, today: string) {
   return weekday > 0 ? nextWeekdayOnOrAfter(today, weekday) : today;
 }
 
-type Props = { customers: BookingCustomer[]; today: string; presetCustomer: string; presetDate: string };
+type Props = {
+  customers: BookingCustomer[];
+  // Only given once the business has more than one crew member.
+  assignees?: AssigneeOption[];
+  today: string;
+  presetCustomer: string;
+  presetDate: string;
+};
 
-export function BookingForm({ customers, today, presetCustomer, presetDate }: Props) {
+export function BookingForm({ customers, assignees, today, presetCustomer, presetDate }: Props) {
   const initialCustomer = customers.find((c) => c.id === presetCustomer);
   const [state, formAction, pending] = useActionState<BookingFormState, FormData>(bookService, {
     values: {
@@ -29,6 +38,7 @@ export function BookingForm({ customers, today, presetCustomer, presetDate }: Pr
       price: "",
       frequency: "weekly",
       start_date: presetDate || (initialCustomer ? firstVisitFor(initialCustomer, today) : today),
+      assigned_crew_member_id: "",
     },
   });
   const values = state.values;
@@ -128,6 +138,15 @@ export function BookingForm({ customers, today, presetCustomer, presetDate }: Pr
           {error("start_date")}
         </div>
       </div>
+
+      {assignees && (
+        <AssignToField
+          assignees={assignees}
+          defaultValue={values.assigned_crew_member_id}
+          error={errors.assigned_crew_member_id}
+          hint={frequency === "one_time" ? undefined : "Every visit of this service goes to them."}
+        />
+      )}
 
       <div className="notice">
         {frequency === "one_time"

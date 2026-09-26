@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
+import { getCrew, showAssignment } from "@/lib/crew";
 import { customerDisplayName } from "@/lib/customers/schema";
 import { formatShortDate, isISOMonth, monthOf, todayInTimeZone } from "@/lib/dates";
 import { FREQUENCY_LABELS, isScheduleFilter } from "@/lib/schedule/constants";
@@ -15,7 +16,7 @@ import { ScheduleList } from "./schedule-list";
 export const metadata: Metadata = { title: "Schedule · EcoScape Ops" };
 
 export default async function SchedulePage(props: PageProps<"/schedule">) {
-  const { business } = await requireOwner();
+  const { business, user } = await requireOwner();
   const params = await props.searchParams;
   const today = todayInTimeZone(business.time_zone);
 
@@ -50,7 +51,12 @@ export default async function SchedulePage(props: PageProps<"/schedule">) {
       {view === "calendar" ? (
         <ScheduleCalendar businessId={business.id} month={month} today={today} />
       ) : (
-        <ScheduleList businessId={business.id} filter={filter} today={today} />
+        <ScheduleList
+          businessId={business.id}
+          filter={filter}
+          today={today}
+          showCrew={showAssignment(await getCrew(business.id, user.id))}
+        />
       )}
     </>
   );

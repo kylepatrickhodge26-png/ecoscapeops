@@ -3,16 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const LINKS = [
-  { href: "/customers", label: "Customers" },
-  { href: "/schedule", label: "Schedule" },
-];
+export type NavLink = { href: string; label: string };
 
-export function NavLinks() {
+export function NavLinks({ links }: { links: NavLink[] }) {
   const pathname = usePathname();
   return (
     <nav aria-label="Main">
-      {LINKS.map(({ href, label }) => {
+      {links.map(({ href, label }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link key={href} href={href} className={`item${active ? " active" : ""}`} aria-current={active ? "page" : undefined}>

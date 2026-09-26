@@ -41,6 +41,7 @@ test("signing up with an email that's already registered shows an error", async 
 
   const other = await browser.newPage();
   await other.goto("/signup");
+  await other.getByLabel("Your name").fill("Second Owner");
   await other.getByLabel("Business name").fill("Second Business");
   await other.getByLabel("Email").fill(email);
   await other.getByLabel("Password").fill(PASSWORD);
@@ -52,6 +53,7 @@ test("signing up with an email that's already registered shows an error", async 
 
 test("signup rejects a short password", async ({ page }) => {
   await page.goto("/signup");
+  await page.getByLabel("Your name").fill("Short Pass");
   await page.getByLabel("Business name").fill("Short Pass Co");
   await page.getByLabel("Email").fill(uniqueEmail("short"));
   await page.getByLabel("Password").fill("abc");
