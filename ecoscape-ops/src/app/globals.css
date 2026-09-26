@@ -125,12 +125,12 @@ a {
   color: #a9c2ae;
   margin-top: 3px;
 }
-nav {
+.sidebar nav {
   flex: 1;
   padding: 10px 0;
   overflow-y: auto;
 }
-nav .item {
+.sidebar nav .item {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -140,16 +140,16 @@ nav .item {
   border-left: 3px solid transparent;
   text-decoration: none;
 }
-nav .item:hover {
+.sidebar nav .item:hover {
   background: rgba(255, 255, 255, 0.05);
 }
-nav .item.active {
+.sidebar nav .item.active {
   border-left-color: var(--sage);
   background: rgba(255, 255, 255, 0.07);
   color: #fff;
   font-weight: 600;
 }
-nav .item .dot {
+.sidebar nav .item .dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -487,18 +487,22 @@ td:first-child {
   margin: 0;
   overflow-wrap: anywhere;
 }
-.confirm-delete {
-  border: 1px solid var(--danger);
-  background: var(--danger-soft);
+.confirm-box {
+  border: 1px solid var(--line);
+  background: var(--paper-2);
   border-radius: var(--radius);
   padding: 10px 12px;
-  max-width: 320px;
+  max-width: 340px;
 }
-.confirm-delete p {
+.confirm-box.danger {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+.confirm-box p {
   margin: 0 0 8px;
   font-size: 12.5px;
 }
-.confirm-delete-actions {
+.confirm-box-actions {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
@@ -565,19 +569,19 @@ td:first-child {
   .brand {
     padding: 12px 16px 10px;
   }
-  nav {
+  .sidebar nav {
     display: flex;
     overflow-x: auto;
     padding: 2px 10px 8px;
   }
-  nav .item {
+  .sidebar nav .item {
     border-left: none;
     border-bottom: 3px solid transparent;
     white-space: nowrap;
     padding: 10px 14px;
     font-size: 14px;
   }
-  nav .item.active {
+  .sidebar nav .item.active {
     border-bottom-color: var(--sage);
   }
   .sidebar-foot {
@@ -660,4 +664,405 @@ td:first-child {
   .customer-table .actions-cell {
     display: none;
   }
+}
+
+/* ---------- Job statuses ----------
+   Each status has a distinct color *and* a distinct shape (job-status.tsx). */
+:root {
+  --status-scheduled: #4a7a94;
+  --status-assigned: #2e5a8c;
+  --status-en_route: #2b7a74;
+  --status-in_progress: #a8781a;
+  --status-completed: #2f6844;
+  --status-unable_to_complete: #b5622d;
+  --status-weather_delay: #6e4fa3;
+  --status-cancelled: #6b6a60;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --status-scheduled: #7fb0c9;
+    --status-assigned: #82a8dd;
+    --status-en_route: #6cc2b9;
+    --status-in_progress: #e0b252;
+    --status-completed: #7cc295;
+    --status-unable_to_complete: #e8955f;
+    --status-weather_delay: #b39ae0;
+    --status-cancelled: #a9a799;
+  }
+}
+:root[data-theme="dark"] {
+  --status-scheduled: #7fb0c9;
+  --status-assigned: #82a8dd;
+  --status-en_route: #6cc2b9;
+  --status-in_progress: #e0b252;
+  --status-completed: #7cc295;
+  --status-unable_to_complete: #e8955f;
+  --status-weather_delay: #b39ae0;
+  --status-cancelled: #a9a799;
+}
+.status-scheduled { --status: var(--status-scheduled); }
+.status-assigned { --status: var(--status-assigned); }
+.status-en_route { --status: var(--status-en_route); }
+.status-in_progress { --status: var(--status-in_progress); }
+.status-completed { --status: var(--status-completed); }
+.status-unable_to_complete { --status: var(--status-unable_to_complete); }
+.status-weather_delay { --status: var(--status-weather_delay); }
+.status-cancelled { --status: var(--status-cancelled); }
+
+.status-shape {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: -1px;
+  color: var(--status);
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px 2px 7px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--status) 14%, var(--white));
+  border: 1px solid color-mix(in srgb, var(--status) 35%, var(--white));
+}
+.status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+.status-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ---------- Schedule ---------- */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.segmented a {
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--ink-soft);
+  background: var(--white);
+}
+.segmented a + a {
+  border-left: 1px solid var(--line);
+}
+.segmented a[aria-current="page"] {
+  background: var(--moss-800);
+  color: #fff;
+}
+
+.tabbar {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+.tabbar a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tabbar a.active {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--moss-700);
+}
+.count-badge {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--status-unable_to_complete);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+.date-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  background: var(--paper-2);
+  color: var(--ink-soft);
+}
+.date-tag.overdue {
+  background: color-mix(in srgb, var(--status-unable_to_complete) 16%, var(--white));
+  color: var(--ink);
+  border: 1px solid var(--status-unable_to_complete);
+}
+
+.cal-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cal-month {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  min-width: 150px;
+  text-align: center;
+}
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.cal-dow {
+  background: var(--paper-2);
+  padding: 6px 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.cal-cell {
+  position: relative;
+  background: var(--white);
+  min-height: 96px;
+  padding: 6px;
+  font-size: 11.5px;
+  min-width: 0;
+}
+.cal-cell.other-month {
+  background: var(--paper);
+}
+.cal-cell.other-month .datenum {
+  opacity: 0.45;
+}
+.cal-cell .datenum {
+  display: inline-block;
+  min-width: 20px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  margin-bottom: 4px;
+  border-radius: 10px;
+  text-align: center;
+}
+.cal-cell .datenum:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+.cal-cell.today .datenum {
+  background: var(--moss-800);
+  color: #fff;
+  font-weight: 700;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cal-cell.today .datenum {
+    background: var(--sage);
+    color: var(--moss-900);
+  }
+}
+:root[data-theme="dark"] .cal-cell.today .datenum {
+  background: var(--sage);
+  color: var(--moss-900);
+}
+.cal-jobs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cal-job {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px;
+  margin-bottom: 2px;
+  border-radius: 2px;
+  font-size: 11px;
+  line-height: 1.35;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--paper-2);
+  overflow: hidden;
+}
+.cal-job:hover {
+  background: var(--line);
+}
+.cal-job-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.more-count {
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+
+/* Phones: names don't fit 7 columns, so each day shows just its status shapes and
+   the whole day opens the day's list. */
+@media (max-width: 640px) {
+  .cal-dow {
+    padding: 4px 2px;
+    font-size: 9.5px;
+    text-align: center;
+  }
+  .cal-cell {
+    min-height: 54px;
+    padding: 4px 2px;
+    text-align: center;
+  }
+  .cal-cell .datenum::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+  .cal-jobs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3px;
+  }
+  .cal-job {
+    display: inline-flex;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    pointer-events: none;
+  }
+  .cal-job-name,
+  .more-count {
+    display: none;
+  }
+  .status-legend {
+    font-size: 11px;
+    gap: 4px 10px;
+  }
+
+  .job-table {
+    min-width: 0;
+  }
+  .job-table thead {
+    display: none;
+  }
+  .job-table tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .job-table tr:last-child {
+    border-bottom: none;
+  }
+  .job-table td,
+  .job-table td:first-child {
+    display: block;
+    padding: 0;
+    border: none;
+  }
+  .job-table .name-cell {
+    grid-row: 1;
+    grid-column: 1;
+  }
+  .job-table .status-cell {
+    grid-row: 1;
+    grid-column: 2;
+  }
+  .job-table .date-cell,
+  .job-table .service-cell,
+  .job-table .address-cell {
+    grid-column: 1 / -1;
+    color: var(--ink-soft);
+  }
+  .job-table .actions-cell {
+    display: none;
+  }
+}
+
+/* ---------- Visit page / customer services ---------- */
+.job-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  margin: -8px 0 18px;
+}
+.job-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.job-notes {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.job-notes .label {
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin-bottom: 2px;
+}
+.job-notes p {
+  margin: 0;
+}
+.could-not-service {
+  max-width: 360px;
+}
+.service-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.service-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.service-row:first-child {
+  padding-top: 0;
+}
+.service-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.visit-table {
+  min-width: 0;
 }

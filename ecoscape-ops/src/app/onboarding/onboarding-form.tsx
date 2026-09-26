@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 
+import { TimeZoneField } from "@/components/time-zone-field";
+
 import { createBusiness, type OnboardingState } from "./actions";
 
 export function OnboardingForm() {
@@ -9,6 +11,7 @@ export function OnboardingForm() {
 
   return (
     <form action={formAction}>
+      <TimeZoneField />
       {state.error && (
         <div className="notice error" role="alert">
           {state.error}

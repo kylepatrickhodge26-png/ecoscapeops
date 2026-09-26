@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 
+import { TimeZoneField } from "@/components/time-zone-field";
+
 import { signUp, type AuthFormState } from "../actions";
 
 export function SignupForm() {
@@ -17,6 +19,7 @@ export function SignupForm() {
 
   return (
     <form action={formAction}>
+      <TimeZoneField />
       {state.error && (
         <div className="notice error" role="alert">
           {state.error}

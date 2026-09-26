@@ -1,44 +1,30 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { ConfirmButton } from "@/components/confirm-button";
 
 import type { DeleteCustomerState } from "../actions";
 
 type Props = {
   action: (state: DeleteCustomerState) => Promise<DeleteCustomerState>;
   customerName: string;
+  visitCount: number;
 };
 
-export function DeleteCustomerButton({ action, customerName }: Props) {
-  const [confirming, setConfirming] = useState(false);
-  const [state, formAction, pending] = useActionState(action, {});
-
-  if (!confirming) {
-    return (
-      <button type="button" className="btn danger small" onClick={() => setConfirming(true)}>
-        Delete
-      </button>
-    );
-  }
-
+export function DeleteCustomerButton({ action, customerName, visitCount }: Props) {
   return (
-    <div className="confirm-delete" role="alertdialog" aria-labelledby="confirm-delete-text">
-      <p id="confirm-delete-text">
-        Delete <b>{customerName}</b>? This can&apos;t be undone.
-      </p>
-      {state.error && (
-        <p className="field-error" role="alert">
-          {state.error}
-        </p>
-      )}
-      <form action={formAction} className="confirm-delete-actions">
-        <button type="button" className="btn secondary small" onClick={() => setConfirming(false)} disabled={pending}>
-          Cancel
-        </button>
-        <button type="submit" className="btn danger small" disabled={pending}>
-          {pending ? "Deleting…" : "Yes, delete"}
-        </button>
-      </form>
-    </div>
+    <ConfirmButton
+      action={action}
+      label="Delete"
+      confirmLabel="Yes, delete"
+      pendingLabel="Deleting…"
+      confirmText={
+        <>
+          Delete <b>{customerName}</b>?{" "}
+          {visitCount > 0 &&
+            `This also permanently deletes their ${visitCount} ${visitCount === 1 ? "visit" : "visits"} and booked services. `}
+          This can&apos;t be undone.
+        </>
+      }
+    />
   );
 }

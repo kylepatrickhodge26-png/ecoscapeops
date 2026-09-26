@@ -11,7 +11,7 @@ export type BusinessRole = Enums<"business_role">;
 export type Membership = {
   user: { id: string; email: string };
   role: BusinessRole;
-  business: { id: string; name: string };
+  business: { id: string; name: string; time_zone: string };
 };
 
 // The signed-in user, verified with Supabase Auth (not just read from the cookie).
@@ -32,7 +32,7 @@ export const requireMembership = cache(async (): Promise<Membership> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("business_members")
-    .select("role, business:businesses(id, name)")
+    .select("role, business:businesses(id, name, time_zone)")
     .eq("user_id", user.id)
     .maybeSingle();
 
