@@ -28,21 +28,29 @@ export type TestUser = { client: Client; userId: string; email: string };
 export type TestOwner = TestUser & { businessId: string };
 
 // Signs up a user through Supabase Auth, the same way the signup form does.
-export async function signUp(label: string, businessName?: string): Promise<TestUser> {
+export async function signUp(
+  label: string,
+  businessName?: string,
+  metadata: Record<string, string> = {},
+): Promise<TestUser> {
   const client = anonClient();
   const email = uniqueEmail(label);
   const { data, error } = await client.auth.signUp({
     email,
     password: PASSWORD,
-    options: businessName ? { data: { business_name: businessName } } : undefined,
+    options: { data: { ...(businessName ? { business_name: businessName } : {}), ...metadata } },
   });
   expect(error).toBeNull();
   expect(data.session).not.toBeNull();
   return { client, userId: data.user!.id, email };
 }
 
-export async function signUpOwner(label: string, businessName: string): Promise<TestOwner> {
-  const user = await signUp(label, businessName);
+export async function signUpOwner(
+  label: string,
+  businessName: string,
+  metadata: Record<string, string> = {},
+): Promise<TestOwner> {
+  const user = await signUp(label, businessName, metadata);
   const { data, error } = await user.client
     .from("business_members")
     .select("business_id, role")
@@ -65,3 +73,47 @@ export async function addCustomer(
   expect(error).toBeNull();
   return data!;
 }
+
+// Books a service the way the booking form does: insert the plan, and the database
+// generates its visits.
+export async function bookService(
+  owner: TestOwner,
+  customerId: string,
+  fields: Partial<TablesInsert<"service_plans">> = {},
+) {
+  const { data, error } = await owner.client
+    .from("service_plans")
+    .insert({
+      business_id: owner.businessId,
+      customer_id: customerId,
+      service_name: "Mowing",
+      price: 65,
+      frequency: "weekly",
+      start_date: "2030-03-05",
+      ...fields,
+    })
+    .select()
+    .single();
+  expect(error).toBeNull();
+  return data!;
+}
+
+export async function visitsFor(owner: TestOwner, planId: string) {
+  const { data, error } = await owner.client
+    .from("jobs")
+    .select("*")
+    .eq("service_plan_id", planId)
+    .order("scheduled_date");
+  expect(error).toBeNull();
+  return data!;
+}
+
+// Today's date in a time zone, as YYYY-MM-DD.
+export const todayIn = (timeZone: string) => new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date());
+
+export function addDays(isoDate: string, days: number) {
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+

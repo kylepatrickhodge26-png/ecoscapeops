@@ -5,7 +5,7 @@ import { requireOwner } from "@/lib/auth";
 import { customerDisplayName, preferredDayLabel, type Customer } from "@/lib/customers/schema";
 import { createClient } from "@/lib/supabase/server";
 
-import { Notice } from "./notice";
+import { Notice } from "@/components/notice";
 
 export const metadata: Metadata = { title: "Customers · EcoScape Ops" };
 

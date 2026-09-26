@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { safeNextPath } from "@/lib/redirect";
+import { timeZoneFromFormData } from "@/lib/time-zone";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthFormState = {
@@ -41,9 +42,9 @@ export async function signUp(_prev: AuthFormState, formData: FormData): Promise<
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      // The on_auth_user_created trigger creates the business from this and makes
-      // this user its owner.
-      data: { business_name: parsed.data.business_name },
+      // The on_auth_user_created trigger creates the business from this (in the
+      // owner's time zone) and makes this user its owner.
+      data: { business_name: parsed.data.business_name, time_zone: timeZoneFromFormData(formData) },
       emailRedirectTo: `${await siteOrigin()}/auth/confirm?next=/customers`,
     },
   });

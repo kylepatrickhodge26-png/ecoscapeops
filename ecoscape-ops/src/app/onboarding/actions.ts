@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { getUser } from "@/lib/auth";
+import { timeZoneFromFormData } from "@/lib/time-zone";
 import { createClient } from "@/lib/supabase/server";
 
 export type OnboardingState = { error?: string; business_name?: string };
@@ -22,7 +23,10 @@ export async function createBusiness(_prev: OnboardingState, formData: FormData)
   if (!(await getUser())) redirect("/login");
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("create_business", { business_name: parsed.data });
+  const { error } = await supabase.rpc("create_business", {
+    business_name: parsed.data,
+    time_zone: timeZoneFromFormData(formData),
+  });
   // 23505: this account already has a business (e.g. a double submit) — just carry on.
   if (error && error.code !== "23505") {
     console.error("create_business failed", error);

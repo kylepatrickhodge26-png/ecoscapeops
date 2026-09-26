@@ -43,18 +43,21 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          time_zone: string
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          time_zone?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          time_zone?: string
           updated_at?: string
         }
         Relationships: []
@@ -130,15 +133,153 @@ export type Database = {
           },
         ]
       }
+      jobs: {
+        Row: {
+          business_id: string
+          completed_at: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          notes: string
+          price: number
+          scheduled_date: string
+          service_name: string
+          service_plan_id: string
+          status: Database["public"]["Enums"]["job_status"]
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          completed_at?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          notes?: string
+          price: number
+          scheduled_date: string
+          service_name: string
+          service_plan_id: string
+          status?: Database["public"]["Enums"]["job_status"]
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          completed_at?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          notes?: string
+          price?: number
+          scheduled_date?: string
+          service_name?: string
+          service_plan_id?: string
+          status?: Database["public"]["Enums"]["job_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_customer_id_business_id_fkey"
+            columns: ["customer_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id", "business_id"]
+          },
+          {
+            foreignKeyName: "jobs_service_plan_id_business_id_fkey"
+            columns: ["service_plan_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "service_plans"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      service_plans: {
+        Row: {
+          active: boolean
+          business_id: string
+          created_at: string
+          customer_id: string
+          frequency: Database["public"]["Enums"]["service_frequency"]
+          id: string
+          next_visit_date: string | null
+          price: number
+          service_name: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          business_id: string
+          created_at?: string
+          customer_id: string
+          frequency: Database["public"]["Enums"]["service_frequency"]
+          id?: string
+          next_visit_date?: string | null
+          price: number
+          service_name: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          business_id?: string
+          created_at?: string
+          customer_id?: string
+          frequency?: Database["public"]["Enums"]["service_frequency"]
+          id?: string
+          next_visit_date?: string | null
+          price?: number
+          service_name?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_plans_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_plans_customer_id_business_id_fkey"
+            columns: ["customer_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      create_business: { Args: { business_name: string }; Returns: string }
+      create_business: {
+        Args: { business_name: string; time_zone?: string }
+        Returns: string
+      }
+      stop_service_plan: { Args: { plan_id: string }; Returns: number }
     }
     Enums: {
       business_role: "owner" | "crew"
+      job_status:
+        | "scheduled"
+        | "assigned"
+        | "en_route"
+        | "in_progress"
+        | "completed"
+        | "unable_to_complete"
+        | "weather_delay"
+        | "cancelled"
+      service_frequency: "weekly" | "biweekly" | "triweekly" | "one_time"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -267,6 +408,17 @@ export const Constants = {
   public: {
     Enums: {
       business_role: ["owner", "crew"],
+      job_status: [
+        "scheduled",
+        "assigned",
+        "en_route",
+        "in_progress",
+        "completed",
+        "unable_to_complete",
+        "weather_delay",
+        "cancelled",
+      ],
+      service_frequency: ["weekly", "biweekly", "triweekly", "one_time"],
     },
   },
 } as const

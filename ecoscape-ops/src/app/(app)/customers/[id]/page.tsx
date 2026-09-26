@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
 import {
   NOTIFICATION_PREFERENCE_LABELS,
@@ -8,10 +9,12 @@ import {
   preferredDayLabel,
   type NotificationPreference,
 } from "@/lib/customers/schema";
+import { todayInTimeZone } from "@/lib/dates";
+import { createClient } from "@/lib/supabase/server";
 
 import { deleteCustomer } from "../actions";
 import { getCustomerOr404 } from "../get-customer";
-import { Notice } from "../notice";
+import { CustomerSchedule } from "./customer-schedule";
 import { DeleteCustomerButton } from "./delete-customer-button";
 
 export const metadata: Metadata = { title: "Customer · EcoScape Ops" };
@@ -27,10 +30,15 @@ function formatDate(isoDate: string) {
 }
 
 export default async function CustomerPage(props: PageProps<"/customers/[id]">) {
-  await requireOwner();
+  const { business } = await requireOwner();
   const { id } = await props.params;
-  const { notice } = await props.searchParams;
+  const { notice, removed } = await props.searchParams;
   const customer = await getCustomerOr404(id);
+  const supabase = await createClient();
+  const { count: visitCount } = await supabase
+    .from("jobs")
+    .select("id", { count: "exact", head: true })
+    .eq("customer_id", customer.id);
   const name = customerDisplayName(customer);
   const contact = [customer.phone, customer.email].filter(Boolean).join(" · ");
 
@@ -49,11 +57,33 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
           <Link className="btn secondary small" href={`/customers/${customer.id}/edit`}>
             Edit
           </Link>
-          <DeleteCustomerButton action={deleteCustomer.bind(null, customer.id)} customerName={name} />
+          <DeleteCustomerButton
+            action={deleteCustomer.bind(null, customer.id)}
+            customerName={name}
+            visitCount={visitCount ?? 0}
+          />
         </div>
       </div>
 
-      {typeof notice === "string" && NOTICES[notice] && <Notice tone="success">{NOTICES[notice]}</Notice>}
+      {typeof notice === "string" && NOTICES[notice] && (
+        <Notice tone="success">
+          {NOTICES[notice]}
+          {notice === "created" && (
+            <>
+              {" "}
+              <Link href={`/schedule/new?customer=${customer.id}`}>Book their first service →</Link>
+            </>
+          )}
+        </Notice>
+      )}
+      {notice === "stopped" && (
+        <Notice tone="success">
+          Service stopped.{" "}
+          {Number(removed) > 0
+            ? `${removed} upcoming ${removed === "1" ? "visit was" : "visits were"} removed from the schedule.`
+            : "No more visits will be added."}
+        </Notice>
+      )}
 
       {customer.access_instructions && <div className="notice">Access: {customer.access_instructions}</div>}
       {customer.service_notes && <div className="notice pre-line">Notes: {customer.service_notes}</div>}
@@ -110,6 +140,7 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
           </dl>
         </div>
       </div>
+      <CustomerSchedule customerId={customer.id} customerName={name} today={todayInTimeZone(business.time_zone)} />
     </>
   );
 }
