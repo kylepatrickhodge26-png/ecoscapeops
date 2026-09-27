@@ -2,7 +2,7 @@
 
 Multi-tenant operations app for landscaping businesses: Next.js (App Router) on Supabase (Postgres, Auth, row-level security).
 
-**Built so far:** the multi-tenant foundation (business signup and login, strict per-business data isolation), **Customers** (add, edit, delete, list), **Scheduling** (recurring bookings, calendar and list views, job statuses), **Crew** (crew logins, job assignment, each crew member's own job view) and the **Dashboard** (the home page). Route ordering, weather, billing, expenses and the rest of the prototype come later.
+**Built so far:** the multi-tenant foundation (business signup and login, strict per-business data isolation), **Customers** (add, edit, delete, list), **Scheduling** (recurring bookings, calendar and list views, job statuses), **Crew** (crew logins, job assignment, each crew member's own job view), the **Dashboard** (the home page) and **Expenses** (a categorized expense log feeding the dashboard's profit). Route ordering, weather, billing and the rest of the prototype come later.
 
 ## Product decisions in this version
 
@@ -66,11 +66,21 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 - **The dashboard is everyone's home page.** Signup, sign-in and `/` land there. Owners see the whole business; crew members see only their own jobs.
 - **Job counts:** *Today* (with completed / remaining), *Tomorrow*, and *This week*, which means today plus the next 6 days. Cancelled visits never count. All dates use the business's time zone.
 - **Revenue (owners only).** The headline is every non-cancelled visit booked this month at its price, completed or not. Most small operators don't invoice every visit, so counting only invoiced-and-paid money would understate it, which was the prototype's original mistake. A second line shows how much of that is already completed.
-- **Estimated profit (owners only)** is revenue minus expenses. Expenses aren't tracked yet, so for now it equals revenue and says so.
+- **Estimated profit (owners only)** is this month's revenue (as above) minus this month's logged expenses.
 - **Invoice totals** (outstanding / overdue) are hidden until Invoicing exists, rather than showing a misleading $0.
-- **Quick actions (owners):** add a customer, book a job, manage crew, and see what needs attention.
+- **Quick actions (owners):** add a customer, book a job, **log gas**, **log equipment**, add any other expense, manage crew, and see what needs attention.
 - **Today's jobs:** owners get the business's list. Crew members get their own jobs with the same actions as My jobs, and never see prices or money totals.
 - All the numbers come from one database function, `dashboard_summary()`, which scopes by role. A crew member's numbers can't include anyone else's jobs, and money totals are never sent to crew at all.
+
+## Expenses decisions
+
+- **Owner only.** Crew members can't see, log, change or delete expenses, and neither can anyone outside the business. The database enforces this.
+- **Fields** follow the prototype: date, category, amount, vendor (optional) and notes (optional).
+- **Categories:** fuel, equipment, repairs, materials, fertilizer, mulch, payroll, insurance, advertising, vehicle, other.
+- **Quick-log on the dashboard.** *Log gas* and *Log equipment* open a small form right on the dashboard: amount, plus where it was bought if you like. The expense is logged for today. *+ Other expense* opens the full form.
+- **Expenses page:** one month at a time, with that month's total, totals by category, and every entry. Entries can be edited and deleted.
+- **Dashboard profit:** this month's booked revenue minus this month's expenses, in the business's time zone.
+- Each expense records who logged it; that can't be faked or changed.
 
 ## Local development
 
@@ -91,8 +101,8 @@ Local auth auto-confirms new accounts, so signup takes you straight in. After ch
 | Command | What it covers | Needs |
 | --- | --- | --- |
 | `npm test` | Unit tests: validation, dates and month grids, schedule filter rules, status shapes and colors | nothing |
-| `npm run test:db` | Tenant isolation and database rules, run through the real Supabase API as real signed-in users: visit generation, keeping 6 ahead, stopping a service, invites, break-in attempts by crew members against other crew members, other businesses and owner-only functions, and exact dashboard numbers per role with leak checks | `npx supabase start` |
-| `npm run test:e2e` | Browser tests (desktop and mobile): signup and login, customers, booking, calendar and filters, Could not service, crew invites and joining, assignment, crew views and actions, crew blocked from owner pages, removal, dashboards for owners and crew, two businesses unable to see each other's data | `npx supabase start`, `.env.local`, `npx playwright install chromium` once |
+| `npm run test:db` | Tenant isolation and database rules, run through the real Supabase API as real signed-in users: visit generation, keeping 6 ahead, stopping a service, invites, break-in attempts by crew members against other crew members, other businesses and owner-only functions, exact dashboard numbers per role with leak checks, and expenses (owner-only, invisible to crew and other businesses) | `npx supabase start` |
+| `npm run test:e2e` | Browser tests (desktop and mobile): signup and login, customers, booking, calendar and filters, Could not service, crew invites and joining, assignment, crew views and actions, crew blocked from owner pages, removal, dashboards for owners and crew, expense quick-log/full form/edit/delete and profit, crew and other businesses unable to see expenses, two businesses unable to see each other's data | `npx supabase start`, `.env.local`, `npx playwright install chromium` once |
 
 Also run `npm run lint` and `npm run typecheck`.
 
@@ -141,6 +151,7 @@ src/
   lib/auth.ts                 getUser / requireMembership / requireOwner
   lib/customers/schema.ts     customer fields, validation, labels
   lib/schedule/               statuses, frequencies, filters, booking/visit validation
+  lib/expenses/               expense categories and validation
   lib/dates.ts                calendar-date helpers (time-zone safe)
   components/job-status.tsx   status shapes, pills, legend
   app/(auth)/                 login, signup, auth server actions
@@ -150,6 +161,7 @@ src/
   app/(app)/customers/        list, new, [id], [id]/edit, server actions
   app/(app)/schedule/         calendar/list, new booking, day/[date], jobs/[id], server actions
   app/(app)/dashboard/        home: counts, revenue, quick actions, today's jobs
+  app/(app)/expenses/         expense log by month, add/edit/delete (owner)
   app/(app)/crew/             crew list, invite links (owner)
   app/(app)/my-jobs/          a crew member's own jobs and actions
   app/(auth)/join/[token]/    joining a crew from an invite link

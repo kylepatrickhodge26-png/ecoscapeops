@@ -1244,6 +1244,7 @@ td:first-child {
 .quick-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-start;
   gap: 8px;
 }
 @media (max-width: 640px) {
@@ -1261,5 +1262,92 @@ td:first-child {
   }
   .card .big {
     font-size: 26px;
+  }
+}
+
+/* ---------- Expenses ---------- */
+.card.accent-clay {
+  border-left: 3px solid var(--clay);
+}
+.category-totals {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+.category-totals li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.category-totals li:last-child {
+  border-bottom: none;
+}
+.amount-cell {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.notes-cell {
+  color: var(--ink-soft);
+  max-width: 280px;
+  overflow-wrap: anywhere;
+}
+/* An open quick-log form sits after the buttons instead of pushing them around. */
+.quick-log {
+  order: 99;
+  width: 100%;
+  max-width: 460px;
+}
+.quick-log-fields {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.quick-log-fields .field {
+  flex: 1 1 140px;
+  margin-bottom: 8px;
+}
+@media (max-width: 640px) {
+  .expense-table {
+    min-width: 0;
+  }
+  .expense-table thead {
+    display: none;
+  }
+  .expense-table tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .expense-table tr:last-child {
+    border-bottom: none;
+  }
+  .expense-table td,
+  .expense-table td:first-child {
+    display: block;
+    padding: 0;
+    border: none;
+  }
+  .expense-table td:nth-child(1),
+  .expense-table td:nth-child(3),
+  .expense-table .notes-cell {
+    grid-column: 1 / -1;
+    color: var(--ink-soft);
+  }
+  .expense-table td:nth-child(2) {
+    grid-row: 1;
+    grid-column: 1;
+  }
+  .expense-table .amount-cell {
+    grid-row: 1;
+    grid-column: 2;
+    font-weight: 600;
+  }
+  .expense-table .actions-cell {
+    display: none;
   }
 }

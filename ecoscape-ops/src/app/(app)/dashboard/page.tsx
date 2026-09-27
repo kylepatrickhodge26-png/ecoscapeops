@@ -1,20 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { Notice } from "@/components/notice";
 import { requireMembership, type Membership } from "@/lib/auth";
 import { getCrew, showAssignment } from "@/lib/crew";
-import { formatLongDate, formatMonth, monthOf } from "@/lib/dates";
+import { formatLongDate, formatMonth, formatShortDate, monthOf } from "@/lib/dates";
+import { EXPENSE_CATEGORY_LABELS } from "@/lib/expenses/schema";
 import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
+import { quickLogExpense } from "../expenses/actions";
 import { CrewJobCard } from "../my-jobs/crew-job-card";
 import { JobTable } from "../schedule/job-table";
 import { jobsBetween } from "../schedule/queries";
+import { QuickLog } from "./quick-log";
 
 export const metadata: Metadata = { title: "Home · EcoScape Ops" };
 
 // From dashboard_summary(): the money fields are null for crew members.
 type Summary = {
+  month_expenses: number | null;
   today: string;
   today_total: number;
   today_completed: number;
@@ -24,8 +29,9 @@ type Summary = {
   month_completed: number | null;
 };
 
-export default async function DashboardPage() {
+export default async function DashboardPage(props: PageProps<"/dashboard">) {
   const membership = await requireMembership();
+  const { logged } = await props.searchParams;
   const supabase = await createClient();
   // Role-aware in the database: owners get the whole business, crew only their own jobs.
   const { data, error } = await supabase.rpc("dashboard_summary");
@@ -34,7 +40,7 @@ export default async function DashboardPage() {
   if (!summary) throw new Error("Could not load your dashboard.");
 
   return membership.role === "owner" ? (
-    <OwnerDashboard membership={membership} summary={summary} />
+    <OwnerDashboard membership={membership} summary={summary} loggedExpenseId={typeof logged === "string" ? logged : undefined} />
   ) : (
     <CrewDashboard summary={summary} />
   );
@@ -65,13 +71,20 @@ function CountCards({ summary, whose }: { summary: Summary; whose: string }) {
   );
 }
 
-async function OwnerDashboard({ membership, summary }: { membership: Membership; summary: Summary }) {
+async function OwnerDashboard({
+  membership,
+  summary,
+  loggedExpenseId,
+}: {
+  membership: Membership;
+  summary: Summary;
+  loggedExpenseId?: string;
+}) {
   const { business, user } = membership;
   const month = formatMonth(monthOf(summary.today)).split(" ")[0];
   const booked = summary.month_booked ?? 0;
   const completed = summary.month_completed ?? 0;
-  // No expenses are tracked yet; once they are, subtract this month's here.
-  const expenses = 0;
+  const expenses = summary.month_expenses ?? 0;
   const [todaysJobs, crew] = await Promise.all([
     jobsBetween(business.id, summary.today, summary.today),
     getCrew(business.id, user.id),
@@ -86,6 +99,8 @@ async function OwnerDashboard({ membership, summary }: { membership: Membership;
         </div>
       </div>
 
+      <LoggedNotice expenseId={loggedExpenseId} />
+
       <CountCards summary={summary} whose="Business" />
 
       <div className="grid g2">
@@ -98,7 +113,9 @@ async function OwnerDashboard({ membership, summary }: { membership: Membership;
         <div className="card" data-card="profit">
           <div className="label">EST. PROFIT · {month.toUpperCase()}</div>
           <div className="big">{formatPrice(booked - expenses)}</div>
-          <div className="sub">revenue minus expenses — no expenses tracked yet</div>
+          <div className="sub">
+            revenue minus <Link href="/expenses">{formatPrice(expenses)} in expenses</Link> this month
+          </div>
         </div>
       </div>
 
@@ -112,6 +129,22 @@ async function OwnerDashboard({ membership, summary }: { membership: Membership;
           </Link>
           <Link className="btn secondary small" href="/schedule/new">
             + Book a job
+          </Link>
+          {/* Keyed on the last logged expense so the quick-log forms close after saving. */}
+          <QuickLog
+            key={`fuel-${loggedExpenseId}`}
+            action={quickLogExpense.bind(null, "fuel")}
+            label="Log gas"
+            vendorPlaceholder="e.g. Speedway"
+          />
+          <QuickLog
+            key={`equipment-${loggedExpenseId}`}
+            action={quickLogExpense.bind(null, "equipment")}
+            label="Log equipment"
+            vendorPlaceholder="e.g. Home Depot"
+          />
+          <Link className="btn secondary small" href="/expenses/new">
+            + Other expense
           </Link>
           <Link className="btn secondary small" href="/crew">
             Manage crew
@@ -176,5 +209,24 @@ async function CrewDashboard({ summary }: { summary: Summary }) {
         )}
       </section>
     </>
+  );
+}
+
+// "Logged $62.40 for fuel (Speedway)." after a quick-log.
+async function LoggedNotice({ expenseId }: { expenseId?: string }) {
+  if (!expenseId || !/^[0-9a-f-]{36}$/.test(expenseId)) return null;
+  const supabase = await createClient();
+  const { data: expense } = await supabase
+    .from("expenses")
+    .select("id, amount, category, vendor, spent_on")
+    .eq("id", expenseId)
+    .maybeSingle();
+  if (!expense) return null;
+  return (
+    <Notice tone="success">
+      Logged {formatPrice(expense.amount)} for {EXPENSE_CATEGORY_LABELS[expense.category].toLowerCase()}
+      {expense.vendor && ` (${expense.vendor})`} on {formatShortDate(expense.spent_on)}.{" "}
+      <Link href={`/expenses/${expense.id}/edit`}>Edit</Link>
+    </Notice>
   );
 }
