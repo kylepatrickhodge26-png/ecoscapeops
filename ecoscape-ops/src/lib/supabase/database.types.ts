@@ -184,6 +184,53 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          amount: number
+          business_id: string
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string
+          spent_on: string
+          updated_at: string
+          vendor: string
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string
+          spent_on: string
+          updated_at?: string
+          vendor?: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string
+          spent_on?: string
+          updated_at?: string
+          vendor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           assigned_crew_member_id: string | null
@@ -394,6 +441,7 @@ export type Database = {
         Returns: {
           month_booked: number
           month_completed: number
+          month_expenses: number
           today: string
           today_completed: number
           today_total: number
@@ -413,6 +461,18 @@ export type Database = {
     }
     Enums: {
       business_role: "owner" | "crew"
+      expense_category:
+        | "fuel"
+        | "equipment"
+        | "repairs"
+        | "materials"
+        | "fertilizer"
+        | "mulch"
+        | "payroll"
+        | "insurance"
+        | "advertising"
+        | "vehicle"
+        | "other"
       job_status:
         | "scheduled"
         | "assigned"
@@ -551,6 +611,19 @@ export const Constants = {
   public: {
     Enums: {
       business_role: ["owner", "crew"],
+      expense_category: [
+        "fuel",
+        "equipment",
+        "repairs",
+        "materials",
+        "fertilizer",
+        "mulch",
+        "payroll",
+        "insurance",
+        "advertising",
+        "vehicle",
+        "other",
+      ],
       job_status: [
         "scheduled",
         "assigned",

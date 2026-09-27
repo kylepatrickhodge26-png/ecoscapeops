@@ -52,7 +52,7 @@ test("a new business's dashboard starts at zero, with quick actions one tap away
   await expect(card(page, "tomorrow").locator(".big")).toHaveText("0");
   await expect(card(page, "week").locator(".big")).toHaveText("0");
   await expect(card(page, "revenue").locator(".big")).toHaveText("$0.00");
-  await expect(card(page, "profit")).toContainText("no expenses tracked yet");
+  await expect(card(page, "profit")).toContainText("revenue minus $0.00 in expenses this month");
   // No invoicing yet, so no invoice totals pretending nothing is owed.
   await expect(page.getByText(/outstanding|overdue/i)).toHaveCount(0);
 
