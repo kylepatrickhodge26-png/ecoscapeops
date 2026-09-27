@@ -1351,3 +1351,83 @@ td:first-child {
     display: none;
   }
 }
+
+/* ---------- Weather ---------- */
+.grid.g4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+@media (max-width: 1000px) {
+  .grid.g4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  /* Four cards fill two rows evenly, so "this week" doesn't need a row of its own. */
+  .grid.g4 .card[data-card="week"] {
+    grid-column: auto;
+  }
+}
+.card.rainy {
+  background: var(--clay-soft);
+}
+.area-field {
+  max-width: 280px;
+}
+.send-texts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 14px;
+}
+.send-texts p {
+  margin: 0;
+  flex: 1 1 280px;
+  font-size: 13px;
+}
+.text-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.text-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 3fr;
+  gap: 6px 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+@media (max-width: 640px) {
+  .text-row {
+    grid-template-columns: 1fr;
+  }
+}
+.text-body {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--sky);
+  background: var(--paper-2);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.pill.sms-ok {
+  background: var(--success-soft);
+  color: var(--success-ink);
+}
+.pill.sms-pending {
+  background: var(--sky-soft);
+  color: var(--sky);
+}
+.pill.sms-bad {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.pill.sms-none {
+  background: var(--paper-2);
+  color: var(--ink-soft);
+}
+.rain-delay-table {
+  min-width: 0;
+}

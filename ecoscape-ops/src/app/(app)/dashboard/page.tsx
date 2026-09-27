@@ -8,12 +8,14 @@ import { formatLongDate, formatMonth, formatShortDate, monthOf } from "@/lib/dat
 import { EXPENSE_CATEGORY_LABELS } from "@/lib/expenses/schema";
 import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
+import { getServiceArea, type ServiceArea } from "@/lib/weather/queries";
 
 import { quickLogExpense } from "../expenses/actions";
 import { CrewJobCard } from "../my-jobs/crew-job-card";
 import { JobTable } from "../schedule/job-table";
 import { jobsBetween } from "../schedule/queries";
 import { QuickLog } from "./quick-log";
+import { WeatherCard } from "./weather-card";
 
 export const metadata: Metadata = { title: "Home · EcoScape Ops" };
 
@@ -38,18 +40,25 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
   if (error) throw new Error(`Could not load your dashboard: ${error.message}`);
   const summary = data[0] as Summary | undefined;
   if (!summary) throw new Error("Could not load your dashboard.");
+  const area = await getServiceArea();
 
   return membership.role === "owner" ? (
-    <OwnerDashboard membership={membership} summary={summary} loggedExpenseId={typeof logged === "string" ? logged : undefined} />
+    <OwnerDashboard
+      membership={membership}
+      summary={summary}
+      area={area}
+      loggedExpenseId={typeof logged === "string" ? logged : undefined}
+    />
   ) : (
-    <CrewDashboard summary={summary} />
+    <CrewDashboard summary={summary} area={area} />
   );
 }
 
-function CountCards({ summary, whose }: { summary: Summary; whose: string }) {
+// The day's counts, plus the weather card when there is one.
+function CountCards({ summary, whose, weather }: { summary: Summary; whose: string; weather?: React.ReactNode }) {
   const remaining = summary.today_total - summary.today_completed;
   return (
-    <div className="grid g3" aria-label={`${whose} job counts`}>
+    <div className={weather ? "grid g4" : "grid g3"} aria-label={`${whose} job counts`}>
       <div className="card accent-sage" data-card="today">
         <div className="label">TODAY</div>
         <div className="big">{summary.today_total}</div>
@@ -67,6 +76,7 @@ function CountCards({ summary, whose }: { summary: Summary; whose: string }) {
         <div className="big">{summary.week_total}</div>
         <div className="sub">today and the next 6 days</div>
       </div>
+      {weather}
     </div>
   );
 }
@@ -74,10 +84,12 @@ function CountCards({ summary, whose }: { summary: Summary; whose: string }) {
 async function OwnerDashboard({
   membership,
   summary,
+  area,
   loggedExpenseId,
 }: {
   membership: Membership;
   summary: Summary;
+  area: ServiceArea | null;
   loggedExpenseId?: string;
 }) {
   const { business, user } = membership;
@@ -101,7 +113,11 @@ async function OwnerDashboard({
 
       <LoggedNotice expenseId={loggedExpenseId} />
 
-      <CountCards summary={summary} whose="Business" />
+      <CountCards
+        summary={summary}
+        whose="Business"
+        weather={<WeatherCard area={area} today={summary.today} isOwner />}
+      />
 
       <div className="grid g2">
         <div className="card accent-sage" data-card="revenue">
@@ -146,6 +162,9 @@ async function OwnerDashboard({
           <Link className="btn secondary small" href="/expenses/new">
             + Other expense
           </Link>
+          <Link className="btn secondary small" href="/weather/move">
+            Move a day&apos;s jobs (weather)
+          </Link>
           <Link className="btn secondary small" href="/crew">
             Manage crew
           </Link>
@@ -176,7 +195,7 @@ async function OwnerDashboard({
   );
 }
 
-async function CrewDashboard({ summary }: { summary: Summary }) {
+async function CrewDashboard({ summary, area }: { summary: Summary; area: ServiceArea | null }) {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("crew_jobs", { from_date: summary.today, to_date: summary.today });
   if (error) throw new Error(`Could not load your jobs: ${error.message}`);
@@ -193,7 +212,14 @@ async function CrewDashboard({ summary }: { summary: Summary }) {
         </Link>
       </div>
 
-      <CountCards summary={summary} whose="Your" />
+      <CountCards
+        summary={summary}
+        whose="Your"
+        weather={
+          // Crew members see the forecast once the owner has set a service area.
+          area && <WeatherCard area={area} today={summary.today} isOwner={false} />
+        }
+      />
 
       <section className="crew-section" aria-labelledby="today-heading">
         <h2 id="today-heading">Your jobs today</h2>
