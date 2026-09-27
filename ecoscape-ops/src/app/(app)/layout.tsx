@@ -4,7 +4,9 @@ import { getCrew, showAssignment } from "@/lib/crew";
 import { signOut } from "../(auth)/actions";
 import { NavLinks, type NavLink } from "./nav-links";
 
+const HOME: NavLink = { href: "/dashboard", label: "Home" };
 const OWNER_LINKS: NavLink[] = [
+  HOME,
   { href: "/customers", label: "Customers" },
   { href: "/schedule", label: "Schedule" },
   { href: "/crew", label: "Crew" },
@@ -20,7 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ? showAssignment(await getCrew(business.id, user.id))
         ? [...OWNER_LINKS, MY_JOBS]
         : OWNER_LINKS
-      : [MY_JOBS];
+      : [HOME, MY_JOBS];
 
   return (
     <div id="app">

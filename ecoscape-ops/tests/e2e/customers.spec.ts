@@ -139,6 +139,7 @@ test("a business never sees another business's customers", async ({ browser }) =
   const birchContext = await browser.newContext();
   const birch = await birchContext.newPage();
   await signUpBusiness(birch, "Birch Tree Services");
+  await birch.goto("/customers");
   await expect(birch.getByText("No customers yet")).toBeVisible();
   await expect(birch.getByText("Secret Client")).toHaveCount(0);
 

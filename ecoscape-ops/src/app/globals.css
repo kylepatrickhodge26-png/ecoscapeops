@@ -1194,3 +1194,72 @@ td:first-child {
 .add-note textarea {
   min-height: 60px;
 }
+
+/* ---------- Dashboard (cards from the prototype's Home screen) ---------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.grid.g2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+.card .label {
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+.card .big {
+  font-family: var(--font-display), serif;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1;
+}
+.card .sub {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-top: 6px;
+}
+.card .sub.strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.card.accent-sage {
+  border-left: 3px solid var(--sage);
+}
+.card.accent-sky {
+  border-left: 3px solid var(--sky);
+}
+.card.accent-sun {
+  border-left: 3px solid var(--sun);
+}
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .grid,
+  .grid.g2 {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .grid.g2 .card,
+  .grid .card[data-card="week"] {
+    grid-column: span 2;
+  }
+  .card {
+    padding: 12px 14px;
+  }
+  .card .big {
+    font-size: 26px;
+  }
+}

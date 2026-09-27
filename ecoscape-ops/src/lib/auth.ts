@@ -65,4 +65,3 @@ export const requireCrewMember = cache(async () => {
   return { ...membership, crewMember: data };
 });
 
-export const homePathFor = (role: BusinessRole) => (role === "owner" ? "/customers" : "/my-jobs");

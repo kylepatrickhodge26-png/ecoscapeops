@@ -2,9 +2,11 @@ import { expect, test } from "@playwright/test";
 
 import { PASSWORD, signUpBusiness, uniqueEmail } from "./helpers";
 
-test("a new business signs up and lands on its empty customer list", async ({ page }) => {
+test("a new business signs up and lands on its dashboard", async ({ page }) => {
   await signUpBusiness(page, "Green Acres Landscaping");
-  await expect(page.getByRole("heading", { name: "Customers" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
+  await expect(page.getByText("Nothing scheduled today")).toBeVisible();
+  await page.getByRole("link", { name: "Customers" }).click();
   await expect(page.getByText("No customers yet")).toBeVisible();
 });
 
@@ -31,9 +33,9 @@ test("signed-out visitors are sent to sign in, then returned to where they were 
 test("signed-in users skip the sign-in and signup pages", async ({ page }) => {
   await signUpBusiness(page, "Already In Co");
   await page.goto("/login");
-  await expect(page).toHaveURL(/\/customers$/);
+  await expect(page).toHaveURL(/\/dashboard$/);
   await page.goto("/signup");
-  await expect(page).toHaveURL(/\/customers$/);
+  await expect(page).toHaveURL(/\/dashboard$/);
 });
 
 test("signing up with an email that's already registered shows an error", async ({ page, browser }) => {
