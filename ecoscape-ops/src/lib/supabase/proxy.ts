@@ -5,7 +5,7 @@ import type { Database } from "./database.types";
 import { supabasePublishableKey, supabaseUrl } from "./env";
 
 // Pages anyone can open without signing in.
-const PUBLIC_PATHS = ["/login", "/signup", "/auth"];
+const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/join"];
 // Pages a signed-in user has no reason to see.
 const SIGNED_OUT_ONLY_PATHS = ["/login", "/signup"];
 
@@ -46,7 +46,7 @@ export async function updateSession(request: NextRequest) {
     return redirectPreservingSession(request, response, authHeaders, "/login", pathname === "/" ? null : pathname);
   }
   if (signedIn && matches(pathname, SIGNED_OUT_ONLY_PATHS)) {
-    return redirectPreservingSession(request, response, authHeaders, "/customers");
+    return redirectPreservingSession(request, response, authHeaders, "/");
   }
 
   return response;

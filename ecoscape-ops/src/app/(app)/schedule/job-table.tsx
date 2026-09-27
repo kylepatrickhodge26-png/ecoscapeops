@@ -7,11 +7,13 @@ import { formatPrice, isOverdue } from "@/lib/schedule/constants";
 
 import type { JobListItem } from "./queries";
 
-export function JobTable({ jobs, today, emptyTitle, emptyText }: {
+export function JobTable({ jobs, today, emptyTitle, emptyText, showCrew = false }: {
   jobs: JobListItem[];
   today: string;
   emptyTitle: string;
   emptyText: React.ReactNode;
+  // Only once the business has more than one crew member.
+  showCrew?: boolean;
 }) {
   if (jobs.length === 0) {
     return (
@@ -30,6 +32,7 @@ export function JobTable({ jobs, today, emptyTitle, emptyText }: {
           <th>Customer</th>
           <th>Service</th>
           <th>Property address</th>
+          {showCrew && <th>Crew</th>}
           <th>Status</th>
           <th>
             <span className="visually-hidden">Actions</span>
@@ -53,6 +56,7 @@ export function JobTable({ jobs, today, emptyTitle, emptyText }: {
               {job.service_name} · {formatPrice(job.price)}
             </td>
             <td className="address-cell">{job.customer.property_address || "—"}</td>
+            {showCrew && <td className="crew-cell">{job.assignee?.name ?? <span className="subtext">Unassigned</span>}</td>}
             <td className="status-cell">
               <StatusPill status={job.status} />
             </td>

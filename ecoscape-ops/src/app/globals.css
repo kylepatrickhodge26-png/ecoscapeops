@@ -1066,3 +1066,131 @@ td:first-child {
 .visit-table {
   min-width: 0;
 }
+
+/* ---------- Crew ---------- */
+.crew-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.crew-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px 16px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.crew-row:last-child {
+  border-bottom: none;
+}
+.crew-who b {
+  font-size: 14px;
+}
+.crew-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+}
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+.inline-form .field {
+  flex: 1 1 220px;
+  margin-bottom: 0;
+}
+.rename-form input {
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+}
+.invite-link {
+  border: 1px solid var(--sage);
+  background: var(--success-soft);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  max-width: 560px;
+}
+.invite-link p {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+}
+.invite-link-row {
+  display: flex;
+  gap: 8px;
+}
+.invite-link-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--ink);
+  font: 12px ui-monospace, monospace;
+}
+
+/* ---------- My jobs (crew view) ---------- */
+.crew-section {
+  margin-bottom: 22px;
+}
+.crew-section h2 {
+  font-size: 16px;
+  margin: 0 0 10px;
+}
+.jobitem {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: var(--white);
+}
+.jobitem .top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.jobitem .cust {
+  font-weight: 600;
+  font-size: 14.5px;
+}
+.jobitem .addr {
+  color: var(--ink-soft);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.jobitem .svc {
+  font-size: 12.5px;
+  margin-top: 6px;
+}
+.jobitem .actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.notice.compact {
+  margin: 8px 0 0;
+  padding: 6px 10px;
+}
+.job-notes-inline {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  border-left: 2px solid var(--line);
+  padding-left: 8px;
+}
+.add-note textarea {
+  min-height: 60px;
+}

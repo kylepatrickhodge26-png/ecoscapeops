@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { requireOwner } from "@/lib/auth";
+import { assigneeOptions, getCrew, showAssignment } from "@/lib/crew";
 import { customerDisplayName } from "@/lib/customers/schema";
 import { isISODate, todayInTimeZone } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
@@ -11,7 +12,7 @@ import { BookingForm, type BookingCustomer } from "./booking-form";
 export const metadata: Metadata = { title: "Book a job · EcoScape Ops" };
 
 export default async function NewBookingPage(props: PageProps<"/schedule/new">) {
-  const { business } = await requireOwner();
+  const { business, user } = await requireOwner();
   const params = await props.searchParams;
   const today = todayInTimeZone(business.time_zone);
 
@@ -25,6 +26,9 @@ export default async function NewBookingPage(props: PageProps<"/schedule/new">) 
   const customers: BookingCustomer[] = data
     .map((c) => ({ id: c.id, name: customerDisplayName(c), preferredDay: c.preferred_day, inactive: c.status !== "active" }))
     .sort((a, b) => Number(a.inactive) - Number(b.inactive) || a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+
+  const crew = await getCrew(business.id, user.id);
+  const assignees = showAssignment(crew) ? assigneeOptions(crew, user.id) : undefined;
 
   const presetCustomer = customers.find((c) => c.id === params.customer)?.id ?? "";
   const presetDate = isISODate(params.date) && params.date >= today ? params.date : "";
@@ -50,7 +54,13 @@ export default async function NewBookingPage(props: PageProps<"/schedule/new">) 
           </div>
         </div>
       ) : (
-        <BookingForm customers={customers} today={today} presetCustomer={presetCustomer} presetDate={presetDate} />
+        <BookingForm
+          customers={customers}
+          assignees={assignees}
+          today={today}
+          presetCustomer={presetCustomer}
+          presetDate={presetDate}
+        />
       )}
     </>
   );

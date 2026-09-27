@@ -5,6 +5,7 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { StatusPill } from "@/components/job-status";
 import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
+import { getCrew, showAssignment } from "@/lib/crew";
 import { customerDisplayName } from "@/lib/customers/schema";
 import { addDays, formatLongDate, formatShortDate, monthOf, todayInTimeZone } from "@/lib/dates";
 import { FREQUENCY_LABELS, formatPrice, isClosed, isOverdue } from "@/lib/schedule/constants";
@@ -24,10 +25,11 @@ const NOTICES: Record<string, string> = {
 };
 
 export default async function JobPage(props: PageProps<"/schedule/jobs/[id]">) {
-  const { business } = await requireOwner();
+  const { business, user } = await requireOwner();
   const { id } = await props.params;
   const { notice } = await props.searchParams;
   const job = await getJobOr404(id);
+  const showCrew = showAssignment(await getCrew(business.id, user.id));
   const today = todayInTimeZone(business.time_zone);
   const name = customerDisplayName(job.customer);
   const open = !isClosed(job.status);
@@ -118,6 +120,12 @@ export default async function JobPage(props: PageProps<"/schedule/jobs/[id]">) {
               <dt>Phone</dt>
               <dd>{job.customer.phone || "—"}</dd>
             </div>
+            {(showCrew || job.assignee) && (
+              <div>
+                <dt>Assigned to</dt>
+                <dd>{job.assignee?.name ?? "Unassigned"}</dd>
+              </div>
+            )}
             {job.completed_at && (
               <div>
                 <dt>Completed</dt>

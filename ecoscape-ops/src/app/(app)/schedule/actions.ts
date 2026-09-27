@@ -50,8 +50,12 @@ export async function bookService(_prev: BookingFormState, formData: FormData): 
     .single();
 
   if (error) {
-    // 23503: the customer isn't in this business (e.g. deleted in another tab).
-    if (error.code === "23503") return { values, fieldErrors: { customer_id: "Choose a customer" } };
+    // 23503: the customer or crew member isn't in this business (e.g. removed in another tab).
+    if (error.code === "23503") {
+      return error.message.includes("crew")
+        ? { values, fieldErrors: { assigned_crew_member_id: "Choose a crew member" } }
+        : { values, fieldErrors: { customer_id: "Choose a customer" } };
+    }
     console.error("Book service failed", error);
     return { values, error: "We couldn't book this service. Please try again." };
   }
@@ -76,9 +80,15 @@ export async function updateJob(id: string, _prev: JobFormState, formData: FormD
   const parsed = parseJob(values);
   if (!parsed.success) return { values, fieldErrors: parsed.fieldErrors };
 
+  // "Assign to" is only on the form once there's a crew to assign to; without it,
+  // leave the assignment alone rather than clearing it.
+  const { assigned_crew_member_id, ...rest } = parsed.data;
+  const update = formData.has("assigned_crew_member_id") ? { ...rest, assigned_crew_member_id } : rest;
+
   const supabase = await createClient();
-  const { data, error } = await supabase.from("jobs").update(parsed.data).eq("id", id).select("id");
+  const { data, error } = await supabase.from("jobs").update(update).eq("id", id).select("id");
   if (error) {
+    if (error.code === "23503") return { values, fieldErrors: { assigned_crew_member_id: "Choose a crew member" } };
     console.error("Update visit failed", error);
     return { values, error: "We couldn't save your changes. Please try again." };
   }

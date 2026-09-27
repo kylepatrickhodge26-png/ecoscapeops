@@ -2,7 +2,7 @@
 
 Multi-tenant operations app for landscaping businesses: Next.js (App Router) on Supabase (Postgres, Auth, row-level security).
 
-**Built so far:** the multi-tenant foundation (business signup and login, strict per-business data isolation), **Customers** (add, edit, delete, list) and **Scheduling** (recurring bookings, calendar and list views, job statuses). Crew, weather, billing, expenses and the rest of the prototype come later.
+**Built so far:** the multi-tenant foundation (business signup and login, strict per-business data isolation), **Customers** (add, edit, delete, list), **Scheduling** (recurring bookings, calendar and list views, job statuses) and **Crew** (crew logins, job assignment, each crew member's own job view). Route ordering, weather, billing, expenses and the rest of the prototype come later.
 
 ## Product decisions in this version
 
@@ -45,6 +45,22 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 - **"Today"** uses the business's time zone, which is taken from the owner's browser at signup. It falls back to America/New_York.
 - **Not built yet:** crew assignment (the *assigned* status exists but has no crew field), route ordering, weather ("move a day"), invoicing, and editing a service's price or frequency after booking. Individual visits can be edited.
 
+## Crew decisions
+
+- **Roles.** The *owner* has full access. A *crew* member sees and works only the jobs assigned to them.
+- **Crew logins via invite links.** On the Crew page the owner adds a name and gets a private link to text the person.
+  - The crew member opens it and creates their own email and password, which ties the login to the business.
+  - A link works once and expires after 14 days. The owner can make a new one, which kills the old one.
+  - Only a hash of the link is stored.
+  - A login can belong to one business, so someone who already owns a business needs a separate login to join a crew.
+- **The owner is on the crew too**, so jobs can be assigned to them. "Assign to" (on booking and on editing a visit) appears only once the business has **more than one** crew member, counting pending invites. Solo operators never see it. Booking a recurring service with a crew member assigns every visit, including ones added later.
+- **What crew members see** (My jobs: overdue, today, the next 14 days):
+  - customer name, address, phone, gate/access instructions, service notes, the service, and the job's notes;
+  - **never prices**, other customers, or anyone else's jobs.
+- **What crew members can do:** start a job, mark it completed, add a note, and *Could not service* (reschedule to a new date, or cancel). Their notes are signed with their name. They can't reach the owner's pages.
+- **Removing** a crew member ends their access immediately and unassigns their jobs. Their login still exists but belongs to no business.
+- **Not built yet:** route ordering and maps, weather, billing, reassigning a whole recurring service at once (visits can be reassigned one by one), and crew seeing each other.
+
 ## Local development
 
 Prerequisites: Node 20.9+ and Docker (for the local Supabase stack).
@@ -64,8 +80,8 @@ Local auth auto-confirms new accounts, so signup takes you straight in. After ch
 | Command | What it covers | Needs |
 | --- | --- | --- |
 | `npm test` | Unit tests: validation, dates and month grids, schedule filter rules, status shapes and colors | nothing |
-| `npm run test:db` | Tenant isolation and database rules, run through the real Supabase API as real signed-in users: visit generation, keeping 6 ahead, stopping a service, cross-business access | `npx supabase start` |
-| `npm run test:e2e` | Browser tests (desktop and mobile): signup and login, customer add/edit/delete, booking, calendar and filters, Could not service, stopping a service, two businesses unable to see each other's data | `npx supabase start`, `.env.local`, `npx playwright install chromium` once |
+| `npm run test:db` | Tenant isolation and database rules, run through the real Supabase API as real signed-in users: visit generation, keeping 6 ahead, stopping a service, invites, and break-in attempts by crew members against other crew members, other businesses and owner-only functions | `npx supabase start` |
+| `npm run test:e2e` | Browser tests (desktop and mobile): signup and login, customers, booking, calendar and filters, Could not service, crew invites and joining, assignment, crew views and actions, crew blocked from owner pages, removal, two businesses unable to see each other's data | `npx supabase start`, `.env.local`, `npx playwright install chromium` once |
 
 Also run `npm run lint` and `npm run typecheck`.
 
@@ -79,7 +95,7 @@ Also run `npm run lint` and `npm run typecheck`.
 2. In the dashboard, under **Authentication → URL Configuration**, set **Site URL** to your app's URL (e.g. `https://app.example.com`). Add `https://app.example.com/**` to **Redirect URLs**.
 3. Under **Authentication → Emails → Confirm signup**, replace the link in the template with the one from `supabase/templates/confirm-signup.html`:
    ```html
-   <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/customers">Confirm my email</a>
+   <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/">Confirm my email</a>
    ```
    The default template also works, but only if the link is opened in the same browser that signed up. The token-hash link works on any device.
 4. Optionally, under **Authentication → Providers → Email** (password settings), set the minimum password length to 8 to match the app.
@@ -93,6 +109,7 @@ The rules live in `supabase/migrations/` (foundation and scheduling):
 - Every tenant-owned table has a non-null `business_id`, and **row-level security is on for every table**. Policies only allow rows whose `business_id` is one of the caller's businesses. The lookup uses `private.member_business_ids()` / `private.owner_business_ids()`, which live in a schema that isn't exposed through the API.
 - Clients can't write memberships at all. A business and its owner membership are created together, either by a trigger when someone signs up with a `business_name`, or by the `create_business()` function for a signed-in user who has none yet.
 - A row's `business_id` can't be changed once set. The anonymous role has no access to any tenant table.
+- **Crew members have no direct table access at all.** RLS gives them nothing on customers, service plans or jobs. Everything they see or do goes through `crew_*` database functions that only ever touch jobs assigned to the caller, and that never return prices. Crew members see only their own crew and membership records.
 - Rows that point at other tenant rows use composite `(id, business_id)` foreign keys. A service plan or visit can only reference a customer or plan in the same business, even though foreign-key checks bypass RLS.
 - The app code filters by business too, but only for clarity. The database enforces isolation even against hand-crafted API calls, and `tests/db/tenant-isolation.test.ts` checks this.
 
@@ -121,10 +138,13 @@ src/
   app/(app)/                  signed-in shell (sidebar)
   app/(app)/customers/        list, new, [id], [id]/edit, server actions
   app/(app)/schedule/         calendar/list, new booking, day/[date], jobs/[id], server actions
+  app/(app)/crew/             crew list, invite links (owner)
+  app/(app)/my-jobs/          a crew member's own jobs and actions
+  app/(auth)/join/[token]/    joining a crew from an invite link
 supabase/
   migrations/                 schema, RLS policies
   templates/                  auth email templates
 tests/
-  db/                         tenant isolation + scheduling rules (Vitest + supabase-js)
+  db/                         tenant isolation, scheduling rules, crew break-in tests (Vitest + supabase-js)
   e2e/                        browser tests (Playwright)
 ```

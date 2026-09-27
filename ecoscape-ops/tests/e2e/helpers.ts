@@ -5,8 +5,9 @@ import { expect, type Page } from "@playwright/test";
 export const PASSWORD = "correct-horse-battery";
 export const uniqueEmail = (label: string) => `${label}-${randomUUID().slice(0, 8)}@example.test`;
 
-export async function signUpBusiness(page: Page, businessName: string, email = uniqueEmail("owner")) {
+export async function signUpBusiness(page: Page, businessName: string, email = uniqueEmail("owner"), ownerName = "Kyle") {
   await page.goto("/signup");
+  await page.getByLabel("Your name").fill(ownerName);
   await page.getByLabel("Business name").fill(businessName);
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);

@@ -62,6 +62,57 @@ export type Database = {
         }
         Relationships: []
       }
+      crew_members: {
+        Row: {
+          business_id: string
+          created_at: string
+          email: string | null
+          id: string
+          invite_expires_at: string | null
+          invite_token_hash: string | null
+          name: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          invite_expires_at?: string | null
+          invite_token_hash?: string | null
+          name: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          invite_expires_at?: string | null
+          invite_token_hash?: string | null
+          name?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_members_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_members_business_id_user_id_fkey"
+            columns: ["business_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "business_members"
+            referencedColumns: ["business_id", "user_id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           access_instructions: string
@@ -135,6 +186,7 @@ export type Database = {
       }
       jobs: {
         Row: {
+          assigned_crew_member_id: string | null
           business_id: string
           completed_at: string | null
           created_at: string
@@ -149,6 +201,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_crew_member_id?: string | null
           business_id: string
           completed_at?: string | null
           created_at?: string
@@ -163,6 +216,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_crew_member_id?: string | null
           business_id?: string
           completed_at?: string | null
           created_at?: string
@@ -177,6 +231,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "jobs_assigned_crew_member_fkey"
+            columns: ["assigned_crew_member_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "crew_members"
+            referencedColumns: ["id", "business_id"]
+          },
           {
             foreignKeyName: "jobs_business_id_fkey"
             columns: ["business_id"]
@@ -203,6 +264,7 @@ export type Database = {
       service_plans: {
         Row: {
           active: boolean
+          assigned_crew_member_id: string | null
           business_id: string
           created_at: string
           customer_id: string
@@ -216,6 +278,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          assigned_crew_member_id?: string | null
           business_id: string
           created_at?: string
           customer_id: string
@@ -229,6 +292,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          assigned_crew_member_id?: string | null
           business_id?: string
           created_at?: string
           customer_id?: string
@@ -241,6 +305,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "service_plans_assigned_crew_member_fkey"
+            columns: ["assigned_crew_member_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "crew_members"
+            referencedColumns: ["id", "business_id"]
+          },
           {
             foreignKeyName: "service_plans_business_id_fkey"
             columns: ["business_id"]
@@ -262,9 +333,69 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_crew_invite: { Args: { token: string }; Returns: string }
+      add_crew_member: {
+        Args: { member_name: string }
+        Returns: {
+          crew_member_id: string
+          invite_token: string
+        }[]
+      }
       create_business: {
         Args: { business_name: string; time_zone?: string }
         Returns: string
+      }
+      crew_add_job_note: {
+        Args: { job_id: string; note: string }
+        Returns: undefined
+      }
+      crew_could_not_service: {
+        Args: {
+          choice: string
+          job_id: string
+          new_date: string
+          note_line: string
+        }
+        Returns: undefined
+      }
+      crew_invite_details: {
+        Args: { token: string }
+        Returns: {
+          business_name: string
+          crew_member_name: string
+        }[]
+      }
+      crew_jobs: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          access_instructions: string
+          customer_email: string
+          customer_first_name: string
+          customer_last_name: string
+          customer_phone: string
+          id: string
+          notes: string
+          property_address: string
+          scheduled_date: string
+          service_name: string
+          service_notes: string
+          status: Database["public"]["Enums"]["job_status"]
+        }[]
+      }
+      crew_set_job_status: {
+        Args: {
+          job_id: string
+          new_status: Database["public"]["Enums"]["job_status"]
+        }
+        Returns: undefined
+      }
+      regenerate_crew_invite: {
+        Args: { crew_member_id: string }
+        Returns: string
+      }
+      remove_crew_member: {
+        Args: { crew_member_id: string }
+        Returns: undefined
       }
       stop_service_plan: { Args: { plan_id: string }; Returns: number }
     }

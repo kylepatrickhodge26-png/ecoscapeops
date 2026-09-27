@@ -13,7 +13,17 @@ const EMPTY: Record<ScheduleFilter, [string, string]> = {
   all: ["No visits yet", "Book a recurring service to fill the schedule."],
 };
 
-export async function ScheduleList({ businessId, filter, today }: { businessId: string; filter: ScheduleFilter; today: string }) {
+export async function ScheduleList({
+  businessId,
+  filter,
+  today,
+  showCrew,
+}: {
+  businessId: string;
+  filter: ScheduleFilter;
+  today: string;
+  showCrew: boolean;
+}) {
   const [jobs, attention] = await Promise.all([
     listJobs(businessId, filter, today),
     countNeedingAttention(businessId, today),
@@ -40,7 +50,13 @@ export async function ScheduleList({ businessId, filter, today }: { businessId: 
       </nav>
       <div className="panel">
         <div className="panel-body flush">
-          <JobTable jobs={jobs} today={today} emptyTitle={EMPTY[filter][0]} emptyText={EMPTY[filter][1]} />
+          <JobTable
+            jobs={jobs}
+            today={today}
+            emptyTitle={EMPTY[filter][0]}
+            emptyText={EMPTY[filter][1]}
+            showCrew={showCrew}
+          />
         </div>
       </div>
       {jobs.length === LIST_LIMIT && <p className="hint">Showing the first {LIST_LIMIT} visits.</p>}

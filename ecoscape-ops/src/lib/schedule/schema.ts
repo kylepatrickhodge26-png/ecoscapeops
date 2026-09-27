@@ -19,6 +19,11 @@ const price = z
 
 const date = (message: string) => z.string().refine(isISODate, message);
 
+// "" means unassigned. (The database checks the crew member is in the same business.)
+const assignee = z
+  .union([z.literal(""), z.uuid()], { error: "Choose a crew member" })
+  .transform((v) => v || null);
+
 const onOrAfter = (today: string) => (value: string) => value >= today;
 
 type FieldErrors<K extends string> = Partial<Record<K, string>>;
@@ -44,7 +49,14 @@ function stringValues<K extends string>(formData: FormData, fields: readonly K[]
 // ---------------------------------------------------------------------------
 // Booking a service
 // ---------------------------------------------------------------------------
-export const BOOKING_FIELDS = ["customer_id", "service_name", "price", "frequency", "start_date"] as const;
+export const BOOKING_FIELDS = [
+  "customer_id",
+  "service_name",
+  "price",
+  "frequency",
+  "start_date",
+  "assigned_crew_member_id",
+] as const;
 export type BookingField = (typeof BOOKING_FIELDS)[number];
 export type BookingFormValues = Record<BookingField, string>;
 
@@ -58,6 +70,7 @@ export function bookingSchema(today: string) {
       onOrAfter(today),
       `The first visit can't be before today (${formatShortDate(today)})`,
     ),
+    assigned_crew_member_id: assignee,
   });
 }
 
@@ -75,7 +88,7 @@ export function parseBooking(values: BookingFormValues, today: string) {
 // ---------------------------------------------------------------------------
 // Editing a visit
 // ---------------------------------------------------------------------------
-export const JOB_FIELDS = ["service_name", "price", "scheduled_date", "status", "notes"] as const;
+export const JOB_FIELDS = ["service_name", "price", "scheduled_date", "status", "notes", "assigned_crew_member_id"] as const;
 export type JobField = (typeof JOB_FIELDS)[number];
 export type JobFormValues = Record<JobField, string>;
 
@@ -85,6 +98,7 @@ export const jobSchema = z.object({
   scheduled_date: date("Enter a valid date"),
   status: z.enum(JOB_STATUSES, { error: "Choose a status" }),
   notes: z.string().trim().max(4000, "Notes must be 4000 characters or fewer"),
+  assigned_crew_member_id: assignee,
 });
 
 export const jobFormValuesFromFormData = (formData: FormData) => stringValues(formData, JOB_FIELDS);

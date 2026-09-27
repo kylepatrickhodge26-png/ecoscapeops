@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
+import { getCrew, showAssignment } from "@/lib/crew";
 import { formatLongDate, isISODate, monthOf, todayInTimeZone } from "@/lib/dates";
 
 import { JobTable } from "../../job-table";
@@ -12,7 +13,7 @@ import { jobsBetween } from "../../queries";
 export const metadata: Metadata = { title: "Day · EcoScape Ops" };
 
 export default async function DayPage(props: PageProps<"/schedule/day/[date]">) {
-  const { business } = await requireOwner();
+  const { business, user } = await requireOwner();
   const { date } = await props.params;
   const { notice } = await props.searchParams;
   if (!isISODate(date)) notFound();
@@ -42,7 +43,13 @@ export default async function DayPage(props: PageProps<"/schedule/day/[date]">) 
       {notice === "deleted" && <Notice tone="success">Visit deleted.</Notice>}
       <div className="panel">
         <div className="panel-body flush">
-          <JobTable jobs={jobs} today={today} emptyTitle="Nothing scheduled" emptyText="No visits are booked for this day." />
+          <JobTable
+            jobs={jobs}
+            today={today}
+            emptyTitle="Nothing scheduled"
+            emptyText="No visits are booked for this day."
+            showCrew={showAssignment(await getCrew(business.id, user.id))}
+          />
         </div>
       </div>
     </>
