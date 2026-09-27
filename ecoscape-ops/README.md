@@ -2,7 +2,7 @@
 
 Multi-tenant operations app for landscaping businesses: Next.js (App Router) on Supabase (Postgres, Auth, row-level security).
 
-**Built so far:** the multi-tenant foundation (business signup and login, strict per-business data isolation), **Customers** (add, edit, delete, list), **Scheduling** (recurring bookings, calendar and list views, job statuses) and **Crew** (crew logins, job assignment, each crew member's own job view). Route ordering, weather, billing, expenses and the rest of the prototype come later.
+**Built so far:** the multi-tenant foundation (business signup and login, strict per-business data isolation), **Customers** (add, edit, delete, list), **Scheduling** (recurring bookings, calendar and list views, job statuses), **Crew** (crew logins, job assignment, each crew member's own job view) and the **Dashboard** (the home page). Route ordering, weather, billing, expenses and the rest of the prototype come later.
 
 ## Product decisions in this version
 
@@ -61,6 +61,17 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 - **Removing** a crew member ends their access immediately and unassigns their jobs. Their login still exists but belongs to no business.
 - **Not built yet:** route ordering and maps, weather, billing, reassigning a whole recurring service at once (visits can be reassigned one by one), and crew seeing each other.
 
+## Dashboard decisions
+
+- **The dashboard is everyone's home page.** Signup, sign-in and `/` land there. Owners see the whole business; crew members see only their own jobs.
+- **Job counts:** *Today* (with completed / remaining), *Tomorrow*, and *This week*, which means today plus the next 6 days. Cancelled visits never count. All dates use the business's time zone.
+- **Revenue (owners only).** The headline is every non-cancelled visit booked this month at its price, completed or not. Most small operators don't invoice every visit, so counting only invoiced-and-paid money would understate it, which was the prototype's original mistake. A second line shows how much of that is already completed.
+- **Estimated profit (owners only)** is revenue minus expenses. Expenses aren't tracked yet, so for now it equals revenue and says so.
+- **Invoice totals** (outstanding / overdue) are hidden until Invoicing exists, rather than showing a misleading $0.
+- **Quick actions (owners):** add a customer, book a job, manage crew, and see what needs attention.
+- **Today's jobs:** owners get the business's list. Crew members get their own jobs with the same actions as My jobs, and never see prices or money totals.
+- All the numbers come from one database function, `dashboard_summary()`, which scopes by role. A crew member's numbers can't include anyone else's jobs, and money totals are never sent to crew at all.
+
 ## Local development
 
 Prerequisites: Node 20.9+ and Docker (for the local Supabase stack).
@@ -80,8 +91,8 @@ Local auth auto-confirms new accounts, so signup takes you straight in. After ch
 | Command | What it covers | Needs |
 | --- | --- | --- |
 | `npm test` | Unit tests: validation, dates and month grids, schedule filter rules, status shapes and colors | nothing |
-| `npm run test:db` | Tenant isolation and database rules, run through the real Supabase API as real signed-in users: visit generation, keeping 6 ahead, stopping a service, invites, and break-in attempts by crew members against other crew members, other businesses and owner-only functions | `npx supabase start` |
-| `npm run test:e2e` | Browser tests (desktop and mobile): signup and login, customers, booking, calendar and filters, Could not service, crew invites and joining, assignment, crew views and actions, crew blocked from owner pages, removal, two businesses unable to see each other's data | `npx supabase start`, `.env.local`, `npx playwright install chromium` once |
+| `npm run test:db` | Tenant isolation and database rules, run through the real Supabase API as real signed-in users: visit generation, keeping 6 ahead, stopping a service, invites, break-in attempts by crew members against other crew members, other businesses and owner-only functions, and exact dashboard numbers per role with leak checks | `npx supabase start` |
+| `npm run test:e2e` | Browser tests (desktop and mobile): signup and login, customers, booking, calendar and filters, Could not service, crew invites and joining, assignment, crew views and actions, crew blocked from owner pages, removal, dashboards for owners and crew, two businesses unable to see each other's data | `npx supabase start`, `.env.local`, `npx playwright install chromium` once |
 
 Also run `npm run lint` and `npm run typecheck`.
 
@@ -138,6 +149,7 @@ src/
   app/(app)/                  signed-in shell (sidebar)
   app/(app)/customers/        list, new, [id], [id]/edit, server actions
   app/(app)/schedule/         calendar/list, new booking, day/[date], jobs/[id], server actions
+  app/(app)/dashboard/        home: counts, revenue, quick actions, today's jobs
   app/(app)/crew/             crew list, invite links (owner)
   app/(app)/my-jobs/          a crew member's own jobs and actions
   app/(auth)/join/[token]/    joining a crew from an invite link

@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 
-import { homePathFor, requireMembership } from "@/lib/auth";
+import { requireMembership } from "@/lib/auth";
 
-// Owners land on their customers; crew members on their own jobs.
+// Everyone lands on their dashboard: owners see the business, crew their own jobs.
 export default async function Home() {
-  const { role } = await requireMembership();
-  redirect(homePathFor(role));
+  await requireMembership();
+  redirect("/dashboard");
 }

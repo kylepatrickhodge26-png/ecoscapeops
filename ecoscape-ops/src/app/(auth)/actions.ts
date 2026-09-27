@@ -51,7 +51,7 @@ export async function signUp(_prev: AuthFormState, formData: FormData): Promise<
         business_name: parsed.data.business_name,
         time_zone: timeZoneFromFormData(formData),
       },
-      emailRedirectTo: `${await siteOrigin()}/auth/confirm?next=/customers`,
+      emailRedirectTo: `${await siteOrigin()}/auth/confirm?next=/`,
     },
   });
 
@@ -67,7 +67,7 @@ export async function signUp(_prev: AuthFormState, formData: FormData): Promise<
   }
 
   // With email confirmation turned off there's a session right away.
-  if (data.session) redirect("/customers");
+  if (data.session) redirect("/dashboard");
 
   return {
     message: `Almost done — we sent a confirmation link to ${parsed.data.email}. Open it to finish setting up your account.`,

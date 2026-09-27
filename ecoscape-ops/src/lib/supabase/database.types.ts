@@ -389,6 +389,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      dashboard_summary: {
+        Args: never
+        Returns: {
+          month_booked: number
+          month_completed: number
+          today: string
+          today_completed: number
+          today_total: number
+          tomorrow_total: number
+          week_total: number
+        }[]
+      }
       regenerate_crew_invite: {
         Args: { crew_member_id: string }
         Returns: string

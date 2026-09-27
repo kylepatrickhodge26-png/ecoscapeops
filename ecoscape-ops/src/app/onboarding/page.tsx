@@ -21,7 +21,7 @@ export default async function OnboardingPage() {
     .select("business_id")
     .eq("user_id", user.id)
     .maybeSingle();
-  if (membership) redirect("/customers");
+  if (membership) redirect("/dashboard");
 
   return (
     <div className="auth-shell">

@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const code = searchParams.get("code");
-  const next = safeNextPath(searchParams.get("next")) ?? "/customers";
+  const next = safeNextPath(searchParams.get("next")) ?? "/";
 
   const supabase = await createClient();
 

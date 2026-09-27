@@ -12,7 +12,7 @@ export async function signUpBusiness(page: Page, businessName: string, email = u
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/customers$/);
+  await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByTestId("business-name")).toHaveText(businessName);
   return { email };
 }

@@ -33,5 +33,5 @@ export async function createBusiness(_prev: OnboardingState, formData: FormData)
     return { error: "We couldn't create your business. Please try again.", business_name: raw };
   }
 
-  redirect("/customers");
+  redirect("/dashboard");
 }
