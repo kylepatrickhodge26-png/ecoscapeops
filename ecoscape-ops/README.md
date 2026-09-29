@@ -2,7 +2,7 @@
 
 Multi-tenant operations app for landscaping businesses: Next.js (App Router) on Supabase (Postgres, Auth, row-level security).
 
-**Built so far:** the multi-tenant foundation (business signup and login, strict per-business data isolation), **Customers** (add, edit, delete, list), **Scheduling** (recurring bookings, calendar and list views, job statuses), **Crew** (crew logins, job assignment, each crew member's own job view), the **Dashboard** (the home page), **Expenses** (a categorized expense log feeding the dashboard's profit) and **Weather** (a live rain forecast for the service area, moving a rainy day's visits, and a ready-to-send text for each opted-in customer). Route ordering, billing and the rest of the prototype come later.
+**Built so far:** the multi-tenant foundation (business signup and login, strict per-business data isolation), **Customers** (add, edit, delete, list), **Scheduling** (recurring bookings, calendar and list views, job statuses), **Crew** (crew logins, job assignment, each crew member's own job view), the **Dashboard** (the home page), **Expenses** (a categorized expense log feeding the dashboard's profit) **Weather** (a live rain forecast for the service area, moving a rainy day's visits, and a ready-to-send text for each opted-in customer) and **Invoicing** (invoices from visits and other items, cash/check payments, and online card and bank payments through Stripe). Route ordering and the rest of the prototype come later.
 
 ## Product decisions in this version
 
@@ -67,7 +67,7 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 - **Job counts:** *Today* (with completed / remaining), *Tomorrow*, and *This week*, which means today plus the next 6 days. Cancelled visits never count. All dates use the business's time zone.
 - **Revenue (owners only).** The headline is every non-cancelled visit booked this month at its price, completed or not. Most small operators don't invoice every visit, so counting only invoiced-and-paid money would understate it, which was the prototype's original mistake. A second line shows how much of that is already completed.
 - **Estimated profit (owners only)** is this month's revenue (as above) minus this month's logged expenses.
-- **Invoice totals** (outstanding / overdue) are hidden until Invoicing exists, rather than showing a misleading $0.
+- **Invoice totals:** *Outstanding* (owed on sent invoices, with how much is overdue) and money *collected this month*; see Invoicing decisions for how invoiced visits count toward revenue.
 - **Quick actions (owners):** add a customer, book a job, **log gas**, **log equipment**, add any other expense, manage crew, and see what needs attention.
 - **Today's jobs:** owners get the business's list. Crew members get their own jobs with the same actions as My jobs, and never see prices or money totals.
 - All the numbers come from one database function, `dashboard_summary()`, which scopes by role. A crew member's numbers can't include anyone else's jobs, and money totals are never sent to crew at all.
@@ -94,6 +94,37 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 - **STOP replies** arrive on the owner's phone like any other text. Turning off that customer's SMS opt-in removes their text from every rain delay page.
 - SMS opt-in is the only switch that matters for texting; the separate *notification preference* (text/email) isn't used yet, as in the prototype.
 
+## Invoicing decisions
+
+- **Invoices** follow the prototype: numbered from #1001 per business, due in 14 days by default, for one customer. Lines can bill the customer's visits (picked from a list; the price can be changed on the invoice) and/or anything else ("Mulch, 2 × $30"). Optional notes for the customer. No sales tax.
+- **Statuses:** *Draft* → *Sent* (or *Cancelled*) are set by the owner. *Partly paid*, *Paid* and *Overdue* are worked out from the payments and the due date every time an invoice is shown, so they can never be out of date. Overdue beats partly paid; paid beats overdue.
+- **Drafts** can be edited or deleted. A **sent** invoice can't be edited (so what the customer saw is what's recorded); it can get a later due date, or be cancelled if nothing has been paid on it.
+- **A visit can be on only one live invoice.** Cancelling an invoice frees its visits.
+- **Sending:** each invoice has a private pay link. The owner shares it with *Open text* (from their own phone, like weather texts, and only for customers who opted in to texts), *Copy link* (to email it), or *Mark as sent* (e.g. a paper invoice). Any of these marks a draft sent. Drafts and cancelled invoices' links show nothing.
+- **Auto-invoice (optional, off by default):** when a visit is marked completed, by the owner or a crew member, a draft invoice is created for it (unless it's already invoiced or free). The owner reviews and sends it.
+- **Payments by hand:** cash, check or other, up to the balance due, with the date received and an optional note (e.g. check number). A payment recorded by mistake can be removed. Each form submission is recorded once, even if it's submitted twice.
+- **Online payments through Stripe (Connect):** each business connects its own Stripe account from the Invoices page (Stripe's own signup pages), gets its own Stripe Dashboard, pays Stripe's fees, and is paid directly; EcoScape Ops never holds anyone's money. Customers press *Pay* on their invoice page and pay the balance on Stripe's hosted Checkout page, by card or US bank account (card only if the business hasn't turned bank payments on in Stripe). Card and bank details are never sent to or stored by EcoScape Ops.
+- **A payment is recorded once.** Stripe's webhook records a checkout's payment at most once, however many times Stripe delivers the event; only checkouts EcoScape Ops started, on that business's own Stripe account, count. Pressing *Pay* twice reuses the open checkout. Bank payments show as "on its way" until they clear, then as paid.
+- **Dashboard revenue, without double counting:** each visit counts once, at its invoiced amount once it's on a sent invoice, otherwise at its booked price (in the month of the visit). Invoice lines that aren't visits count in the month the invoice was issued. Drafts and cancelled invoices don't change the numbers. Profit is that revenue minus expenses.
+- **Owner only.** Crew members never see invoices, payments or money, even for the visits they did.
+
+## Setting up online payments (Stripe)
+
+Invoicing works without Stripe (cash and check); online payments need:
+
+1. A Stripe account (stripe.com; free, no monthly fee; Stripe charges per payment: 2.9% + 30¢ by card, 0.8% capped at $5 by US bank account). Build and test in test mode.
+2. **Connect** turned on (Dashboard → Connect → Get started), set up so connected accounts get their own Stripe Dashboard and pay Stripe's fees themselves.
+3. These **server-only** variables on your host (never `NEXT_PUBLIC_`, never committed):
+
+   | Variable | Where it comes from |
+   | --- | --- |
+   | `STRIPE_SECRET_KEY` | Stripe → Developers → API keys (`sk_test_…`, later `sk_live_…`) |
+   | `STRIPE_WEBHOOK_SECRET` | The webhook below, once created (`whsec_…`) |
+   | `SUPABASE_SECRET_KEY` | Supabase → Project Settings → API Keys → Secret key. Stripe's webhook arrives without a signed-in user, so the app records payments with this key (through functions only it can run). |
+
+4. A webhook (Stripe → Developers → Webhooks → Add endpoint): URL `https://<your-app>/api/stripe/webhook`, listening to events on **Connected accounts**: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `account.updated`.
+5. Each business (including yours) then connects its Stripe account from **Invoices → Connect Stripe**. For bank payments, turn on **ACH Direct Debit** in that Stripe account's payment method settings.
+
 ## Local development
 
 Prerequisites: Node 20.9+ and Docker (for the local Supabase stack).
@@ -112,11 +143,11 @@ Local auth auto-confirms new accounts, so signup takes you straight in. After ch
 
 | Command | What it covers | Needs |
 | --- | --- | --- |
-| `npm test` | Unit tests: validation, dates and month grids, schedule filter rules, status shapes and colors, forecast parsing and rain risk, the National Weather Service client, ZIP code lookup, text links | nothing |
-| `npm run test:db` | Tenant isolation and database rules, run through the real Supabase API as real signed-in users: visit generation, keeping 6 ahead, stopping a service, invites, break-in attempts by crew members against other crew members, other businesses and owner-only functions, exact dashboard numbers per role with leak checks, expenses (owner-only, invisible to crew and other businesses), and weather: service areas per business, moving a day without touching other businesses, and texts prepared only for opted-in customers, invisible to crew and other businesses | `npx supabase start` |
-| `npm run test:e2e` | Browser tests (desktop and mobile): signup and login, customers, booking, calendar and filters, Could not service, crew invites and joining, assignment, crew views and actions, crew blocked from owner pages, removal, dashboards for owners and crew, expense quick-log/full form/edit/delete and profit, crew and other businesses unable to see expenses, the weather card and forecast per business, moving a rainy day and the Open text links for opted-in customers only (against a fake National Weather Service, `tests/e2e/fake-services.mjs`), two businesses unable to see each other's data | `npx supabase start`, `.env.local`, `npx playwright install chromium` once |
+| `npm test` | Unit tests: validation, dates and month grids, schedule filter rules, status shapes and colors, forecast parsing and rain risk, the National Weather Service client, ZIP code lookup, text links, Stripe event handling and client setup | nothing |
+| `npm run test:db` | Tenant isolation and database rules, run through the real Supabase API as real signed-in users: visit generation, keeping 6 ahead, stopping a service, invites, break-in attempts by crew members against other crew members, other businesses and owner-only functions, exact dashboard numbers per role with leak checks, expenses (owner-only, invisible to crew and other businesses), and weather: service areas per business, moving a day without touching other businesses, and texts prepared only for opted-in customers, invisible to crew and other businesses; invoicing: numbering, one live invoice per visit, live statuses (including overdue), payments never recorded twice (repeated forms, redelivered Stripe events, races), Stripe events from other accounts ignored, auto-invoice, dashboard revenue without double counting, and break-in attempts by crew members, other businesses and signed-out visitors | `npx supabase start` |
+| `npm run test:e2e` | Browser tests (desktop and mobile): signup and login, customers, booking, calendar and filters, Could not service, crew invites and joining, assignment, crew views and actions, crew blocked from owner pages, removal, dashboards for owners and crew, expense quick-log/full form/edit/delete and profit, crew and other businesses unable to see expenses, the weather card and forecast per business, moving a rainy day and the Open text links for opted-in customers only (against a fake National Weather Service, `tests/e2e/fake-services.mjs`), invoices from visits and extra lines, sending, cash/check payments, connecting Stripe and paying online by card and by bank (against a fake Stripe in the same file, which sends signed webhooks), redelivered and forged webhooks, auto-invoice, the dashboard's invoiced revenue, crew and other businesses kept out, two businesses unable to see each other's data | `npx supabase start`, `.env.local`, `npx playwright install chromium` once |
 
-`npm run test:e2e` starts its own app server (pointed at a fake National Weather Service on port 4010), so stop any dev server on port 3000 first. Also run `npm run lint` and `npm run typecheck`.
+`npm run test:e2e` starts its own app server (pointed at a fake National Weather Service and Stripe on port 4010), so stop any dev server on port 3000 first. Also run `npm run lint` and `npm run typecheck`.
 
 ## Deploying to a hosted Supabase project
 
@@ -133,6 +164,7 @@ Local auth auto-confirms new accounts, so signup takes you straight in. After ch
    The default template also works, but only if the link is opened in the same browser that signed up. The token-hash link works on any device.
 4. Optionally, under **Authentication → Providers → Email** (password settings), set the minimum password length to 8 to match the app.
 5. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` on your host, e.g. Vercel. Both come from **Project Settings → API**.
+6. For online payments, see [Setting up online payments (Stripe)](#setting-up-online-payments-stripe).
 
 ## How tenant isolation works
 
@@ -145,6 +177,7 @@ The rules live in `supabase/migrations/` (foundation and scheduling):
 - **Crew members have no direct table access at all.** RLS gives them nothing on customers, service plans or jobs. Everything they see or do goes through `crew_*` database functions that only ever touch jobs assigned to the caller, and that never return prices. Crew members see only their own crew and membership records.
 - Rows that point at other tenant rows use composite `(id, business_id)` foreign keys. A service plan or visit can only reference a customer or plan in the same business, even though foreign-key checks bypass RLS.
 - **Weather texts:** who can be texted is decided by the database, never by the browser, and a rain delay's texts are visible only to the owner of that business.
+- **Invoices and payments:** owners can read their business's invoices, but every change goes through database functions that enforce the rules; nobody writes invoices, lines or payments directly. A customer's pay link shows only that one invoice. Stripe bookkeeping (connected accounts, checkouts, webhook events) is written only by the app's server with the service role, and Stripe events are applied only to checkouts the app started on that same business's account.
 - The app code filters by business too, but only for clarity. The database enforces isolation even against hand-crafted API calls, and `tests/db/tenant-isolation.test.ts` checks this.
 
 **Checklist for each new tenant table** (jobs, invoices, …):
@@ -165,7 +198,10 @@ src/
   lib/customers/schema.ts     customer fields, validation, labels
   lib/schedule/               statuses, frequencies, filters, booking/visit validation
   lib/expenses/               expense categories and validation
-  lib/weather/                forecast parsing and rain risk, NWS client, ZIP lookup, text links
+  lib/weather/                forecast parsing and rain risk, NWS client, ZIP lookup
+  lib/invoices/               invoice statuses, payment methods, validation
+  lib/stripe/                 Stripe client, Connect onboarding, webhook event handling
+  lib/sms.ts                  text links (sent from the owner's phone), phone numbers
   lib/dates.ts                calendar-date helpers (time-zone safe)
   components/job-status.tsx   status shapes, pills, legend
   app/(auth)/                 login, signup, auth server actions
@@ -177,6 +213,9 @@ src/
   app/(app)/dashboard/        home: counts, revenue, quick actions, today's jobs
   app/(app)/expenses/         expense log by month, add/edit/delete (owner)
   app/(app)/weather/          forecast, service area, move a day, rain delays and texts (owner)
+  app/(app)/invoices/         invoice list, new/edit, invoice page, payments, Stripe setup (owner)
+  app/pay/[token]/            a customer's invoice and Pay button (public, by secret link)
+  app/api/stripe/webhook/     Stripe's webhook
   app/(app)/crew/             crew list, invite links (owner)
   app/(app)/my-jobs/          a crew member's own jobs and actions
   app/(auth)/join/[token]/    joining a crew from an invite link
@@ -185,5 +224,5 @@ supabase/
   templates/                  auth email templates
 tests/
   db/                         tenant isolation, scheduling rules, crew break-in tests (Vitest + supabase-js)
-  e2e/                        browser tests (Playwright), fake National Weather Service
+  e2e/                        browser tests (Playwright), fake National Weather Service and Stripe
 ```

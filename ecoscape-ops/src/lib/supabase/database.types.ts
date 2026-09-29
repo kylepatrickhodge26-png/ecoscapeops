@@ -62,6 +62,57 @@ export type Database = {
         }
         Relationships: []
       }
+      checkout_sessions: {
+        Row: {
+          account_id: string
+          amount: number
+          business_id: string
+          created_at: string
+          id: string
+          invoice_id: string
+          status: Database["public"]["Enums"]["checkout_status"]
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          business_id: string
+          created_at?: string
+          id: string
+          invoice_id: string
+          status?: Database["public"]["Enums"]["checkout_status"]
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          business_id?: string
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          status?: Database["public"]["Enums"]["checkout_status"]
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_sessions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_sessions_invoice_id_business_id_fkey"
+            columns: ["invoice_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
       crew_members: {
         Row: {
           business_id: string
@@ -231,6 +282,170 @@ export type Database = {
           },
         ]
       }
+      invoice_lines: {
+        Row: {
+          amount: number | null
+          business_id: string
+          description: string
+          id: string
+          invoice_cancelled: boolean
+          invoice_id: string
+          job_id: string | null
+          position: number
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          amount?: number | null
+          business_id: string
+          description: string
+          id?: string
+          invoice_cancelled?: boolean
+          invoice_id: string
+          job_id?: string | null
+          position?: number
+          quantity?: number
+          unit_price: number
+        }
+        Update: {
+          amount?: number | null
+          business_id?: string
+          description?: string
+          id?: string
+          invoice_cancelled?: boolean
+          invoice_id?: string
+          job_id?: string | null
+          position?: number
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_lines_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_invoice_id_business_id_fkey"
+            columns: ["invoice_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id", "business_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_job_id_business_id_fkey"
+            columns: ["job_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      invoice_settings: {
+        Row: {
+          auto_invoice: boolean
+          business_id: string
+          next_number: number
+          updated_at: string
+        }
+        Insert: {
+          auto_invoice?: boolean
+          business_id: string
+          next_number?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_invoice?: boolean
+          business_id?: string
+          next_number?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_settings_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount_paid: number
+          business_id: string
+          cancelled_at: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          due_date: string
+          id: string
+          issue_date: string
+          notes: string
+          number: number
+          pay_token: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          total: number
+          updated_at: string
+          balance: number | null
+          display_status: string | null
+        }
+        Insert: {
+          amount_paid?: number
+          business_id: string
+          cancelled_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          due_date: string
+          id?: string
+          issue_date: string
+          notes?: string
+          number: number
+          pay_token?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          amount_paid?: number
+          business_id?: string
+          cancelled_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          due_date?: string
+          id?: string
+          issue_date?: string
+          notes?: string
+          number?: number
+          pay_token?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_business_id_fkey"
+            columns: ["customer_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           assigned_crew_member_id: string | null
@@ -304,6 +519,70 @@ export type Database = {
             columns: ["service_plan_id", "business_id"]
             isOneToOne: false
             referencedRelation: "service_plans"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          business_id: string
+          checkout_session_id: string | null
+          created_at: string
+          id: string
+          invoice_id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          note: string
+          received_on: string
+          recorded_by: string | null
+          request_id: string | null
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          checkout_session_id?: string | null
+          created_at?: string
+          id?: string
+          invoice_id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          note?: string
+          received_on: string
+          recorded_by?: string | null
+          request_id?: string | null
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          checkout_session_id?: string | null
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          note?: string
+          received_on?: string
+          recorded_by?: string | null
+          request_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_checkout_session_id_fkey"
+            columns: ["checkout_session_id"]
+            isOneToOne: true
+            referencedRelation: "checkout_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_invoice_id_business_id_fkey"
+            columns: ["invoice_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id", "business_id"]
           },
         ]
@@ -488,6 +767,59 @@ export type Database = {
           },
         ]
       }
+      stripe_accounts: {
+        Row: {
+          account_id: string
+          business_id: string
+          charges_enabled: boolean
+          created_at: string
+          details_submitted: boolean
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          business_id: string
+          charges_enabled?: boolean
+          created_at?: string
+          details_submitted?: boolean
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          business_id?: string
+          charges_enabled?: boolean
+          created_at?: string
+          details_submitted?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_accounts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_events: {
+        Row: {
+          id: string
+          received_at: string
+          type: string
+        }
+        Insert: {
+          id: string
+          received_at?: string
+          type: string
+        }
+        Update: {
+          id?: string
+          received_at?: string
+          type?: string
+        }
+        Relationships: []
+      }
       weather_texts: {
         Row: {
           business_id: string
@@ -547,6 +879,33 @@ export type Database = {
           invite_token: string
         }[]
       }
+      apply_checkout_event: {
+        Args: {
+          account_id: string
+          amount_cents?: number
+          outcome: string
+          session_id: string
+        }
+        Returns: string
+      }
+      balance: {
+        Args: { "": Database["public"]["Tables"]["invoices"]["Row"] }
+        Returns: {
+          error: true
+        } & "the function public.balance with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache"
+      }
+      begin_invoice_checkout: {
+        Args: { token: string }
+        Returns: {
+          account_id: string
+          amount: number
+          business_id: string
+          business_name: string
+          invoice_id: string
+          number: number
+          reusable_url: string
+        }[]
+      }
       business_service_area: {
         Args: never
         Returns: {
@@ -555,6 +914,11 @@ export type Database = {
           place_name: string
           postal_code: string
         }[]
+      }
+      cancel_invoice: { Args: { invoice_id: string }; Returns: undefined }
+      change_invoice_due_date: {
+        Args: { due_date: string; invoice_id: string }
+        Returns: undefined
       }
       create_business: {
         Args: { business_name: string; time_zone?: string }
@@ -608,14 +972,28 @@ export type Database = {
         Args: never
         Returns: {
           month_booked: number
+          month_collected: number
           month_completed: number
           month_expenses: number
+          outstanding: number
+          overdue: number
           today: string
           today_completed: number
           today_total: number
           tomorrow_total: number
           week_total: number
         }[]
+      }
+      delete_draft_invoice: { Args: { invoice_id: string }; Returns: undefined }
+      delete_manual_payment: {
+        Args: { payment_id: string }
+        Returns: undefined
+      }
+      display_status: {
+        Args: { "": Database["public"]["Tables"]["invoices"]["Row"] }
+        Returns: {
+          error: true
+        } & "the function public.display_status with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache"
       }
       mark_weather_text_opened: {
         Args: { customer_id: string; rain_delay_id: string }
@@ -624,6 +1002,23 @@ export type Database = {
       move_day_visits: {
         Args: { from_date: string; to_date: string }
         Returns: string
+      }
+      public_invoice: {
+        Args: { token: string }
+        Returns: {
+          amount_paid: number
+          balance: number
+          business_name: string
+          can_pay_online: boolean
+          customer_name: string
+          due_date: string
+          issue_date: string
+          lines: Json
+          number: number
+          payment_processing: boolean
+          status: string
+          total: number
+        }[]
       }
       rain_delay_texts: {
         Args: { rain_delay_id: string }
@@ -639,6 +1034,31 @@ export type Database = {
           to_phone: string
         }[]
       }
+      record_checkout_session: {
+        Args: {
+          account_id: string
+          amount: number
+          invoice_id: string
+          session_id: string
+          url: string
+        }
+        Returns: undefined
+      }
+      record_manual_payment: {
+        Args: {
+          amount: number
+          invoice_id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          note: string
+          received_on: string
+          request_id: string
+        }
+        Returns: string
+      }
+      record_stripe_event: {
+        Args: { event_id: string; event_type: string }
+        Returns: boolean
+      }
       regenerate_crew_invite: {
         Args: { crew_member_id: string }
         Returns: string
@@ -647,10 +1067,23 @@ export type Database = {
         Args: { crew_member_id: string }
         Returns: undefined
       }
+      save_invoice: {
+        Args: {
+          customer_id: string
+          due_date: string
+          invoice_id: string
+          lines: Json
+          notes: string
+        }
+        Returns: string
+      }
+      send_invoice: { Args: { invoice_id: string }; Returns: undefined }
+      set_auto_invoice: { Args: { enabled: boolean }; Returns: undefined }
       stop_service_plan: { Args: { plan_id: string }; Returns: number }
     }
     Enums: {
       business_role: "owner" | "crew"
+      checkout_status: "open" | "processing" | "paid" | "failed" | "expired"
       expense_category:
         | "fuel"
         | "equipment"
@@ -663,6 +1096,7 @@ export type Database = {
         | "advertising"
         | "vehicle"
         | "other"
+      invoice_status: "draft" | "sent" | "cancelled"
       job_status:
         | "scheduled"
         | "assigned"
@@ -672,6 +1106,7 @@ export type Database = {
         | "unable_to_complete"
         | "weather_delay"
         | "cancelled"
+      payment_method: "online" | "bank_transfer" | "cash" | "check" | "other"
       service_frequency: "weekly" | "biweekly" | "triweekly" | "one_time"
     }
     CompositeTypes: {
@@ -801,6 +1236,7 @@ export const Constants = {
   public: {
     Enums: {
       business_role: ["owner", "crew"],
+      checkout_status: ["open", "processing", "paid", "failed", "expired"],
       expense_category: [
         "fuel",
         "equipment",
@@ -814,6 +1250,7 @@ export const Constants = {
         "vehicle",
         "other",
       ],
+      invoice_status: ["draft", "sent", "cancelled"],
       job_status: [
         "scheduled",
         "assigned",
@@ -824,6 +1261,7 @@ export const Constants = {
         "weather_delay",
         "cancelled",
       ],
+      payment_method: ["online", "bank_transfer", "cash", "check", "other"],
       service_frequency: ["weekly", "biweekly", "triweekly", "one_time"],
     },
   },

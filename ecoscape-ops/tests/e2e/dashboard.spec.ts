@@ -9,7 +9,7 @@ test.use({ timezoneId: TIME_ZONE });
 const today = () => todayInTimeZone(TIME_ZONE);
 const inThisMonth = (date: string) => monthOf(date) === monthOf(today());
 
-const card = (page: Page, name: "today" | "tomorrow" | "week" | "revenue" | "profit") =>
+const card = (page: Page, name: "today" | "tomorrow" | "week" | "revenue" | "profit" | "outstanding") =>
   page.locator(`[data-card="${name}"]`);
 
 async function book(
@@ -53,8 +53,8 @@ test("a new business's dashboard starts at zero, with quick actions one tap away
   await expect(card(page, "week").locator(".big")).toHaveText("0");
   await expect(card(page, "revenue").locator(".big")).toHaveText("$0.00");
   await expect(card(page, "profit")).toContainText("revenue minus $0.00 in expenses this month");
-  // No invoicing yet, so no invoice totals pretending nothing is owed.
-  await expect(page.getByText(/outstanding|overdue/i)).toHaveCount(0);
+  await expect(card(page, "outstanding").locator(".big")).toHaveText("$0.00");
+  await expect(card(page, "outstanding")).toContainText("nothing overdue");
 
   const quick = page.locator(".quick-actions");
   await quick.getByRole("link", { name: "+ Add customer" }).click();

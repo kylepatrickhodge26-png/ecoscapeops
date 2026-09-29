@@ -61,8 +61,12 @@ function expected(visits: Visit[], today: string, withMoney: boolean) {
     month_completed: withMoney
       ? inMonth.filter((v) => v.status === "completed").reduce((sum, v) => sum + v.price, 0)
       : null,
-    // No expenses are logged in these tests (see expenses.test.ts for those).
+    // No expenses, invoices or payments in these tests (see expenses.test.ts and
+    // invoicing.test.ts for those).
     month_expenses: withMoney ? 0 : null,
+    outstanding: withMoney ? 0 : null,
+    overdue: withMoney ? 0 : null,
+    month_collected: withMoney ? 0 : null,
   };
 }
 

@@ -4,8 +4,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
 import { supabasePublishableKey, supabaseUrl } from "./env";
 
-// Pages anyone can open without signing in.
-const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/join"];
+// Pages anyone can open without signing in. /pay is a customer's invoice pay link.
+const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/join", "/pay"];
 // Pages a signed-in user has no reason to see.
 const SIGNED_OUT_ONLY_PATHS = ["/login", "/signup"];
 
