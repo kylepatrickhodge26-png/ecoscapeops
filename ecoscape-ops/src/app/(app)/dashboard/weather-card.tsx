@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { dayLabel, topRainRisk } from "@/lib/weather/forecast";
-import { getDailyForecast } from "@/lib/weather/openweather";
+import { getDailyForecast } from "@/lib/weather/nws";
 import type { ServiceArea } from "@/lib/weather/queries";
 
 // The dashboard's rain-risk card: the rainiest of today and the next two days, like the
@@ -23,7 +23,7 @@ async function ForecastCard({ area, today, isOwner }: { area: ServiceArea; today
 
   let sub: string;
   if (!forecast.ok) {
-    sub = forecast.reason === "not_configured" ? "Forecast isn't connected yet" : "Forecast unavailable right now";
+    sub = "Forecast unavailable right now";
   } else if (!risk) {
     sub = "No forecast for the next 3 days";
   } else if (risk.rainChance === 0) {

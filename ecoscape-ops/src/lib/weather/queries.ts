@@ -3,7 +3,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 
 import type { ForecastDay } from "./forecast";
-import { getDailyForecast } from "./openweather";
+import { getDailyForecast } from "./nws";
 
 export type ServiceArea = { postal_code: string; place_name: string; latitude: number; longitude: number };
 
@@ -18,12 +18,12 @@ export async function getServiceArea(): Promise<ServiceArea | null> {
 
 export type BusinessForecast =
   | { status: "no_area" }
-  | { status: "not_configured" | "unavailable"; area: ServiceArea }
+  | { status: "unavailable"; area: ServiceArea }
   | { status: "ok"; area: ServiceArea; days: ForecastDay[] };
 
 export async function getBusinessForecast(): Promise<BusinessForecast> {
   const area = await getServiceArea();
   if (!area) return { status: "no_area" };
   const forecast = await getDailyForecast(area.latitude, area.longitude);
-  return forecast.ok ? { status: "ok", area, days: forecast.days } : { status: forecast.reason, area };
+  return forecast.ok ? { status: "ok", area, days: forecast.days } : { status: "unavailable", area };
 }

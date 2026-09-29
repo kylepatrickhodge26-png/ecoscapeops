@@ -83,12 +83,12 @@ test("an owner sets their service area and sees the rainiest of the next 3 days 
   await expect(page.locator(".field-error")).toHaveText("We couldn't find that ZIP code");
   await expect(zip).toHaveValue("00000");
 
-  await zip.fill(FAKE_PLACES.lakeRonkonkoma.zip);
+  await zip.fill(FAKE_PLACES.ronkonkoma.zip);
   await page.getByRole("button", { name: "Save service area" }).click();
   await expect(page.getByText("Service area saved.")).toBeVisible();
-  await expect(page.locator(".pagehead .meta")).toContainText("Forecast for Lake Ronkonkoma (11779)");
+  await expect(page.locator(".pagehead .meta")).toContainText("National Weather Service forecast for Ronkonkoma, NY (11779)");
 
-  const [t0, t1, t2] = FAKE_PLACES.lakeRonkonkoma.rain;
+  const [t0, t1, t2] = FAKE_PLACES.ronkonkoma.rain;
   const day = (offset: number) => page.locator(`[data-forecast-date="${addDays(today(), offset)}"]`);
   await expect(day(0).locator(".big")).toHaveText(`${t0}%`);
   await expect(day(0).locator(".label")).toHaveText("TODAY");
@@ -99,7 +99,7 @@ test("an owner sets their service area and sees the rainiest of the next 3 days 
   await page.goto("/dashboard");
   await expect(weatherCard(page).locator(".big")).toHaveText("80%");
   await expect(weatherCard(page)).toContainText("rain chance tomorrow");
-  await expect(weatherCard(page)).toContainText("Lake Ronkonkoma · next 3 days");
+  await expect(weatherCard(page)).toContainText("Ronkonkoma, NY · next 3 days");
   await expect(weatherCard(page).getByRole("link", { name: "Move jobs & text customers →" })).toHaveAttribute(
     "href",
     `/weather/move?from=${addDays(today(), 1)}`,
@@ -108,19 +108,19 @@ test("an owner sets their service area and sees the rainiest of the next 3 days 
 
 test("each business sees the forecast for its own service area", async ({ page, browser }) => {
   await signUpBusiness(page, "North Shore Lawns");
-  await setServiceArea(page, FAKE_PLACES.lakeRonkonkoma.zip);
+  await setServiceArea(page, FAKE_PLACES.ronkonkoma.zip);
 
   const { page: other } = await newOwner(browser, "City Lawns");
   await setServiceArea(other, FAKE_PLACES.newYork.zip);
   await other.goto("/dashboard");
   await expect(weatherCard(other).locator(".big")).toHaveText("65%");
   await expect(weatherCard(other)).toContainText(`rain chance ${formatShortDate(addDays(today(), 2))}`);
-  await expect(weatherCard(other)).toContainText("New York");
+  await expect(weatherCard(other)).toContainText("New York, NY");
 
   // The other business setting its area changed nothing here.
   await page.goto("/dashboard");
   await expect(weatherCard(page).locator(".big")).toHaveText("80%");
-  await expect(weatherCard(page)).toContainText("Lake Ronkonkoma");
+  await expect(weatherCard(page)).toContainText("Ronkonkoma, NY");
   await expect(weatherCard(page)).not.toContainText("New York");
 });
 
@@ -142,7 +142,7 @@ test("a dry forecast and an unavailable one both read sensibly", async ({ page }
 
 test("a crew member sees the rain risk, but can't move jobs or text customers", async ({ page, browser }) => {
   await signUpBusiness(page, "Crew Weather Lawns");
-  await setServiceArea(page, FAKE_PLACES.lakeRonkonkoma.zip);
+  await setServiceArea(page, FAKE_PLACES.ronkonkoma.zip);
   const maria = await joinCrew(browser, await addCrewMember(page, "Maria"));
 
   await maria.goto("/dashboard");
@@ -162,7 +162,7 @@ test("moving a rainy day prepares a text for each opted-in customer, sent from t
 }) => {
   const business = "Rainy Day Lawns";
   await signUpBusiness(page, business);
-  await setServiceArea(page, FAKE_PLACES.lakeRonkonkoma.zip);
+  await setServiceArea(page, FAKE_PLACES.ronkonkoma.zip);
 
   const janePhone = randomNumber();
   const evePhone = randomNumber();

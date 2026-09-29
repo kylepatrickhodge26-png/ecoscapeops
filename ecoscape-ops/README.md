@@ -84,8 +84,8 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 
 ## Weather decisions
 
-- **Forecast: OpenWeather.** The Geocoding API turns the business's service-area ZIP code into a map position, and One Call 3.0 gives the daily chance of rain. Each area's forecast is cached for an hour, so an area uses at most 24 calls a day (1,000 a day are free).
-- **Service area:** a US ZIP code, set by the owner on the Weather page. Crew members see the forecast on their dashboard but can't change the area.
+- **Forecast: the National Weather Service** (api.weather.gov). Free, with no account, key or card, so there's nothing to set up. It covers the US. The service-area ZIP code is turned into a map position with a ZIP code list bundled with the app (the `zipcodes` package), and each area's forecast is cached for an hour. (OpenWeather was used first; it's free too but asks for a card at signup.)
+- **Service area:** a US ZIP code, set by the owner on the Weather page and shown as its town (e.g. "Ronkonkoma, NY"). Crew members see the forecast on their dashboard but can't change the area.
 - **Dashboard card** (like the prototype's WEATHER card): the highest chance of rain among today, tomorrow and the day after, and which day it is. Owners also get *Move jobs & text customers →*. If the forecast is down, the card says so and the rest of the dashboard still works.
 - **Rain day = "Move a day's jobs"** (from the prototype). The owner picks a day and a new day. Every visit that day that isn't completed or cancelled moves, is marked *Weather delay*, gets a "Moved from … due to weather" note, and keeps its crew assignment. Both days must be today or later.
 - **Texting the affected customers, from the owner's own phone.** After a move, the rain delay's page lists each affected customer with their own message, for example: "Hi Jane, this is Acme Lawn Care. Due to the weather, we're moving your Tue, Sep 29 visit to Wed, Sep 30. Thanks! Reply STOP to opt out." (Plain characters and under 160, so it's one SMS segment in most cases.) *Open text* opens it in the phone's Messages app with the number and message filled in; the owner taps send. *Copy message* is there for sending from a computer. There's no texting service, so nothing to pay for or register. (A version that sent through Twilio automatically was built first and dropped because Twilio costs money; it's in the git history.)
@@ -93,10 +93,6 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 - **Keeping track.** The page shows which customers' texts have been opened ("2 of 5 opened") and when, so the owner can work down the list. The app can't see whether the text was actually sent from the phone.
 - **STOP replies** arrive on the owner's phone like any other text. Turning off that customer's SMS opt-in removes their text from every rain delay page.
 - SMS opt-in is the only switch that matters for texting; the separate *notification preference* (text/email) isn't used yet, as in the prototype.
-
-## Setting up the forecast
-
-Set `OPENWEATHER_API_KEY` on your host (server-only: never prefix it with `NEXT_PUBLIC_`, and never commit it). Get it at openweathermap.org: subscribe to **One Call by Call**, then copy the key from **API keys**. The first 1,000 calls a day are free; set the daily limit to 1,000 under **Billing plans** so it can never charge. Without a key the app still works, and the Weather page says the forecast isn't connected.
 
 ## Local development
 
@@ -116,11 +112,11 @@ Local auth auto-confirms new accounts, so signup takes you straight in. After ch
 
 | Command | What it covers | Needs |
 | --- | --- | --- |
-| `npm test` | Unit tests: validation, dates and month grids, schedule filter rules, status shapes and colors, forecast parsing and rain risk, the OpenWeather client, text links | nothing |
+| `npm test` | Unit tests: validation, dates and month grids, schedule filter rules, status shapes and colors, forecast parsing and rain risk, the National Weather Service client, ZIP code lookup, text links | nothing |
 | `npm run test:db` | Tenant isolation and database rules, run through the real Supabase API as real signed-in users: visit generation, keeping 6 ahead, stopping a service, invites, break-in attempts by crew members against other crew members, other businesses and owner-only functions, exact dashboard numbers per role with leak checks, expenses (owner-only, invisible to crew and other businesses), and weather: service areas per business, moving a day without touching other businesses, and texts prepared only for opted-in customers, invisible to crew and other businesses | `npx supabase start` |
-| `npm run test:e2e` | Browser tests (desktop and mobile): signup and login, customers, booking, calendar and filters, Could not service, crew invites and joining, assignment, crew views and actions, crew blocked from owner pages, removal, dashboards for owners and crew, expense quick-log/full form/edit/delete and profit, crew and other businesses unable to see expenses, the weather card and forecast per business, moving a rainy day and the Open text links for opted-in customers only (against a fake OpenWeather, `tests/e2e/fake-services.mjs`), two businesses unable to see each other's data | `npx supabase start`, `.env.local`, `npx playwright install chromium` once |
+| `npm run test:e2e` | Browser tests (desktop and mobile): signup and login, customers, booking, calendar and filters, Could not service, crew invites and joining, assignment, crew views and actions, crew blocked from owner pages, removal, dashboards for owners and crew, expense quick-log/full form/edit/delete and profit, crew and other businesses unable to see expenses, the weather card and forecast per business, moving a rainy day and the Open text links for opted-in customers only (against a fake National Weather Service, `tests/e2e/fake-services.mjs`), two businesses unable to see each other's data | `npx supabase start`, `.env.local`, `npx playwright install chromium` once |
 
-`npm run test:e2e` starts its own app server (pointed at a fake OpenWeather on port 4010), so stop any dev server on port 3000 first. Also run `npm run lint` and `npm run typecheck`.
+`npm run test:e2e` starts its own app server (pointed at a fake National Weather Service on port 4010), so stop any dev server on port 3000 first. Also run `npm run lint` and `npm run typecheck`.
 
 ## Deploying to a hosted Supabase project
 
@@ -137,7 +133,6 @@ Local auth auto-confirms new accounts, so signup takes you straight in. After ch
    The default template also works, but only if the link is opened in the same browser that signed up. The token-hash link works on any device.
 4. Optionally, under **Authentication → Providers → Email** (password settings), set the minimum password length to 8 to match the app.
 5. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` on your host, e.g. Vercel. Both come from **Project Settings → API**.
-6. For the forecast, also set `OPENWEATHER_API_KEY` (see [Setting up the forecast](#setting-up-the-forecast)).
 
 ## How tenant isolation works
 
@@ -170,7 +165,7 @@ src/
   lib/customers/schema.ts     customer fields, validation, labels
   lib/schedule/               statuses, frequencies, filters, booking/visit validation
   lib/expenses/               expense categories and validation
-  lib/weather/                forecast parsing and rain risk, OpenWeather client, text links
+  lib/weather/                forecast parsing and rain risk, NWS client, ZIP lookup, text links
   lib/dates.ts                calendar-date helpers (time-zone safe)
   components/job-status.tsx   status shapes, pills, legend
   app/(auth)/                 login, signup, auth server actions
@@ -190,5 +185,5 @@ supabase/
   templates/                  auth email templates
 tests/
   db/                         tenant isolation, scheduling rules, crew break-in tests (Vitest + supabase-js)
-  e2e/                        browser tests (Playwright), fake OpenWeather server
+  e2e/                        browser tests (Playwright), fake National Weather Service
 ```

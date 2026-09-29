@@ -29,7 +29,7 @@ export default async function WeatherPage(props: PageProps<"/weather">) {
           <h1>Weather</h1>
           {forecast.status !== "no_area" && (
             <div className="meta">
-              Forecast for {forecast.area.place_name} ({forecast.area.postal_code}) ·{" "}
+              National Weather Service forecast for {forecast.area.place_name} ({forecast.area.postal_code}) ·{" "}
               <Link href="/weather/area">Change area</Link>
             </div>
           )}
@@ -48,8 +48,6 @@ export default async function WeatherPage(props: PageProps<"/weather">) {
         </>
       ) : forecast.status === "ok" ? (
         <Forecast days={forecast.days} today={today} />
-      ) : forecast.status === "not_configured" ? (
-        <Notice tone="warn">The weather forecast isn&apos;t connected yet (the server has no OpenWeather API key).</Notice>
       ) : (
         <Notice tone="warn">The forecast is unavailable right now. Please try again in a few minutes.</Notice>
       )}

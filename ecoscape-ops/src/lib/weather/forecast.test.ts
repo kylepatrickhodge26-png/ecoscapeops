@@ -1,60 +1,77 @@
 import { describe, expect, it } from "vitest";
 
-import { dayLabel, parseOneCall, riskWindow, topRainRisk, type ForecastDay } from "./forecast";
-
-// Local noon on a date, as OpenWeather's daily "dt" gives it, for a UTC offset in seconds.
-const localNoon = (date: string, offset: number) => Date.parse(`${date}T12:00:00Z`) / 1000 - offset;
+import { dayLabel, parseNwsForecast, riskWindow, topRainRisk, type ForecastDay } from "./forecast";
 
 const day = (date: string, rainChance: number): ForecastDay => ({ date, rainChance, summary: "", high: null, low: null });
 
-describe("parseOneCall", () => {
-  it("reads each day's date, rain chance, summary, and temperatures", () => {
-    const offset = -14400; // New York in summer
-    const days = parseOneCall({
-      lat: 40.82,
-      lon: -73.11,
-      timezone: "America/New_York",
-      timezone_offset: offset,
-      daily: [
-        {
-          dt: localNoon("2026-09-28", offset),
-          pop: 0.1,
-          summary: "Expect a day of partly cloudy with clear spells",
-          temp: { day: 70.2, min: 55.4, max: 72.6 },
-          weather: [{ id: 802, main: "Clouds", description: "scattered clouds", icon: "03d" }],
-        },
-        {
-          dt: localNoon("2026-09-29", offset),
-          pop: 0.834,
-          temp: { min: 58, max: 64.4 },
-          weather: [{ id: 501, main: "Rain", description: "moderate rain", icon: "10d" }],
-        },
-        { dt: localNoon("2026-09-30", offset) },
-      ],
+// A National Weather Service forecast period.
+const period = (startTime: string, isDaytime: boolean, pop: number | null, temperature: number, shortForecast: string) => ({
+  number: 1,
+  name: isDaytime ? "Today" : "Tonight",
+  startTime,
+  endTime: startTime,
+  isDaytime,
+  temperature,
+  temperatureUnit: "F",
+  probabilityOfPrecipitation: { unitCode: "wmoUnit:percent", value: pop },
+  windSpeed: "5 mph",
+  windDirection: "SW",
+  shortForecast,
+  detailedForecast: "",
+});
+
+describe("parseNwsForecast", () => {
+  it("folds day and night periods into one entry per date", () => {
+    const days = parseNwsForecast({
+      type: "Feature",
+      properties: {
+        units: "us",
+        periods: [
+          period("2026-09-28T10:00:00-04:00", true, 10, 72, "Mostly Sunny"),
+          period("2026-09-28T18:00:00-04:00", false, 20, 55, "Partly Cloudy"),
+          period("2026-09-29T06:00:00-04:00", true, 80, 64, "Showers And Thunderstorms"),
+          period("2026-09-29T18:00:00-04:00", false, 40, 58, "Chance Showers"),
+          period("2026-09-30T06:00:00-04:00", true, null, 70, "Sunny"),
+        ],
+      },
     });
     expect(days).toEqual([
-      { date: "2026-09-28", rainChance: 10, summary: "Expect a day of partly cloudy with clear spells", high: 73, low: 55 },
-      { date: "2026-09-29", rainChance: 83, summary: "Moderate rain", high: 64, low: 58 },
-      { date: "2026-09-30", rainChance: 0, summary: "", high: null, low: null },
+      { date: "2026-09-28", rainChance: 20, summary: "Mostly Sunny", high: 72, low: 55 },
+      { date: "2026-09-29", rainChance: 80, summary: "Showers And Thunderstorms", high: 64, low: 58 },
+      { date: "2026-09-30", rainChance: 0, summary: "Sunny", high: 70, low: null },
     ]);
   });
 
-  it.each([
-    ["Tokyo", 32400],
-    ["Honolulu", -36000],
-    ["Kiritimati", 50400],
-  ])("puts each day on the right date in %s", (_place, offset) => {
-    const days = parseOneCall({ timezone_offset: offset, daily: [{ dt: localNoon("2026-12-31", offset), pop: 0.5 }] });
+  it("copes with a forecast that starts tonight", () => {
+    const days = parseNwsForecast({
+      properties: {
+        periods: [
+          period("2026-09-28T18:00:00-04:00", false, 60, 55, "Rain Likely"),
+          period("2026-09-29T06:00:00-04:00", true, 30, 66, "Chance Rain"),
+        ],
+      },
+    });
+    expect(days).toEqual([
+      { date: "2026-09-28", rainChance: 60, summary: "Rain Likely", high: null, low: 55 },
+      { date: "2026-09-29", rainChance: 30, summary: "Chance Rain", high: 66, low: null },
+    ]);
+  });
+
+  it("uses each period's own local date, wherever the business is", () => {
+    // Late evening in Hawaii is already the next day in UTC.
+    const days = parseNwsForecast({
+      properties: { periods: [period("2026-12-31T18:00:00-10:00", false, 50, 70, "Showers")] },
+    });
     expect(days?.[0].date).toBe("2026-12-31");
   });
 
   it.each([
     ["nothing", null],
-    ["an error body", { cod: 401, message: "Invalid API key" }],
-    ["a malformed day", { timezone_offset: 0, daily: [{ pop: 0.5 }] }],
-    ["an impossible rain chance", { timezone_offset: 0, daily: [{ dt: 0, pop: 7 }] }],
+    ["an error body", { title: "Data Unavailable For Requested Point", status: 404 }],
+    ["a malformed period", { properties: { periods: [{ isDaytime: true }] } }],
+    ["an impossible rain chance", { properties: { periods: [period("2026-09-28T06:00:00-04:00", true, 170, 70, "")] } }],
   ])("rejects %s", (_label, json) => {
-    expect(parseOneCall(json)).toBeNull();
+    expect(parseNwsForecast(json)).toBeNull();
   });
 });
 

@@ -1,79 +1,112 @@
-// A stand-in for OpenWeather during end-to-end tests, so the tests never call the real
-// service and always get the same forecast. Started by playwright.config.ts with the same
-// fake API key the app gets. Serves /geo/1.0/zip and /data/3.0/onecall for the ZIP
-// codes below.
+// A stand-in for the National Weather Service's forecast API during end-to-end tests, so
+// the tests never call the real service and always get the same forecast. Started by
+// playwright.config.ts. Serves /points/{lat},{lon} and the forecast it links to, for the
+// ZIP codes below (positions come from the same ZIP code list the app uses).
 import { createServer } from "node:http";
 
+import zipcodes from "zipcodes";
+
 const PORT = Number(process.env.FAKE_SERVICES_PORT);
-const OPENWEATHER_KEY = process.env.OPENWEATHER_API_KEY;
 const TIME_ZONE = "America/New_York";
 
-// Keep in step with FAKE_PLACES in tests/e2e/fakes.ts.
+// Chance of rain (%) for today and the next six days. Keep in step with FAKE_PLACES in
+// tests/e2e/fakes.ts.
 const PLACES = {
-  11779: { name: "Lake Ronkonkoma", lat: 40.8154, lon: -73.1123, pops: [0.1, 0.8, 0.3, 0.2, 0, 0.1, 0.05, 0.4] },
-  10001: { name: "New York", lat: 40.7484, lon: -73.9967, pops: [0.05, 0.2, 0.65, 0.9, 0.1, 0, 0, 0] },
-  90210: { name: "Beverly Hills", lat: 34.0901, lon: -118.4065, pops: [0, 0, 0, 0, 0, 0, 0, 0] },
-  // Geocodes fine, but its forecast is always an error.
-  59001: { name: "Outage Falls", lat: 45.5, lon: -109.5, pops: null },
+  11779: [10, 80, 30, 20, 0, 10, 40],
+  10001: [5, 20, 65, 90, 10, 0, 0],
+  90210: [0, 0, 0, 0, 0, 0, 0],
+  // A real place, but its forecast is always an error.
+  59001: null,
+};
+
+const position = (zip) => {
+  const { latitude, longitude } = zipcodes.lookup(zip);
+  return `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
 };
 
 function todayIn(timeZone) {
   return new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date());
 }
 
-// e.g. -14400 for "GMT-04:00"
-function utcOffsetSeconds(timeZone) {
+// e.g. "-04:00"
+function utcOffset(timeZone) {
   const name = new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "longOffset" })
     .formatToParts(new Date())
     .find((p) => p.type === "timeZoneName").value;
-  const match = /GMT([+-])(\d{2}):(\d{2})/.exec(name);
-  return match ? (match[1] === "-" ? -1 : 1) * (Number(match[2]) * 3600 + Number(match[3]) * 60) : 0;
+  return /GMT([+-]\d{2}:\d{2})/.exec(name)?.[1] ?? "+00:00";
 }
 
-function forecastFor(place) {
-  const offset = utcOffsetSeconds(TIME_ZONE);
-  const [y, m, d] = todayIn(TIME_ZONE).split("-").map(Number);
+function addDays(isoDate, days) {
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Day and night periods, like the real forecast. Nights are a little drier than days.
+function forecastFor(rain) {
+  const today = todayIn(TIME_ZONE);
+  const offset = utcOffset(TIME_ZONE);
+  const periods = rain.flatMap((pop, i) => {
+    const date = addDays(today, i);
+    const summary = pop >= 50 ? "Showers And Thunderstorms" : "Partly Cloudy";
+    return [
+      { name: `Day ${i}`, startTime: `${date}T06:00:00${offset}`, isDaytime: true, temperature: 70 + i, pop, summary },
+      { name: `Night ${i}`, startTime: `${date}T18:00:00${offset}`, isDaytime: false, temperature: 55 + i, pop: Math.floor(pop / 2), summary },
+    ];
+  });
   return {
-    lat: place.lat,
-    lon: place.lon,
-    timezone: TIME_ZONE,
-    timezone_offset: offset,
-    daily: place.pops.map((pop, i) => ({
-      dt: Date.UTC(y, m - 1, d + i, 12) / 1000 - offset,
-      pop,
-      summary: pop >= 0.5 ? "Rain likely through the afternoon" : "Partly cloudy",
-      temp: { min: 55 + i, max: 70 + i },
-      weather: [{ id: pop >= 0.5 ? 501 : 802, main: pop >= 0.5 ? "Rain" : "Clouds", description: "test" }],
-    })),
+    type: "Feature",
+    properties: {
+      units: "us",
+      periods: periods.map((p, i) => ({
+        number: i + 1,
+        name: p.name,
+        startTime: p.startTime,
+        endTime: p.startTime,
+        isDaytime: p.isDaytime,
+        temperature: p.temperature,
+        temperatureUnit: "F",
+        probabilityOfPrecipitation: { unitCode: "wmoUnit:percent", value: p.pop },
+        windSpeed: "5 mph",
+        windDirection: "SW",
+        shortForecast: p.summary,
+        detailedForecast: "",
+      })),
+    },
   };
 }
 
 function json(res, status, body) {
-  res.writeHead(status, { "Content-Type": "application/json" });
+  res.writeHead(status, { "Content-Type": "application/geo+json" });
   res.end(JSON.stringify(body));
 }
 
-const server = createServer(async (req, res) => {
+const server = createServer((req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
-
   if (url.pathname === "/health") return json(res, 200, { ok: true });
 
-  if (url.pathname === "/geo/1.0/zip" || url.pathname === "/data/3.0/onecall") {
-    if (url.searchParams.get("appid") !== OPENWEATHER_KEY) return json(res, 401, { cod: 401, message: "Invalid API key" });
-    if (url.pathname === "/geo/1.0/zip") {
-      const [zip, country] = (url.searchParams.get("zip") ?? "").split(",");
-      const place = country === "US" && PLACES[zip];
-      if (!place) return json(res, 404, { cod: "404", message: "not found" });
-      return json(res, 200, { zip, name: place.name, lat: place.lat, lon: place.lon, country: "US" });
-    }
-    const key = `${url.searchParams.get("lat")},${url.searchParams.get("lon")}`;
-    const place = Object.values(PLACES).find((p) => `${p.lat.toFixed(2)},${p.lon.toFixed(2)}` === key);
-    if (!place) return json(res, 400, { cod: "400", message: "unknown location" });
-    if (!place.pops) return json(res, 500, { cod: "500", message: "Internal error" });
-    return json(res, 200, forecastFor(place));
+  // The real service refuses requests that don't say who's asking.
+  if (!req.headers["user-agent"]?.startsWith("EcoScape Ops")) {
+    return json(res, 403, { title: "Forbidden", detail: "A User-Agent is required", status: 403 });
   }
 
-  json(res, 404, { message: "Not found" });
+  const points = /^\/points\/([-\d.]+,[-\d.]+)$/.exec(url.pathname);
+  if (points) {
+    const zip = Object.keys(PLACES).find((z) => position(z) === points[1]);
+    if (!zip) return json(res, 404, { title: "Data Unavailable For Requested Point", status: 404 });
+    return json(res, 200, {
+      properties: { forecast: `http://127.0.0.1:${PORT}/gridpoints/TST/${zip}/forecast`, timeZone: TIME_ZONE },
+    });
+  }
+
+  const forecast = /^\/gridpoints\/TST\/(\d{5})\/forecast$/.exec(url.pathname);
+  if (forecast && forecast[1] in PLACES) {
+    const rain = PLACES[forecast[1]];
+    if (!rain) return json(res, 500, { title: "Unexpected Problem", status: 500 });
+    return json(res, 200, forecastFor(rain));
+  }
+
+  json(res, 404, { title: "Not Found", status: 404 });
 });
 
-server.listen(PORT, "127.0.0.1", () => console.log(`Fake OpenWeather listening on ${PORT}`));
+server.listen(PORT, "127.0.0.1", () => console.log(`Fake National Weather Service listening on ${PORT}`));

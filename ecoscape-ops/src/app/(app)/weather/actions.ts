@@ -7,7 +7,7 @@ import { z } from "zod";
 import { requireOwner } from "@/lib/auth";
 import { isISODate } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
-import { geocodeZip } from "@/lib/weather/openweather";
+import { lookupZip } from "@/lib/weather/zip";
 
 // All owner-only. The database enforces that regardless, and decides who can be texted.
 
@@ -20,19 +20,9 @@ export async function setServiceArea(_prev: AreaFormState, formData: FormData): 
   const values = { postal_code: String(formData.get("postal_code") ?? "").trim() };
   if (!/^\d{5}$/.test(values.postal_code)) return { values, fieldError: "Enter a 5-digit ZIP code" };
 
-  const result = await geocodeZip(values.postal_code);
-  if (!result.ok) {
-    switch (result.reason) {
-      case "not_found":
-        return { values, fieldError: "We couldn't find that ZIP code" };
-      case "not_configured":
-        return { values, error: "The weather forecast isn't connected yet (the server has no OpenWeather API key)." };
-      case "unavailable":
-        return { values, error: "We couldn't reach the weather service. Please try again." };
-    }
-  }
+  const place = lookupZip(values.postal_code);
+  if (!place) return { values, fieldError: "We couldn't find that ZIP code" };
 
-  const { place } = result;
   const supabase = await createClient();
   const { error } = await supabase.from("service_areas").upsert({
     business_id: business.id,
