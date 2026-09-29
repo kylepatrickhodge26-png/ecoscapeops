@@ -1,23 +1,18 @@
 -- EcoScape Ops weather: a live forecast for each business's service area, a rain-day
--- action that moves a day's visits, and real text messages (sent through Twilio) that
--- tell the affected customers. Only customers who opted in to texts are ever texted.
+-- action that moves a day's visits, and a personalized text for each affected customer
+-- who has opted in to texts. The owner sends each text from their own phone (the app
+-- opens it, filled in, in their Messages app), so there's no texting service to pay for.
 --
 --   * service_areas: where the business works (a ZIP code the app turns into a map
 --     position for the forecast). Owners manage it; crew members can read it only
 --     through business_service_area(), for the forecast on their dashboard.
---   * sms_senders: the Twilio number each business texts from. Numbers are assigned by
---     whoever runs EcoScape Ops (service role / SQL editor), never through the app:
---     owners can see their number but can't set or change it, so no business can ever
---     text from another business's number.
 --   * rain_delays / rain_delay_visits: one "move a day's jobs" action and the visits it
---     moved. Texts are sent per rain delay.
---   * sms_messages: every text sent, at most one per customer per rain delay (so a
---     double tap never texts anyone twice), with its Twilio delivery status.
---   * Who gets a text is decided here, at send time, never by the browser: customers of
---     the caller's own business who have a visit in that rain delay, sms_opt_in = true,
---     and a phone number that is a usable mobile number.
---   * Replies of STOP (and Twilio's "unsubscribed" error) turn sms_opt_in off, for that
---     business's customer only.
+--     moved. Texts are prepared per rain delay.
+--   * weather_texts: which customers' texts the owner has opened for a rain delay, so
+--     they can keep track of who they've texted.
+--   * Who gets a text is decided here, never by the browser: customers of the caller's
+--     own business who have a visit in that rain delay, sms_opt_in = true, and a phone
+--     number that is a usable mobile number. Nobody else gets a message or a button.
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -46,7 +41,7 @@ $$;
 
 revoke execute on function private.my_owned_business() from public;
 
--- A phone number as typed on a customer record, in the +15551234567 form Twilio needs,
+-- A phone number as typed on a customer record, in the +15551234567 form a text link needs,
 -- or null if it can't be a mobile number. US/Canada numbers may be written any way
 -- ("(631) 555-0142", "1-631-555-0142"); other countries need a leading +.
 create function private.to_e164(phone text)
@@ -157,34 +152,6 @@ revoke execute on function public.business_service_area() from public, anon;
 grant execute on function public.business_service_area() to authenticated;
 
 -- ---------------------------------------------------------------------------
--- Texting numbers (one per business, assigned by the operator)
--- ---------------------------------------------------------------------------
-create table public.sms_senders (
-  business_id uuid primary key references public.businesses (id) on delete cascade,
-  -- A number in the operator's Twilio account, e.g. +16315550100. Unique, so two
-  -- businesses can never share a number (or each other's STOP replies).
-  phone_number text not null unique,
-  created_at timestamptz not null default now(),
-
-  constraint sms_senders_phone_number_format check (phone_number ~ '^\+[1-9][0-9]{7,14}$')
-);
-
-create trigger sms_senders_business_id_immutable
-  before update on public.sms_senders
-  for each row execute function private.prevent_business_id_change();
-
--- Read-only for owners. No insert/update/delete grants: only the service role writes.
-revoke all on public.sms_senders from anon, authenticated;
-grant select on public.sms_senders to authenticated;
-
-alter table public.sms_senders enable row level security;
-
-create policy "Owners can view their texting number"
-  on public.sms_senders for select
-  to authenticated
-  using (business_id in (select private.owner_business_ids()));
-
--- ---------------------------------------------------------------------------
 -- Rain delays: "move a day's jobs"
 -- ---------------------------------------------------------------------------
 -- Lets rain_delay_visits reference (job, business) pairs.
@@ -284,110 +251,32 @@ revoke execute on function public.move_day_visits(date, date) from public, anon;
 grant execute on function public.move_day_visits(date, date) to authenticated;
 
 -- ---------------------------------------------------------------------------
--- Text messages
+-- Weather texts
 -- ---------------------------------------------------------------------------
--- sending: claimed, being handed to Twilio. Then Twilio's own statuses.
-create type public.sms_status as enum ('sending', 'queued', 'sent', 'delivered', 'undelivered', 'failed');
-
-create table public.sms_messages (
-  id uuid primary key default gen_random_uuid(),
-  business_id uuid not null references public.businesses (id) on delete cascade,
+-- One row per customer per rain delay, once the owner has opened that customer's text.
+create table public.weather_texts (
   rain_delay_id uuid not null,
-  -- Kept (without the customer) if the customer is deleted later.
-  customer_id uuid,
-  to_phone text not null,
-  from_phone text not null,
-  body text not null,
-  status public.sms_status not null default 'sending',
-  twilio_sid text unique,
-  error_code integer,
-  error_message text,
-  sent_by uuid references auth.users (id) on delete set null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-
+  customer_id uuid not null,
+  business_id uuid not null references public.businesses (id) on delete cascade,
+  opened_by uuid references auth.users (id) on delete set null,
+  opened_at timestamptz not null default now(),
+  primary key (rain_delay_id, customer_id),
   foreign key (rain_delay_id, business_id) references public.rain_delays (id, business_id) on delete cascade,
-  foreign key (customer_id, business_id) references public.customers (id, business_id) on delete set null (customer_id),
-  constraint sms_messages_one_per_customer unique (rain_delay_id, customer_id)
+  foreign key (customer_id, business_id) references public.customers (id, business_id) on delete cascade
 );
 
-create index sms_messages_business_idx on public.sms_messages (business_id, created_at desc);
-
-create trigger sms_messages_set_updated_at
-  before update on public.sms_messages
-  for each row execute function private.set_updated_at();
-
-create trigger sms_messages_business_id_immutable
-  before update on public.sms_messages
+create trigger weather_texts_business_id_immutable
+  before update on public.weather_texts
   for each row execute function private.prevent_business_id_change();
 
--- Twilio's message statuses, collapsed into ours.
-create function private.sms_status_from_twilio(twilio_status text)
-returns public.sms_status
-language sql
-immutable
-set search_path = ''
-as $$
-  select (case lower(coalesce(twilio_status, ''))
-    when 'sent' then 'sent'
-    when 'delivered' then 'delivered'
-    when 'read' then 'delivered'
-    when 'undelivered' then 'undelivered'
-    when 'failed' then 'failed'
-    when 'canceled' then 'failed'
-    else 'queued' -- accepted, scheduled, queued, sending
-  end)::public.sms_status;
-$$;
-
-revoke execute on function private.sms_status_from_twilio(text) from public;
-
--- Status updates can arrive out of order; a message only ever moves forward.
-create function private.sms_status_rank(status public.sms_status)
-returns integer
-language sql
-immutable
-set search_path = ''
-as $$
-  select case status when 'sending' then 0 when 'queued' then 1 when 'sent' then 2 else 3 end;
-$$;
-
-revoke execute on function private.sms_status_rank(public.sms_status) from public;
-
--- Twilio error 21610: the recipient has replied STOP to this number.
-create function private.opt_out_after_sms_error(msg public.sms_messages)
-returns void
-language sql
-security definer
-set search_path = ''
-as $$
-  update public.customers c
-  set sms_opt_in = false
-  where msg.error_code = 21610
-    and c.id = msg.customer_id
-    and c.business_id = msg.business_id
-    and c.sms_opt_in;
-$$;
-
-revoke execute on function private.opt_out_after_sms_error(public.sms_messages) from public;
-
--- Owners read their business's texts. Nobody writes them directly: only the functions
--- below (and the service role, for Twilio's callbacks).
-revoke all on public.sms_messages from anon, authenticated;
-grant select on public.sms_messages to authenticated;
-
-alter table public.sms_messages enable row level security;
-
-create policy "Owners can view their texts"
-  on public.sms_messages for select
-  to authenticated
-  using (business_id in (select private.owner_business_ids()));
-
--- Rain delays and their visits: owners read them; the functions write them.
-revoke all on public.rain_delays, public.rain_delay_visits from anon, authenticated;
-grant select on public.rain_delays, public.rain_delay_visits to authenticated;
+-- Rain delays, their visits, and weather texts: owners read them; only the functions in
+-- this file write them.
+revoke all on public.rain_delays, public.rain_delay_visits, public.weather_texts from anon, authenticated;
+grant select on public.rain_delays, public.rain_delay_visits, public.weather_texts to authenticated;
 
 alter table public.rain_delays enable row level security;
 alter table public.rain_delay_visits enable row level security;
+alter table public.weather_texts enable row level security;
 
 create policy "Owners can view their rain delays"
   on public.rain_delays for select
@@ -399,8 +288,13 @@ create policy "Owners can view their rain delay visits"
   to authenticated
   using (business_id in (select private.owner_business_ids()));
 
--- The customers a rain delay affects, and for each one either the text they got (and
--- its status), the text they would get, or why they won't be texted.
+create policy "Owners can view their weather texts"
+  on public.weather_texts for select
+  to authenticated
+  using (business_id in (select private.owner_business_ids()));
+
+-- The customers a rain delay affects: for each one, the text they should get (and when
+-- the owner opened it), or why they won't be texted.
 create function public.rain_delay_texts(rain_delay_id uuid)
 returns table (
   customer_id uuid,
@@ -412,11 +306,7 @@ returns table (
   -- Why a customer won't be texted: 'not_opted_in' or 'no_mobile_number'.
   reason text,
   body text,
-  message_id uuid,
-  status public.sms_status,
-  error_code integer,
-  error_message text,
-  sent_at timestamptz
+  opened_at timestamptz
 )
 language plpgsql
 stable
@@ -442,24 +332,24 @@ begin
     from public.rain_delay_visits v
     join public.jobs j on j.id = v.job_id and j.business_id = v.business_id
     where v.rain_delay_id = delay.id
+  ),
+  checked as (
+    select c.*, private.to_e164(c.phone) as e164
+    from affected a
+    join public.customers c on c.id = a.id and c.business_id = biz
   )
-  select c.id, c.first_name, c.last_name, c.phone,
-         private.to_e164(c.phone),
-         c.sms_opt_in and private.to_e164(c.phone) is not null,
+  select c.id, c.first_name, c.last_name, c.phone, c.e164,
+         c.sms_opt_in and c.e164 is not null,
          case
            when not c.sms_opt_in then 'not_opted_in'
-           when private.to_e164(c.phone) is null then 'no_mobile_number'
+           when c.e164 is null then 'no_mobile_number'
          end,
-         coalesce(
-           m.body,
-           case when c.sms_opt_in and private.to_e164(c.phone) is not null
-             then private.rain_delay_message(c.first_name, business_name, delay.from_date, delay.to_date)
-           end
-         ),
-         m.id, m.status, m.error_code, m.error_message, m.created_at
-  from affected a
-  join public.customers c on c.id = a.id and c.business_id = biz
-  left join public.sms_messages m on m.rain_delay_id = delay.id and m.customer_id = c.id
+         case when c.sms_opt_in and c.e164 is not null
+           then private.rain_delay_message(c.first_name, business_name, delay.from_date, delay.to_date)
+         end,
+         t.opened_at
+  from checked c
+  left join public.weather_texts t on t.rain_delay_id = delay.id and t.customer_id = c.id
   order by c.last_name, c.first_name, c.id;
 end;
 $$;
@@ -467,170 +357,51 @@ $$;
 revoke execute on function public.rain_delay_texts(uuid) from public, anon;
 grant execute on function public.rain_delay_texts(uuid) to authenticated;
 
--- Claims the texts to send for a rain delay and returns them for the app to hand to
--- Twilio: one per opted-in customer with a usable number who hasn't been texted for this
--- rain delay yet (or whose earlier text failed). Claimed texts are recorded as
--- 'sending' first, so pressing Send twice — even at the same moment — never texts
--- anyone twice.
-create function public.start_rain_delay_texts(rain_delay_id uuid)
-returns table (message_id uuid, to_phone text, from_phone text, body text)
+-- Records that the owner opened a customer's text for a rain delay. Only for a customer
+-- who can be texted (opted in, usable number, with a visit in this rain delay); anything
+-- else is refused. Opening it again keeps the first time. Returns when it was opened.
+create function public.mark_weather_text_opened(rain_delay_id uuid, customer_id uuid)
+returns timestamptz
 language plpgsql
 security definer
 set search_path = ''
 as $$
-#variable_conflict use_column
 declare
   biz uuid := private.my_owned_business();
-  delay public.rain_delays;
-  sender text;
-  business_name text;
+  opened timestamptz;
 begin
-  -- Locked so two sends for the same rain delay run one after the other.
-  select * into delay
-  from public.rain_delays d
-  where d.id = start_rain_delay_texts.rain_delay_id and d.business_id = biz
-  for update;
-  if not found then
+  if not exists (
+    select 1 from public.rain_delays d
+    where d.id = mark_weather_text_opened.rain_delay_id and d.business_id = biz
+  ) then
     raise exception 'Rain delay not found' using errcode = 'P0002';
   end if;
 
-  select s.phone_number into sender from public.sms_senders s where s.business_id = biz;
-  if sender is null then
-    raise exception 'Texting isn''t set up for this business yet' using errcode = '55000';
-  end if;
-  select b.name into business_name from public.businesses b where b.id = biz;
-
-  return query
-  with eligible as (
-    select c.id as customer_id,
-           private.to_e164(c.phone) as to_phone,
-           private.rain_delay_message(c.first_name, business_name, delay.from_date, delay.to_date) as body
-    from public.customers c
-    where c.business_id = biz
+  if not exists (
+    select 1
+    from public.rain_delay_visits v
+    join public.jobs j on j.id = v.job_id and j.business_id = v.business_id
+    join public.customers c on c.id = j.customer_id and c.business_id = j.business_id
+    where v.rain_delay_id = mark_weather_text_opened.rain_delay_id
+      and v.business_id = biz
+      and c.id = mark_weather_text_opened.customer_id
       and c.sms_opt_in
       and private.to_e164(c.phone) is not null
-      and c.id in (
-        select j.customer_id
-        from public.rain_delay_visits v
-        join public.jobs j on j.id = v.job_id and j.business_id = v.business_id
-        where v.rain_delay_id = delay.id
-      )
-  ),
-  retried as (
-    update public.sms_messages m
-    set status = 'sending', to_phone = e.to_phone, from_phone = sender, body = e.body,
-        twilio_sid = null, error_code = null, error_message = null, sent_by = (select auth.uid())
-    from eligible e
-    where m.rain_delay_id = delay.id and m.customer_id = e.customer_id and m.status = 'failed'
-    returning m.id, m.to_phone, m.from_phone, m.body
-  ),
-  inserted as (
-    insert into public.sms_messages (business_id, rain_delay_id, customer_id, to_phone, from_phone, body, sent_by)
-    select biz, delay.id, e.customer_id, e.to_phone, sender, e.body, (select auth.uid())
-    from eligible e
-    on conflict (rain_delay_id, customer_id) do nothing
-    returning sms_messages.id, sms_messages.to_phone, sms_messages.from_phone, sms_messages.body
-  )
-  select r.id, r.to_phone, r.from_phone, r.body from retried r
-  union all
-  select i.id, i.to_phone, i.from_phone, i.body from inserted i;
-end;
-$$;
-
-revoke execute on function public.start_rain_delay_texts(uuid) from public, anon;
-grant execute on function public.start_rain_delay_texts(uuid) to authenticated;
-
--- Records what Twilio said when the app handed it a claimed text: its message SID and
--- status, or (with no SID) why it was refused.
-create function public.record_sms_result(
-  message_id uuid,
-  twilio_sid text default null,
-  twilio_status text default null,
-  error_code integer default null,
-  error_message text default null
-)
-returns void
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  biz uuid := private.my_owned_business();
-  msg public.sms_messages;
-begin
-  update public.sms_messages m
-  set twilio_sid = nullif(btrim(record_sms_result.twilio_sid), ''),
-      status = case
-        when nullif(btrim(record_sms_result.twilio_sid), '') is null then 'failed'
-        else private.sms_status_from_twilio(record_sms_result.twilio_status)
-      end,
-      error_code = record_sms_result.error_code,
-      error_message = left(record_sms_result.error_message, 500)
-  where m.id = record_sms_result.message_id
-    and m.business_id = biz
-    and m.status = 'sending'
-  returning * into msg;
-  if not found then
-    raise exception 'Text not found' using errcode = 'P0002';
+  ) then
+    raise exception 'This customer can''t be texted' using errcode = '42501';
   end if;
-  perform private.opt_out_after_sms_error(msg);
+
+  insert into public.weather_texts (rain_delay_id, customer_id, business_id, opened_by)
+  values (mark_weather_text_opened.rain_delay_id, mark_weather_text_opened.customer_id, biz, (select auth.uid()))
+  on conflict on constraint weather_texts_pkey do nothing;
+
+  select t.opened_at into opened
+  from public.weather_texts t
+  where t.rain_delay_id = mark_weather_text_opened.rain_delay_id
+    and t.customer_id = mark_weather_text_opened.customer_id;
+  return opened;
 end;
 $$;
 
-revoke execute on function public.record_sms_result(uuid, text, text, integer, text) from public, anon;
-grant execute on function public.record_sms_result(uuid, text, text, integer, text) to authenticated;
-
--- ---------------------------------------------------------------------------
--- Twilio webhooks. Called only by the app's webhook routes, with the service role,
--- after they've checked Twilio's signature. Nobody else can execute these.
--- ---------------------------------------------------------------------------
-
--- A delivery status update for a text we sent.
-create function public.twilio_message_status(message_sid text, message_status text, error_code integer default null)
-returns void
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  new_status public.sms_status := private.sms_status_from_twilio(message_status);
-  msg public.sms_messages;
-begin
-  update public.sms_messages m
-  set status = new_status,
-      error_code = coalesce(twilio_message_status.error_code, m.error_code)
-  where m.twilio_sid = twilio_message_status.message_sid
-    and private.sms_status_rank(new_status) > private.sms_status_rank(m.status)
-  returning * into msg;
-  if found then
-    perform private.opt_out_after_sms_error(msg);
-  end if;
-end;
-$$;
-
--- A customer replied STOP to a business's number: they're opted out of that business's
--- texts. The same phone number on another business's customer list is untouched.
--- Returns how many customer records were opted out.
-create function public.twilio_opt_out(to_number text, from_number text)
-returns integer
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  changed integer;
-begin
-  update public.customers c
-  set sms_opt_in = false
-  where c.business_id = (select s.business_id from public.sms_senders s where s.phone_number = to_number)
-    and private.to_e164(c.phone) = from_number
-    and c.sms_opt_in;
-  get diagnostics changed = row_count;
-  return changed;
-end;
-$$;
-
-revoke execute on function public.twilio_message_status(text, text, integer) from public, anon, authenticated;
-revoke execute on function public.twilio_opt_out(text, text) from public, anon, authenticated;
-grant execute on function public.twilio_message_status(text, text, integer) to service_role;
-grant execute on function public.twilio_opt_out(text, text) to service_role;
+revoke execute on function public.mark_weather_text_opened(uuid, uuid) from public, anon;
+grant execute on function public.mark_weather_text_opened(uuid, uuid) to authenticated;

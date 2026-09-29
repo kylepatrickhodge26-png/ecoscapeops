@@ -2,7 +2,7 @@
 
 Multi-tenant operations app for landscaping businesses: Next.js (App Router) on Supabase (Postgres, Auth, row-level security).
 
-**Built so far:** the multi-tenant foundation (business signup and login, strict per-business data isolation), **Customers** (add, edit, delete, list), **Scheduling** (recurring bookings, calendar and list views, job statuses), **Crew** (crew logins, job assignment, each crew member's own job view), the **Dashboard** (the home page), **Expenses** (a categorized expense log feeding the dashboard's profit) and **Weather** (a live rain forecast for the service area, moving a rainy day's visits, and real text messages to opted-in customers through Twilio). Route ordering, billing and the rest of the prototype come later.
+**Built so far:** the multi-tenant foundation (business signup and login, strict per-business data isolation), **Customers** (add, edit, delete, list), **Scheduling** (recurring bookings, calendar and list views, job statuses), **Crew** (crew logins, job assignment, each crew member's own job view), the **Dashboard** (the home page), **Expenses** (a categorized expense log feeding the dashboard's profit) and **Weather** (a live rain forecast for the service area, moving a rainy day's visits, and a ready-to-send text for each opted-in customer). Route ordering, billing and the rest of the prototype come later.
 
 ## Product decisions in this version
 
@@ -88,33 +88,15 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 - **Service area:** a US ZIP code, set by the owner on the Weather page. Crew members see the forecast on their dashboard but can't change the area.
 - **Dashboard card** (like the prototype's WEATHER card): the highest chance of rain among today, tomorrow and the day after, and which day it is. Owners also get *Move jobs & text customers →*. If the forecast is down, the card says so and the rest of the dashboard still works.
 - **Rain day = "Move a day's jobs"** (from the prototype). The owner picks a day and a new day. Every visit that day that isn't completed or cancelled moves, is marked *Weather delay*, gets a "Moved from … due to weather" note, and keeps its crew assignment. Both days must be today or later.
-- **Texting the affected customers.** After a move, the rain delay's page lists each affected customer with their own message, for example: "Hi Jane, this is Acme Lawn Care. Due to the weather, we're moving your Tue, Sep 29 visit to Wed, Sep 30. Thanks! Reply STOP to opt out." (Plain characters and under 160 so it's one SMS segment in most cases.) *Text N customers* sends them through Twilio from the server, not from anyone's phone.
-- **Only opted-in customers are ever texted.** The database picks the recipients at the moment of sending: the business's own customers with a visit in that rain delay, SMS opt-in on, and a phone number that's a usable mobile number. Customers who won't be texted are listed with the reason (not opted in / no usable number) so the owner can call them.
-- **Never twice.** Each text is recorded before it's handed to Twilio, one per customer per rain delay, so a double tap (even two at the same moment) texts nobody twice. A text that failed to send can be retried; nothing else is re-sent.
-- **Delivery status** comes back from Twilio (queued → sent → delivered, or not delivered / failed) and shows next to each customer with a plain-English reason, e.g. "Blocked: the texting number's US registration (A2P 10DLC) isn't approved yet".
-- **STOP.** A customer who replies STOP (or Twilio refuses a text because they did) is switched to *not opted in* for that business only. The same person on another business's customer list is unaffected. START does not switch it back on automatically; the owner can do that after checking with the customer.
-- **One Twilio account, one number per business.** Texts come from the business's own number, assigned by whoever runs EcoScape Ops (see below). Owners can see their number but can never set or change it, so no business can text as another, and numbers are unique so STOP replies never cross businesses. Without a number, a business can still move days but can't text.
+- **Texting the affected customers, from the owner's own phone.** After a move, the rain delay's page lists each affected customer with their own message, for example: "Hi Jane, this is Acme Lawn Care. Due to the weather, we're moving your Tue, Sep 29 visit to Wed, Sep 30. Thanks! Reply STOP to opt out." (Plain characters and under 160, so it's one SMS segment in most cases.) *Open text* opens it in the phone's Messages app with the number and message filled in; the owner taps send. *Copy message* is there for sending from a computer. There's no texting service, so nothing to pay for or register. (A version that sent through Twilio automatically was built first and dropped because Twilio costs money; it's in the git history.)
+- **Only opted-in customers ever get a text.** The database decides who can be texted: the business's own customers with a visit in that rain delay, SMS opt-in on, and a phone number that's a usable mobile number. Only they get a message and an *Open text* button. Everyone else is listed with the reason (not opted in / no usable number) so the owner can call them.
+- **Keeping track.** The page shows which customers' texts have been opened ("2 of 5 opened") and when, so the owner can work down the list. The app can't see whether the text was actually sent from the phone.
+- **STOP replies** arrive on the owner's phone like any other text. Turning off that customer's SMS opt-in removes their text from every rain delay page.
 - SMS opt-in is the only switch that matters for texting; the separate *notification preference* (text/email) isn't used yet, as in the prototype.
 
-## Setting up weather and texting
+## Setting up the forecast
 
-The app runs without these; the Weather page then says what's missing. All of them are **server-only** secrets: never prefix them with `NEXT_PUBLIC_`, and never commit them.
-
-| Variable | Where it comes from |
-| --- | --- |
-| `OPENWEATHER_API_KEY` | openweathermap.org → subscribe to **One Call by Call** → **API keys**. Set the daily limit to 1,000 under **Billing plans** so it never charges. |
-| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` | Twilio Console home page, **Account Info**. The auth token also verifies Twilio's webhooks. |
-| `SUPABASE_SECRET_KEY` | Supabase → **Project Settings → API Keys → Secret key**. Used only by the Twilio webhook routes, which have no signed-in user. |
-
-Then, for each business that should be able to text:
-
-1. Buy a local SMS-capable number in Twilio and add it to the Messaging Service of your approved **A2P 10DLC** campaign. US carriers block texts from unregistered numbers.
-2. Assign it to the business in the Supabase SQL editor (only the service role can write this table):
-   ```sql
-   insert into public.sms_senders (business_id, phone_number)
-   select id, '+16315550100' from public.businesses where name = 'EcoScape Lawn Care';
-   ```
-3. In Twilio, set the Messaging Service's (or the number's) **incoming message webhook** to `https://<your-app>/api/twilio/inbound` (HTTP POST), so STOP replies reach the app. Delivery updates need no setup; each text tells Twilio where to report.
+Set `OPENWEATHER_API_KEY` on your host (server-only: never prefix it with `NEXT_PUBLIC_`, and never commit it). Get it at openweathermap.org: subscribe to **One Call by Call**, then copy the key from **API keys**. The first 1,000 calls a day are free; set the daily limit to 1,000 under **Billing plans** so it can never charge. Without a key the app still works, and the Weather page says the forecast isn't connected.
 
 ## Local development
 
@@ -134,11 +116,11 @@ Local auth auto-confirms new accounts, so signup takes you straight in. After ch
 
 | Command | What it covers | Needs |
 | --- | --- | --- |
-| `npm test` | Unit tests: validation, dates and month grids, schedule filter rules, status shapes and colors, forecast parsing and rain risk, the OpenWeather and Twilio clients, Twilio webhook signatures (checked against Twilio's own library), STOP keywords | nothing |
-| `npm run test:db` | Tenant isolation and database rules, run through the real Supabase API as real signed-in users: visit generation, keeping 6 ahead, stopping a service, invites, break-in attempts by crew members against other crew members, other businesses and owner-only functions, exact dashboard numbers per role with leak checks, expenses (owner-only, invisible to crew and other businesses), and weather: service areas and texting numbers per business, moving a day without touching other businesses, texting only opted-in customers exactly once, and STOP replies and webhooks that can't cross businesses or be called by users | `npx supabase start` |
-| `npm run test:e2e` | Browser tests (desktop and mobile): signup and login, customers, booking, calendar and filters, Could not service, crew invites and joining, assignment, crew views and actions, crew blocked from owner pages, removal, dashboards for owners and crew, expense quick-log/full form/edit/delete and profit, crew and other businesses unable to see expenses, the weather card and forecast per business, moving a rainy day and texting only opted-in customers (against a fake OpenWeather and a fake Twilio, `tests/e2e/fake-services.mjs`, which record exactly what would have been sent), STOP replies, forged webhooks refused, two businesses unable to see each other's data | `npx supabase start`, `.env.local`, `npx playwright install chromium` once |
+| `npm test` | Unit tests: validation, dates and month grids, schedule filter rules, status shapes and colors, forecast parsing and rain risk, the OpenWeather client, text links | nothing |
+| `npm run test:db` | Tenant isolation and database rules, run through the real Supabase API as real signed-in users: visit generation, keeping 6 ahead, stopping a service, invites, break-in attempts by crew members against other crew members, other businesses and owner-only functions, exact dashboard numbers per role with leak checks, expenses (owner-only, invisible to crew and other businesses), and weather: service areas per business, moving a day without touching other businesses, and texts prepared only for opted-in customers, invisible to crew and other businesses | `npx supabase start` |
+| `npm run test:e2e` | Browser tests (desktop and mobile): signup and login, customers, booking, calendar and filters, Could not service, crew invites and joining, assignment, crew views and actions, crew blocked from owner pages, removal, dashboards for owners and crew, expense quick-log/full form/edit/delete and profit, crew and other businesses unable to see expenses, the weather card and forecast per business, moving a rainy day and the Open text links for opted-in customers only (against a fake OpenWeather, `tests/e2e/fake-services.mjs`), two businesses unable to see each other's data | `npx supabase start`, `.env.local`, `npx playwright install chromium` once |
 
-`npm run test:e2e` starts its own app server (with fake OpenWeather/Twilio credentials) and the fake services on port 4010, so stop any dev server on port 3000 first. Also run `npm run lint` and `npm run typecheck`.
+`npm run test:e2e` starts its own app server (pointed at a fake OpenWeather on port 4010), so stop any dev server on port 3000 first. Also run `npm run lint` and `npm run typecheck`.
 
 ## Deploying to a hosted Supabase project
 
@@ -155,7 +137,7 @@ Local auth auto-confirms new accounts, so signup takes you straight in. After ch
    The default template also works, but only if the link is opened in the same browser that signed up. The token-hash link works on any device.
 4. Optionally, under **Authentication → Providers → Email** (password settings), set the minimum password length to 8 to match the app.
 5. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` on your host, e.g. Vercel. Both come from **Project Settings → API**.
-6. For weather and texting, also set the server-only variables in [Setting up weather and texting](#setting-up-weather-and-texting).
+6. For the forecast, also set `OPENWEATHER_API_KEY` (see [Setting up the forecast](#setting-up-the-forecast)).
 
 ## How tenant isolation works
 
@@ -167,7 +149,7 @@ The rules live in `supabase/migrations/` (foundation and scheduling):
 - A row's `business_id` can't be changed once set. The anonymous role has no access to any tenant table.
 - **Crew members have no direct table access at all.** RLS gives them nothing on customers, service plans or jobs. Everything they see or do goes through `crew_*` database functions that only ever touch jobs assigned to the caller, and that never return prices. Crew members see only their own crew and membership records.
 - Rows that point at other tenant rows use composite `(id, business_id)` foreign keys. A service plan or visit can only reference a customer or plan in the same business, even though foreign-key checks bypass RLS.
-- **Weather texts:** recipients are chosen by the database at send time, never by the browser. Twilio's webhooks are accepted only with a valid Twilio signature for our own account, and then call two functions that only the service role can run; a STOP only ever affects the business that owns the number it was sent to.
+- **Weather texts:** who can be texted is decided by the database, never by the browser, and a rain delay's texts are visible only to the owner of that business.
 - The app code filters by business too, but only for clarity. The database enforces isolation even against hand-crafted API calls, and `tests/db/tenant-isolation.test.ts` checks this.
 
 **Checklist for each new tenant table** (jobs, invoices, …):
@@ -188,8 +170,7 @@ src/
   lib/customers/schema.ts     customer fields, validation, labels
   lib/schedule/               statuses, frequencies, filters, booking/visit validation
   lib/expenses/               expense categories and validation
-  lib/weather/                forecast parsing and rain risk, OpenWeather client, queries
-  lib/twilio/                 Twilio client, webhook signatures, statuses and error text
+  lib/weather/                forecast parsing and rain risk, OpenWeather client, text links
   lib/dates.ts                calendar-date helpers (time-zone safe)
   components/job-status.tsx   status shapes, pills, legend
   app/(auth)/                 login, signup, auth server actions
@@ -201,7 +182,6 @@ src/
   app/(app)/dashboard/        home: counts, revenue, quick actions, today's jobs
   app/(app)/expenses/         expense log by month, add/edit/delete (owner)
   app/(app)/weather/          forecast, service area, move a day, rain delays and texts (owner)
-  app/api/twilio/             Twilio webhooks: delivery status, incoming STOP replies
   app/(app)/crew/             crew list, invite links (owner)
   app/(app)/my-jobs/          a crew member's own jobs and actions
   app/(auth)/join/[token]/    joining a crew from an invite link
@@ -210,5 +190,5 @@ supabase/
   templates/                  auth email templates
 tests/
   db/                         tenant isolation, scheduling rules, crew break-in tests (Vitest + supabase-js)
-  e2e/                        browser tests (Playwright), fake OpenWeather/Twilio server
+  e2e/                        browser tests (Playwright), fake OpenWeather server
 ```

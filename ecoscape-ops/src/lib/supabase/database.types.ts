@@ -488,102 +488,49 @@ export type Database = {
           },
         ]
       }
-      sms_messages: {
+      weather_texts: {
         Row: {
-          body: string
           business_id: string
-          created_at: string
-          customer_id: string | null
-          error_code: number | null
-          error_message: string | null
-          from_phone: string
-          id: string
+          customer_id: string
+          opened_at: string
+          opened_by: string | null
           rain_delay_id: string
-          sent_by: string | null
-          status: Database["public"]["Enums"]["sms_status"]
-          to_phone: string
-          twilio_sid: string | null
-          updated_at: string
         }
         Insert: {
-          body: string
           business_id: string
-          created_at?: string
-          customer_id?: string | null
-          error_code?: number | null
-          error_message?: string | null
-          from_phone: string
-          id?: string
+          customer_id: string
+          opened_at?: string
+          opened_by?: string | null
           rain_delay_id: string
-          sent_by?: string | null
-          status?: Database["public"]["Enums"]["sms_status"]
-          to_phone: string
-          twilio_sid?: string | null
-          updated_at?: string
         }
         Update: {
-          body?: string
           business_id?: string
-          created_at?: string
-          customer_id?: string | null
-          error_code?: number | null
-          error_message?: string | null
-          from_phone?: string
-          id?: string
+          customer_id?: string
+          opened_at?: string
+          opened_by?: string | null
           rain_delay_id?: string
-          sent_by?: string | null
-          status?: Database["public"]["Enums"]["sms_status"]
-          to_phone?: string
-          twilio_sid?: string | null
-          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "sms_messages_business_id_fkey"
+            foreignKeyName: "weather_texts_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "sms_messages_customer_id_business_id_fkey"
+            foreignKeyName: "weather_texts_customer_id_business_id_fkey"
             columns: ["customer_id", "business_id"]
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id", "business_id"]
           },
           {
-            foreignKeyName: "sms_messages_rain_delay_id_business_id_fkey"
+            foreignKeyName: "weather_texts_rain_delay_id_business_id_fkey"
             columns: ["rain_delay_id", "business_id"]
             isOneToOne: false
             referencedRelation: "rain_delays"
             referencedColumns: ["id", "business_id"]
-          },
-        ]
-      }
-      sms_senders: {
-        Row: {
-          business_id: string
-          created_at: string
-          phone_number: string
-        }
-        Insert: {
-          business_id: string
-          created_at?: string
-          phone_number: string
-        }
-        Update: {
-          business_id?: string
-          created_at?: string
-          phone_number?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sms_senders_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: true
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
           },
         ]
       }
@@ -670,6 +617,10 @@ export type Database = {
           week_total: number
         }[]
       }
+      mark_weather_text_opened: {
+        Args: { customer_id: string; rain_delay_id: string }
+        Returns: string
+      }
       move_day_visits: {
         Args: { from_date: string; to_date: string }
         Returns: string
@@ -680,27 +631,13 @@ export type Database = {
           body: string
           can_text: boolean
           customer_id: string
-          error_code: number
-          error_message: string
           first_name: string
           last_name: string
-          message_id: string
+          opened_at: string
           phone: string
           reason: string
-          sent_at: string
-          status: Database["public"]["Enums"]["sms_status"]
           to_phone: string
         }[]
-      }
-      record_sms_result: {
-        Args: {
-          error_code?: number
-          error_message?: string
-          message_id: string
-          twilio_sid?: string
-          twilio_status?: string
-        }
-        Returns: undefined
       }
       regenerate_crew_invite: {
         Args: { crew_member_id: string }
@@ -710,28 +647,7 @@ export type Database = {
         Args: { crew_member_id: string }
         Returns: undefined
       }
-      start_rain_delay_texts: {
-        Args: { rain_delay_id: string }
-        Returns: {
-          body: string
-          from_phone: string
-          message_id: string
-          to_phone: string
-        }[]
-      }
       stop_service_plan: { Args: { plan_id: string }; Returns: number }
-      twilio_message_status: {
-        Args: {
-          error_code?: number
-          message_sid: string
-          message_status: string
-        }
-        Returns: undefined
-      }
-      twilio_opt_out: {
-        Args: { from_number: string; to_number: string }
-        Returns: number
-      }
     }
     Enums: {
       business_role: "owner" | "crew"
@@ -757,13 +673,6 @@ export type Database = {
         | "weather_delay"
         | "cancelled"
       service_frequency: "weekly" | "biweekly" | "triweekly" | "one_time"
-      sms_status:
-        | "sending"
-        | "queued"
-        | "sent"
-        | "delivered"
-        | "undelivered"
-        | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -916,14 +825,6 @@ export const Constants = {
         "cancelled",
       ],
       service_frequency: ["weekly", "biweekly", "triweekly", "one_time"],
-      sms_status: [
-        "sending",
-        "queued",
-        "sent",
-        "delivered",
-        "undelivered",
-        "failed",
-      ],
     },
   },
 } as const

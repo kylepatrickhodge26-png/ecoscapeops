@@ -1,16 +1,8 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
 import { addDays, formatShortDate, todayInTimeZone } from "../../src/lib/dates";
-import { twilioSignature } from "../../src/lib/twilio/signature";
-import {
-  FAKE_ENV,
-  FAKE_PLACES,
-  UNDELIVERABLE_NUMBER,
-  UNSUBSCRIBED_NUMBER,
-  assignTextingNumber,
-  randomNumber,
-  textsFrom,
-} from "./fakes";
+import { smsLink } from "../../src/lib/weather/texts";
+import { FAKE_PLACES, randomNumber } from "./fakes";
 import { PASSWORD, bookService, signUpBusiness, uniqueEmail } from "./helpers";
 
 const TIME_ZONE = "America/New_York";
@@ -19,7 +11,8 @@ const today = () => todayInTimeZone(TIME_ZONE);
 
 const weatherCard = (page: Page) => page.locator('[data-card="weather"]');
 const textRow = (page: Page, name: string) => page.locator(`.text-row[data-customer="${name}"]`);
-const smsStatus = (page: Page, name: string) => textRow(page, name).locator("[data-sms-status]");
+const textStatus = (page: Page, name: string) => textRow(page, name).locator("[data-text-status]");
+const openText = (page: Page, name: string) => page.getByRole("link", { name: `Open text to ${name}` });
 
 async function setServiceArea(page: Page, zip: string) {
   await page.goto("/weather/area");
@@ -50,16 +43,6 @@ async function moveDay(page: Page, from: string, to: string) {
   await page.getByLabel("To").fill(to);
   await page.getByRole("button", { name: "Move visits" }).click();
   await expect(page).toHaveURL(/\/weather\/delays\/[0-9a-f-]{36}/);
-}
-
-async function sendTexts(page: Page, count: number) {
-  await page.getByRole("button", { name: `Text ${count} ${count === 1 ? "customer" : "customers"}` }).click();
-  await page.getByRole("button", { name: "Send texts" }).click();
-}
-
-async function smsOptIn(page: Page, customerId: string) {
-  await page.goto(`/customers/${customerId}`);
-  return page.locator("dt", { hasText: "SMS opt-in" }).locator("xpath=following-sibling::dd[1]").textContent();
 }
 
 async function addCrewMember(page: Page, name: string) {
@@ -173,20 +156,21 @@ test("a crew member sees the rain risk, but can't move jobs or text customers", 
   }
 });
 
-test("moving a rainy day texts only the opted-in customers, each their own message", async ({ page }) => {
+test("moving a rainy day prepares a text for each opted-in customer, sent from the owner's phone", async ({
+  page,
+  context,
+}) => {
   const business = "Rainy Day Lawns";
-  const { email } = await signUpBusiness(page, business);
-  const number = await assignTextingNumber(email);
+  await signUpBusiness(page, business);
   await setServiceArea(page, FAKE_PLACES.lakeRonkonkoma.zip);
 
   const janePhone = randomNumber();
-  const bobPhone = randomNumber();
+  const evePhone = randomNumber();
   const people = {
     jane: await addCustomer(page, { firstName: "Jane", lastName: "Adams", phone: janePhone, optIn: true }),
-    bob: await addCustomer(page, { firstName: "Bob", lastName: "Baker", phone: bobPhone, optIn: false }),
+    bob: await addCustomer(page, { firstName: "Bob", lastName: "Baker", phone: randomNumber(), optIn: false }),
     cara: await addCustomer(page, { firstName: "Cara", lastName: "Cole", optIn: true }),
-    sam: await addCustomer(page, { firstName: "Sam", lastName: "Stone", phone: UNSUBSCRIBED_NUMBER, optIn: true }),
-    uma: await addCustomer(page, { firstName: "Uma", lastName: "Ueda", phone: UNDELIVERABLE_NUMBER, optIn: true }),
+    eve: await addCustomer(page, { firstName: "Eve", lastName: "Evans", phone: evePhone, optIn: true }),
   };
   const rainDay = addDays(today(), 1);
   const newDay = addDays(today(), 2);
@@ -200,163 +184,114 @@ test("moving a rainy day texts only the opted-in customers, each their own messa
   await expect(page.getByTestId("move-forecast")).toContainText(`80% chance of rain ${formatShortDate(rainDay)}`);
   await page.getByRole("button", { name: "Move visits" }).click();
 
-  await expect(page.getByText(`Moved 5 visits to ${formatShortDate(newDay)}.`)).toBeVisible();
+  await expect(page.getByText(`Moved 4 visits to ${formatShortDate(newDay)}.`)).toBeVisible();
   const visits = page.locator(".visit-table tbody tr");
-  await expect(visits).toHaveCount(5);
-  await expect(visits.locator(".status-pill")).toHaveText(Array(5).fill("Weather delay"));
+  await expect(visits).toHaveCount(4);
+  await expect(visits.locator(".status-pill")).toHaveText(Array(4).fill("Weather delay"));
 
   const message = (first: string) =>
     `Hi ${first}, this is ${business}. Due to the weather, we're moving your ${formatShortDate(rainDay)} visit to ` +
     `${formatShortDate(newDay)}. Thanks! Reply STOP to opt out.`;
-  await expect(smsStatus(page, "Jane Adams")).toHaveText("Not sent yet");
+
+  // Opted-in customers get their own message and an Open text link to their number.
+  await expect(page.getByTestId("texts-opened")).toHaveText("0 of 2 opened");
+  await expect(textStatus(page, "Jane Adams")).toHaveText("Not texted yet");
   await expect(textRow(page, "Jane Adams").locator(".text-body")).toHaveText(message("Jane"));
-  await expect(smsStatus(page, "Bob Baker")).toHaveText("Won't be texted");
+  await expect(openText(page, "Jane Adams")).toHaveAttribute("href", smsLink(janePhone, message("Jane")));
+  await expect(openText(page, "Eve Evans")).toHaveAttribute("href", smsLink(evePhone, message("Eve")));
+
+  // Everyone else gets no message and no link, with the reason shown.
+  await expect(textStatus(page, "Bob Baker")).toHaveText("Won't be texted");
   await expect(textRow(page, "Bob Baker")).toContainText("Not opted in to texts");
   await expect(textRow(page, "Bob Baker").locator(".text-body")).toHaveCount(0);
+  await expect(openText(page, "Bob Baker")).toHaveCount(0);
   await expect(textRow(page, "Cara Cole")).toContainText("No usable mobile number");
+  await expect(openText(page, "Cara Cole")).toHaveCount(0);
 
-  await sendTexts(page, 3);
-  await expect(page.getByText("Sent 2 texts. 1 couldn't be sent — see below.")).toBeVisible();
+  // Copy is there for sending from a computer.
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.getByRole("button", { name: "Copy message for Eve Evans" }).click();
+  await expect(page.getByRole("button", { name: "Copy message for Eve Evans" })).toHaveText("Copied");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(message("Eve"));
 
-  // Exactly what reached Twilio: from this business's number, to the opted-in customers.
-  const sent = await textsFrom(number);
-  expect(sent.map((m) => m.to).sort()).toEqual([janePhone, UNDELIVERABLE_NUMBER].sort());
-  expect(sent.find((m) => m.to === janePhone)!.body).toBe(message("Jane"));
-  expect(sent.find((m) => m.to === UNDELIVERABLE_NUMBER)!.body).toBe(message("Uma"));
-  for (const m of sent) expect(m.statusCallback).toBe("http://localhost:3000/api/twilio/status");
-
-  // Sam had replied STOP to this number before: Twilio refused, and he's opted out now.
-  await expect(smsStatus(page, "Sam Stone")).toHaveText("Failed");
-  await expect(textRow(page, "Sam Stone")).toContainText("Replied STOP, so they're opted out now");
-
-  // Twilio's delivery updates arrive a moment later.
-  await expect(async () => {
-    await page.reload();
-    await expect(smsStatus(page, "Jane Adams")).toHaveText("Delivered", { timeout: 500 });
-    await expect(smsStatus(page, "Uma Ueda")).toHaveText("Not delivered", { timeout: 500 });
-  }).toPass({ timeout: 15_000 });
-  await expect(textRow(page, "Uma Ueda")).toContainText("Blocked by the carrier's spam filter");
-  for (const m of await textsFrom(number)) expect(m.callbacks.map((c) => c.httpStatus)).toEqual([204, 204]);
-
-  // Nobody is left to text, and nobody got a second text.
-  await expect(page.getByRole("button", { name: /^Text \d/ })).toHaveCount(0);
-  await expect(page.getByText("Everyone who can be texted has been.")).toBeVisible();
-  expect(await textsFrom(number)).toHaveLength(2);
-
-  expect(await smsOptIn(page, people.sam)).toBe("No");
-  expect(await smsOptIn(page, people.jane)).toBe("Yes");
+  // Opening a text keeps track of who's been texted.
+  await openText(page, "Jane Adams").click();
+  await expect(textStatus(page, "Jane Adams")).toHaveText(/^Opened \d{1,2}:\d{2} [AP]M$/);
+  await expect(page.getByTestId("texts-opened")).toHaveText("1 of 2 opened");
+  await expect(textStatus(page, "Eve Evans")).toHaveText("Not texted yet");
+  await page.reload();
+  await expect(textStatus(page, "Jane Adams")).toHaveText(/^Opened /);
 
   await page.goto("/weather");
-  await expect(page.locator(".rain-delay-table tbody tr")).toHaveCount(1);
-  await expect(page.locator(".rain-delay-table tbody tr")).toContainText("1 sent · 2 failed");
+  const row = page.locator(".rain-delay-table tbody tr");
+  await expect(row).toHaveCount(1);
+  await expect(row.locator("td").nth(1)).toHaveText("4");
+  await expect(row.locator("td").nth(2)).toHaveText("1");
 });
 
 test("one business's rain delays and texts never reach another business", async ({ page, browser }) => {
-  const { email } = await signUpBusiness(page, "Acme Weather Lawns");
-  const acmeNumber = await assignTextingNumber(email);
+  await signUpBusiness(page, "Acme Weather Lawns");
   const shared = randomNumber(); // the same person is a customer of both businesses
   const acmeCustomer = await addCustomer(page, { firstName: "Pat", lastName: "Acme", phone: shared, optIn: true });
   const rainDay = addDays(today(), 1);
   await bookVisit(page, acmeCustomer, rainDay);
 
   const birch = await newOwner(browser, "Birch Weather Services");
-  const birchNumber = await assignTextingNumber(birch.email);
   const birchCustomer = await addCustomer(birch.page, { firstName: "Pat", lastName: "Birch", phone: shared, optIn: true });
   const birchOnly = await addCustomer(birch.page, { firstName: "Quinn", lastName: "Birch", phone: randomNumber(), optIn: true });
   await bookVisit(birch.page, birchCustomer, rainDay);
   await bookVisit(birch.page, birchOnly, rainDay);
 
-  // Acme moves its day and texts. Only Acme's customer hears about it, from Acme's number.
+  // Acme's rain delay covers only Acme's customer, in Acme's name.
   await moveDay(page, rainDay, addDays(today(), 3));
   const acmeDelayUrl = page.url();
   await expect(page.locator(".visit-table tbody tr")).toHaveCount(1);
-  await sendTexts(page, 1);
-  await expect(page.getByText("Sent 1 text.")).toBeVisible();
-  const acmeTexts = await textsFrom(acmeNumber);
-  expect(acmeTexts.map((m) => [m.to, m.body.slice(0, 36)])).toEqual([[shared, "Hi Pat, this is Acme Weather Lawns. "]]);
+  await expect(page.locator(".text-row")).toHaveCount(1);
+  await expect(textRow(page, "Pat Acme").locator(".text-body")).toContainText("Hi Pat, this is Acme Weather Lawns.");
+  await expect(page.getByText("Quinn Birch")).toHaveCount(0);
+  await openText(page, "Pat Acme").click();
+  await expect(textStatus(page, "Pat Acme")).toHaveText(/^Opened /);
 
-  // Birch's visits that day didn't move, and Birch has no rain delay or texts.
+  // Birch's visits that day didn't move, and Birch has no rain delay.
   await birch.page.goto(`/schedule/day/${rainDay}`);
   await expect(birch.page.getByText("Pat Birch")).toBeVisible();
   await expect(birch.page.getByText("Quinn Birch")).toBeVisible();
   await expect(birch.page.getByText("Weather delay")).toHaveCount(0);
   await birch.page.goto("/weather");
   await expect(birch.page.getByText("No rain delays yet")).toBeVisible();
-  expect(await textsFrom(birchNumber)).toEqual([]);
 
   // Birch can't open Acme's rain delay, even with its address.
   await birch.page.goto(new URL(acmeDelayUrl).pathname);
   await expect(birch.page.getByText("Rain delay not found")).toBeVisible();
   await expect(birch.page.getByText("Pat Acme")).toHaveCount(0);
 
-  // Birch's own rain delay texts Birch's customers, from Birch's number, in Birch's name.
+  // Birch's own rain delay: Birch's customers, in Birch's name, nothing opened yet.
   await moveDay(birch.page, rainDay, addDays(today(), 2));
-  await sendTexts(birch.page, 2);
-  await expect(birch.page.getByText("Sent 2 texts.")).toBeVisible();
-  const birchTexts = await textsFrom(birchNumber);
-  expect(birchTexts).toHaveLength(2);
-  for (const m of birchTexts) expect(m.body).toContain("this is Birch Weather Services.");
-  expect(await textsFrom(acmeNumber)).toHaveLength(1);
+  await expect(birch.page.locator(".text-row")).toHaveCount(2);
+  for (const name of ["Pat Birch", "Quinn Birch"]) {
+    await expect(textRow(birch.page, name).locator(".text-body")).toContainText("this is Birch Weather Services.");
+    await expect(textStatus(birch.page, name)).toHaveText("Not texted yet");
+  }
 });
 
-test("a STOP reply opts the customer out of that business's texts only", async ({ page, browser, request }) => {
-  const { email } = await signUpBusiness(page, "Stop Lawns");
-  const stopNumber = await assignTextingNumber(email);
-  const phone = randomNumber();
-  const stopCustomer = await addCustomer(page, { firstName: "Robin", lastName: "Reyes", phone, optIn: true });
-
-  const other = await newOwner(browser, "Keep Lawns");
-  const keepNumber = await assignTextingNumber(other.email);
-  const keepCustomer = await addCustomer(other.page, { firstName: "Robin", lastName: "Reyes", phone, optIn: true });
-
-  const url = "http://localhost:3000/api/twilio/inbound";
-  const reply = (to: string, body: string, token = FAKE_ENV.TWILIO_AUTH_TOKEN) => {
-    const params = {
-      AccountSid: FAKE_ENV.TWILIO_ACCOUNT_SID,
-      Body: body,
-      From: phone,
-      MessageSid: `SM${Date.now()}`,
-      NumMedia: "0",
-      To: to,
-    };
-    return request.post("/api/twilio/inbound", {
-      form: params,
-      headers: { "X-Twilio-Signature": twilioSignature(token, url, params) },
-    });
-  };
-
-  // A forged request (not signed with our Twilio auth token) is refused and changes nothing.
-  expect((await reply(keepNumber, "STOP", "not-the-real-token")).status()).toBe(403);
-  const unsigned = await request.post("/api/twilio/inbound", {
-    form: { AccountSid: FAKE_ENV.TWILIO_ACCOUNT_SID, Body: "STOP", From: phone, To: keepNumber },
-  });
-  expect(unsigned.status()).toBe(403);
-
-  // An ordinary reply changes nothing either.
-  expect((await reply(stopNumber, "Thanks, see you then")).status()).toBe(200);
-  expect(await smsOptIn(page, stopCustomer)).toBe("Yes");
-
-  const stop = await reply(stopNumber, "Stop");
-  expect(stop.status()).toBe(200);
-  expect(await stop.text()).toContain("<Response></Response>");
-  expect(await smsOptIn(page, stopCustomer)).toBe("No");
-  // Same person, other business: still opted in.
-  expect(await smsOptIn(other.page, keepCustomer)).toBe("Yes");
-});
-
-test("without a texting number, the owner can move a day but not text", async ({ page }) => {
-  await signUpBusiness(page, "Quiet Lawns");
-  const customer = await addCustomer(page, { firstName: "Nia", lastName: "Nolan", phone: randomNumber(), optIn: true });
+test("turning off a customer's text opt-in takes away their text", async ({ page }) => {
+  await signUpBusiness(page, "Opt Out Lawns");
+  const customer = await addCustomer(page, { firstName: "Robin", lastName: "Reyes", phone: randomNumber(), optIn: true });
   await bookVisit(page, customer, addDays(today(), 1));
-
-  await page.goto("/weather");
-  await expect(page.getByTestId("texting-number")).toContainText("Texting isn't set up for your business yet");
-
   await moveDay(page, addDays(today(), 1), addDays(today(), 4));
-  await expect(page.getByText("Moved 1 visit to")).toBeVisible();
-  await expect(page.getByText("Texting isn't set up for your business yet")).toBeVisible();
-  await expect(page.getByRole("button", { name: /^Text \d/ })).toHaveCount(0);
-  await expect(smsStatus(page, "Nia Nolan")).toHaveText("Not sent yet");
+  const delayUrl = page.url();
+  await expect(openText(page, "Robin Reyes")).toBeVisible();
+
+  // e.g. after they reply STOP
+  await page.goto(`/customers/${customer}/edit`);
+  await page.getByLabel("Customer has opted in to SMS").uncheck();
+  await page.getByRole("button", { name: /^Save/ }).click();
+  await expect(page).toHaveURL(new RegExp(`/customers/${customer}`));
+
+  await page.goto(delayUrl);
+  await expect(textStatus(page, "Robin Reyes")).toHaveText("Won't be texted");
+  await expect(openText(page, "Robin Reyes")).toHaveCount(0);
+  await expect(page.getByText("None of these customers have opted in to texts.")).toBeVisible();
 });
 
 test("moving a day with nothing on it, or to the same day, explains what's wrong", async ({ page }) => {

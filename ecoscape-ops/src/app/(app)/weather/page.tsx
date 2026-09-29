@@ -5,9 +5,8 @@ import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
 import { formatShortDate, todayInTimeZone } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
-import { formatPhone } from "@/lib/twilio/messages";
 import { RAIN_LIKELY, dayLabel, riskWindow, topRainRisk, type ForecastDay } from "@/lib/weather/forecast";
-import { getBusinessForecast, getTextingNumber } from "@/lib/weather/queries";
+import { getBusinessForecast } from "@/lib/weather/queries";
 
 import { AreaForm } from "./area-form";
 
@@ -21,11 +20,7 @@ export default async function WeatherPage(props: PageProps<"/weather">) {
   const { business } = await requireOwner();
   const { notice } = await props.searchParams;
   const today = todayInTimeZone(business.time_zone);
-  const [forecast, textingNumber, rainDelays] = await Promise.all([
-    getBusinessForecast(),
-    getTextingNumber(business.id),
-    recentRainDelays(business.id),
-  ]);
+  const [forecast, rainDelays] = await Promise.all([getBusinessForecast(), recentRainDelays(business.id)]);
 
   return (
     <>
@@ -61,32 +56,14 @@ export default async function WeatherPage(props: PageProps<"/weather">) {
 
       <div className="panel">
         <div className="panel-head">
-          <h3>Texting customers</h3>
-        </div>
-        <div className="panel-body" data-testid="texting-number">
-          {textingNumber ? (
-            <>
-              Weather texts come from <b>{formatPhone(textingNumber)}</b>. Only customers who have opted in to texts
-              are ever texted, and replying STOP opts them out.
-            </>
-          ) : (
-            <>
-              Texting isn&apos;t set up for your business yet: it needs a texting number, which is assigned by whoever
-              runs EcoScape Ops. You can still move a day&apos;s jobs.
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="panel">
-        <div className="panel-head">
           <h3>Rain delays</h3>
         </div>
         <div className="panel-body flush">
           {rainDelays.length === 0 ? (
             <div className="empty">
               <div className="big">No rain delays yet</div>
-              When you move a day&apos;s jobs for the weather, it shows up here.
+              When you move a day&apos;s jobs for the weather, it shows up here, with a text ready for each customer
+              who has opted in.
             </div>
           ) : (
             <table className="rain-delay-table">
@@ -94,7 +71,7 @@ export default async function WeatherPage(props: PageProps<"/weather">) {
                 <tr>
                   <th>Moved</th>
                   <th>Visits</th>
-                  <th>Texts</th>
+                  <th>Texts opened</th>
                 </tr>
               </thead>
               <tbody>
@@ -108,7 +85,7 @@ export default async function WeatherPage(props: PageProps<"/weather">) {
                       </Link>
                     </td>
                     <td>{d.visits}</td>
-                    <td>{textsSummary(d.texts)}</td>
+                    <td>{d.textsOpened || "None yet"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -171,13 +148,13 @@ function Forecast({ days, today }: { days: ForecastDay[]; today: string }) {
   );
 }
 
-type RainDelayRow = { id: string; from_date: string; to_date: string; visits: number; texts: string[] };
+type RainDelayRow = { id: string; from_date: string; to_date: string; visits: number; textsOpened: number };
 
 async function recentRainDelays(businessId: string): Promise<RainDelayRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("rain_delays")
-    .select("id, from_date, to_date, rain_delay_visits(count), sms_messages(status)")
+    .select("id, from_date, to_date, rain_delay_visits(count), weather_texts(count)")
     .eq("business_id", businessId)
     .order("created_at", { ascending: false })
     .limit(20);
@@ -187,13 +164,6 @@ async function recentRainDelays(businessId: string): Promise<RainDelayRow[]> {
     from_date: d.from_date,
     to_date: d.to_date,
     visits: d.rain_delay_visits[0]?.count ?? 0,
-    texts: d.sms_messages.map((m) => m.status),
+    textsOpened: d.weather_texts[0]?.count ?? 0,
   }));
-}
-
-function textsSummary(statuses: string[]) {
-  if (statuses.length === 0) return "Not texted";
-  const failed = statuses.filter((s) => s === "failed" || s === "undelivered").length;
-  const ok = statuses.length - failed;
-  return [ok > 0 && `${ok} sent`, failed > 0 && `${failed} failed`].filter(Boolean).join(" · ");
 }

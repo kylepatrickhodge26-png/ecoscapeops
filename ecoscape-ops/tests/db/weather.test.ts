@@ -1,15 +1,13 @@
-// Weather: each business's service area, its texting number, moving a rain day's visits,
-// and texting the affected customers. Checks that only opted-in customers are ever
-// texted, that nothing is texted twice, and that one business's settings, visits, texts
-// and STOP replies never touch another's.
-import { randomInt } from "node:crypto";
+// Weather: each business's service area, moving a rain day's visits, and the texts
+// prepared for the affected customers. Checks that only opted-in customers ever get a
+// text, and that one business's settings, visits and texts never touch another's.
+import { randomInt, randomUUID } from "node:crypto";
 
 import { beforeAll, describe, expect, it } from "vitest";
 
 import {
   addCustomer,
   addDays,
-  adminClient,
   anonClient,
   bookService,
   joinCrew,
@@ -22,23 +20,14 @@ import {
 
 const PERMISSION_DENIED = "42501";
 const CHECK_VIOLATION = "23514";
-const UNIQUE_VIOLATION = "23505";
 const INVALID_PARAMETER = "22023";
 const NOT_FOUND = "P0002";
-const NOT_SET_UP = "55000";
 const TZ = "America/New_York";
 
-// A random US number (unique per run, since sms_senders numbers are unique).
+// A random US number.
 const randomNumber = () => `+1${randomInt(200, 999)}${String(randomInt(0, 10_000_000)).padStart(7, "0")}`;
 // The same number the way someone might type it on a customer record.
 const typed = (e164: string) => `(${e164.slice(2, 5)}) ${e164.slice(5, 8)}-${e164.slice(8)}`;
-
-// Assigning a texting number is an operator task (service role), never an owner one.
-async function assignNumber(owner: TestOwner, phone = randomNumber()) {
-  const { error } = await adminClient().from("sms_senders").insert({ business_id: owner.businessId, phone_number: phone });
-  expect(error).toBeNull();
-  return phone;
-}
 
 // Books a one-time visit on a date, optionally with a status or crew member.
 async function visit(
@@ -166,61 +155,6 @@ describe("service area", () => {
   });
 });
 
-describe("texting numbers", () => {
-  let acme: TestOwner;
-  let maria: TestCrew;
-  let birch: TestOwner;
-  let acmeNumber: string;
-
-  beforeAll(async () => {
-    acme = await signUpOwner("num-acme", "Acme Lawn Care", { time_zone: TZ });
-    maria = await joinCrew(acme, "Maria");
-    birch = await signUpOwner("num-birch", "Birch Tree Services", { time_zone: TZ });
-    acmeNumber = await assignNumber(acme);
-  });
-
-  it("the owner can see their number, and only theirs", async () => {
-    const { data } = await acme.client.from("sms_senders").select("business_id, phone_number");
-    expect(data).toEqual([{ business_id: acme.businessId, phone_number: acmeNumber }]);
-  });
-
-  it("owners can't assign, change, or remove a number — not even their own", async () => {
-    const { error: insertError } = await birch.client
-      .from("sms_senders")
-      .insert({ business_id: birch.businessId, phone_number: randomNumber() });
-    expect(insertError?.code).toBe(PERMISSION_DENIED);
-
-    // Taking over another business's number would let one business text as another.
-    const { error: updateError } = await acme.client
-      .from("sms_senders")
-      .update({ phone_number: randomNumber() })
-      .eq("business_id", acme.businessId);
-    expect(updateError?.code).toBe(PERMISSION_DENIED);
-
-    const { error: deleteError } = await acme.client.from("sms_senders").delete().eq("business_id", acme.businessId);
-    expect(deleteError?.code).toBe(PERMISSION_DENIED);
-
-    const { data } = await acme.client.from("sms_senders").select("phone_number").single();
-    expect(data!.phone_number).toBe(acmeNumber);
-  });
-
-  it("crew members, other businesses, and signed-out visitors can't see it", async () => {
-    expect((await maria.client.from("sms_senders").select("*")).data).toEqual([]);
-    expect((await birch.client.from("sms_senders").select("*")).data).toEqual([]);
-    expect((await anonClient().from("sms_senders").select("*")).error?.code).toBe(PERMISSION_DENIED);
-  });
-
-  it("two businesses can never share a number", async () => {
-    const { error } = await adminClient().from("sms_senders").insert({ business_id: birch.businessId, phone_number: acmeNumber });
-    expect(error?.code).toBe(UNIQUE_VIOLATION);
-  });
-
-  it("numbers must be in +15551234567 form", async () => {
-    const { error } = await adminClient().from("sms_senders").insert({ business_id: birch.businessId, phone_number: "631-555-0100" });
-    expect(error?.code).toBe(CHECK_VIOLATION);
-  });
-});
-
 describe("moving a rain day's visits", () => {
   const today = todayIn(TZ);
   const rainDay = addDays(today, 1);
@@ -323,29 +257,29 @@ describe("moving a rain day's visits", () => {
   });
 });
 
-describe("texting customers about a rain delay", () => {
+describe("texts for a rain delay", () => {
   const today = todayIn(TZ);
   const rainDay = addDays(today, 1);
   const newDay = addDays(today, 3);
   let acme: TestOwner;
   let maria: TestCrew;
   let birch: TestOwner;
-  let acmeNumber: string;
-  let birchNumber: string;
   let delayId: string;
   let birchDelayId: string;
   const janePhone = randomNumber();
   const evePhone = randomNumber();
   let c: Record<"jane" | "bob" | "cara" | "dan" | "eve", { id: string }>;
-  let birchJane: { id: string };
+  let birchJanet: { id: string };
 
   const texts = async (client: Client, id: string) => client.rpc("rain_delay_texts", { rain_delay_id: id });
-  const start = async (client: Client, id: string) => client.rpc("start_rain_delay_texts", { rain_delay_id: id });
+  const mark = async (client: Client, id: string, customerId: string) =>
+    client.rpc("mark_weather_text_opened", { rain_delay_id: id, customer_id: customerId });
+  const openedLog = async (owner: TestOwner) =>
+    (await owner.client.from("weather_texts").select("rain_delay_id, customer_id, business_id, opened_by")).data!;
 
   beforeAll(async () => {
-    acme = await signUpOwner("sms-acme", "Acme Lawn Care", { time_zone: TZ });
+    acme = await signUpOwner("wt-acme", "Acme Lawn Care", { time_zone: TZ });
     maria = await joinCrew(acme, "Maria");
-    acmeNumber = await assignNumber(acme);
     c = {
       jane: await addCustomer(acme, { first_name: "Jane", last_name: "Adams", phone: typed(janePhone), sms_opt_in: true }),
       bob: await addCustomer(acme, { first_name: "Bob", last_name: "Baker", phone: typed(randomNumber()), sms_opt_in: false }),
@@ -355,290 +289,108 @@ describe("texting customers about a rain delay", () => {
     };
     for (const who of [c.jane, c.bob, c.cara, c.eve]) await visit(acme, who.id, rainDay);
     await visit(acme, c.eve.id, rainDay); // two visits that day: still one text
-    await visit(acme, c.dan.id, addDays(rainDay, 1)); // not on the rain day: never texted
+    await visit(acme, c.dan.id, addDays(rainDay, 1)); // not on the rain day: no text
     const { data, error } = await moveDay(acme.client, rainDay, newDay);
     expect(error).toBeNull();
     delayId = data!;
 
-    // Another business, with its own number and a customer who has Jane's phone number.
-    birch = await signUpOwner("sms-birch", "Birch Tree Services", { time_zone: TZ });
-    birchNumber = await assignNumber(birch);
-    birchJane = await addCustomer(birch, { first_name: "Janet", phone: janePhone, sms_opt_in: true });
-    await visit(birch, birchJane.id, rainDay);
+    // Another business, with a customer who has Jane's phone number.
+    birch = await signUpOwner("wt-birch", "Birch Tree Services", { time_zone: TZ });
+    birchJanet = await addCustomer(birch, { first_name: "Janet", phone: janePhone, sms_opt_in: true });
+    await visit(birch, birchJanet.id, rainDay);
     const moved = await moveDay(birch.client, rainDay, newDay);
     expect(moved.error).toBeNull();
     birchDelayId = moved.data!;
   });
 
-  it("previews a personalized text for each opted-in customer, and says why the others won't get one", async () => {
+  it("prepares a personalized text for each opted-in customer, and says why the others won't get one", async () => {
     const { data, error } = await texts(acme.client, delayId);
     expect(error).toBeNull();
     const byName = Object.fromEntries(data!.map((row) => [row.first_name, row]));
-    expect(Object.keys(byName).sort()).toEqual(["Bob", "Cara", "Eve", "Jane"]); // not Dan
+    expect(Object.keys(byName).sort()).toEqual(["Bob", "Cara", "Eve", "Jane"]); // not Dan, and Eve once
 
-    const moveText = "Due to the weather, we're moving your";
-    expect(byName.Jane).toMatchObject({ can_text: true, reason: null, to_phone: janePhone, message_id: null, status: null });
-    expect(byName.Jane.body).toMatch(new RegExp(`^Hi Jane, this is Acme Lawn Care\\. ${moveText} \\w{3}, \\w{3} \\d{1,2} visit to \\w{3}, \\w{3} \\d{1,2}\\. Thanks! Reply STOP to opt out\\.$`));
+    expect(byName.Jane).toMatchObject({ can_text: true, reason: null, to_phone: janePhone, opened_at: null });
+    expect(byName.Jane.body).toMatch(
+      /^Hi Jane, this is Acme Lawn Care\. Due to the weather, we're moving your \w{3}, \w{3} \d{1,2} visit to \w{3}, \w{3} \d{1,2}\. Thanks! Reply STOP to opt out\.$/,
+    );
     expect(byName.Eve).toMatchObject({ can_text: true, to_phone: evePhone });
     expect(byName.Eve.body).toMatch(/^Hi Eve, this is Acme Lawn Care\./);
+    // No message at all for customers who can't be texted.
     expect(byName.Bob).toMatchObject({ can_text: false, reason: "not_opted_in", body: null });
     expect(byName.Cara).toMatchObject({ can_text: false, reason: "no_mobile_number", body: null, to_phone: null });
   });
 
-  it("crew members, other businesses, and signed-out visitors can't preview or send", async () => {
-    for (const client of [maria.client, birch.client]) {
-      const preview = await texts(client, delayId);
-      expect(preview.data).toBeNull();
-      const send = await start(client, delayId);
-      expect(send.data).toBeNull();
-      expect([PERMISSION_DENIED, NOT_FOUND]).toContain(send.error?.code);
-    }
-    expect((await texts(maria.client, delayId)).error?.code).toBe(PERMISSION_DENIED);
-    expect((await texts(birch.client, delayId)).error?.code).toBe(NOT_FOUND);
-    expect((await start(anonClient(), delayId)).error?.code).toBe(PERMISSION_DENIED);
-    // None of that created a text.
-    expect((await acme.client.from("sms_messages").select("id")).data).toEqual([]);
-  });
-
-  it("sends one text per opted-in customer, from the business's own number", async () => {
-    const { data, error } = await start(acme.client, delayId);
+  it("the owner can mark a text as opened, and opening it again keeps the first time", async () => {
+    const { data: first, error } = await mark(acme.client, delayId, c.jane.id);
     expect(error).toBeNull();
-    const byPhone = Object.fromEntries(data!.map((m) => [m.to_phone, m]));
-    expect(Object.keys(byPhone).sort()).toEqual([janePhone, evePhone].sort());
-    for (const m of data!) expect(m.from_phone).toBe(acmeNumber);
-    expect(byPhone[janePhone].body).toMatch(/^Hi Jane, this is Acme Lawn Care\./);
-
-    const { data: log } = await acme.client.from("sms_messages").select("customer_id, status, sent_by, business_id");
-    expect(log!.map((m) => m.customer_id).sort()).toEqual([c.jane.id, c.eve.id].sort());
-    for (const m of log!) expect(m).toMatchObject({ status: "sending", sent_by: acme.userId, business_id: acme.businessId });
-  });
-
-  it("never texts anyone twice, even if Send is pressed again", async () => {
-    const { data, error } = await start(acme.client, delayId);
-    expect(error).toBeNull();
-    expect(data).toEqual([]);
-  });
-
-  it("records what Twilio said, and a STOP-ed number opts the customer out", async () => {
-    const { data: rows } = await acme.client.from("sms_messages").select("id, customer_id");
-    const janeMsg = rows!.find((m) => m.customer_id === c.jane.id)!;
-    const eveMsg = rows!.find((m) => m.customer_id === c.eve.id)!;
-
-    const ok = await acme.client.rpc("record_sms_result", {
-      message_id: janeMsg.id,
-      twilio_sid: `SM${randomInt(1e9, 9e9)}`,
-      twilio_status: "queued",
-    });
-    expect(ok.error).toBeNull();
-    const stop = await acme.client.rpc("record_sms_result", {
-      message_id: eveMsg.id,
-      error_code: 21610,
-      error_message: "Attempt to send to unsubscribed recipient",
-    });
-    expect(stop.error).toBeNull();
+    expect(first).not.toBeNull();
+    const { data: again } = await mark(acme.client, delayId, c.jane.id);
+    expect(again).toBe(first);
 
     const { data } = await texts(acme.client, delayId);
-    const byName = Object.fromEntries(data!.map((row) => [row.first_name, row]));
-    expect(byName.Jane).toMatchObject({ status: "queued", message_id: janeMsg.id });
-    expect(byName.Eve).toMatchObject({ status: "failed", error_code: 21610, can_text: false, reason: "not_opted_in" });
-    const { data: eve } = await acme.client.from("customers").select("sms_opt_in").eq("id", c.eve.id).single();
-    expect(eve!.sms_opt_in).toBe(false);
-
-    // A result can only be recorded once, while the text is being sent.
-    const again = await acme.client.rpc("record_sms_result", {
-      message_id: janeMsg.id,
-      twilio_sid: "SMfake",
-      twilio_status: "delivered",
-    });
-    expect(again.error?.code).toBe(NOT_FOUND);
+    expect(data!.find((r) => r.first_name === "Jane")!.opened_at).toBe(first);
+    expect(await openedLog(acme)).toEqual([
+      { rain_delay_id: delayId, customer_id: c.jane.id, business_id: acme.businessId, opened_by: acme.userId },
+    ]);
   });
 
-  it("doesn't retry a text to someone who has since opted out", async () => {
-    // Eve's text failed, but she's opted out now, so Send again leaves her alone.
-    const { data } = await start(acme.client, delayId);
-    expect(data).toEqual([]);
-  });
-
-  it("retries a failed text to someone who is still opted in", async () => {
-    const owner = await signUpOwner("sms-retry", "Retry Lawns", { time_zone: TZ });
-    await assignNumber(owner);
-    const phone = randomNumber();
-    const customer = await addCustomer(owner, { first_name: "Rita", phone, sms_opt_in: true });
-    await visit(owner, customer.id, rainDay);
-    const { data: id } = await moveDay(owner.client, rainDay, newDay);
-
-    const [first] = (await start(owner.client, id!)).data!;
-    await owner.client.rpc("record_sms_result", {
-      message_id: first.message_id,
-      error_code: 20500,
-      error_message: "Internal server error",
-    });
-    const { data: retried } = await start(owner.client, id!);
-    expect(retried).toEqual([{ message_id: first.message_id, to_phone: phone, from_phone: first.from_phone, body: first.body }]);
-  });
-
-  it("never texts a customer who opted out after the preview", async () => {
-    const owner = await signUpOwner("sms-late", "Late Lawns", { time_zone: TZ });
-    await assignNumber(owner);
-    const customer = await addCustomer(owner, { first_name: "Lou", phone: randomNumber(), sms_opt_in: true });
-    await visit(owner, customer.id, rainDay);
-    const { data: id } = await moveDay(owner.client, rainDay, newDay);
-    expect((await texts(owner.client, id!)).data![0].can_text).toBe(true);
-
-    await owner.client.from("customers").update({ sms_opt_in: false }).eq("id", customer.id);
-    expect((await start(owner.client, id!)).data).toEqual([]);
-  });
-
-  it("two sends at the same moment still text each customer once", async () => {
-    const owner = await signUpOwner("sms-race", "Race Lawns", { time_zone: TZ });
-    await assignNumber(owner);
-    for (const name of ["Ann", "Ben", "Cy"]) {
-      const customer = await addCustomer(owner, { first_name: name, phone: randomNumber(), sms_opt_in: true });
-      await visit(owner, customer.id, rainDay);
+  it("refuses to mark a text for anyone who can't be texted", async () => {
+    for (const who of [c.bob, c.cara, c.dan, { id: randomUUID() }]) {
+      const { error } = await mark(acme.client, delayId, who.id);
+      expect(error?.code).toBe(PERMISSION_DENIED);
     }
-    const { data: id } = await moveDay(owner.client, rainDay, newDay);
-    const results = await Promise.all([start(owner.client, id!), start(owner.client, id!), start(owner.client, id!)]);
-    const claimed = results.flatMap((r) => r.data ?? []);
-    expect(claimed).toHaveLength(3);
-    expect(new Set(claimed.map((m) => m.to_phone)).size).toBe(3);
+    expect((await openedLog(acme)).map((r) => r.customer_id)).toEqual([c.jane.id]);
   });
 
-  it("won't send until the business has a texting number", async () => {
-    const owner = await signUpOwner("sms-nonumber", "No Number Lawns", { time_zone: TZ });
-    const customer = await addCustomer(owner, { first_name: "Nia", phone: randomNumber(), sms_opt_in: true });
-    await visit(owner, customer.id, rainDay);
-    const { data: id } = await moveDay(owner.client, rainDay, newDay);
-    const { error } = await start(owner.client, id!);
-    expect(error?.code).toBe(NOT_SET_UP);
-    expect((await owner.client.from("sms_messages").select("id")).data).toEqual([]);
+  it("a customer who opts out after the text was prepared gets no text", async () => {
+    await acme.client.from("customers").update({ sms_opt_in: false }).eq("id", c.eve.id);
+    const { data } = await texts(acme.client, delayId);
+    expect(data!.find((r) => r.first_name === "Eve")).toMatchObject({ can_text: false, reason: "not_opted_in", body: null });
+    const { error } = await mark(acme.client, delayId, c.eve.id);
+    expect(error?.code).toBe(PERMISSION_DENIED);
+    await acme.client.from("customers").update({ sms_opt_in: true }).eq("id", c.eve.id);
   });
 
-  it("another business's texts go only to its own customers, from its own number", async () => {
-    const { data } = await start(birch.client, birchDelayId);
-    expect(data).toEqual([expect.objectContaining({ to_phone: janePhone, from_phone: birchNumber })]);
+  it("crew members, other businesses, and signed-out visitors can't see or mark this business's texts", async () => {
+    expect((await texts(maria.client, delayId)).error?.code).toBe(PERMISSION_DENIED);
+    expect((await mark(maria.client, delayId, c.eve.id)).error?.code).toBe(PERMISSION_DENIED);
+    expect((await texts(birch.client, delayId)).error?.code).toBe(NOT_FOUND);
+    expect((await mark(birch.client, delayId, c.eve.id)).error?.code).toBe(NOT_FOUND);
+    // Nor by pointing their own rain delay at this business's customer.
+    expect((await mark(birch.client, birchDelayId, c.eve.id)).error?.code).toBe(PERMISSION_DENIED);
+    expect((await texts(anonClient(), delayId)).error?.code).toBe(PERMISSION_DENIED);
+    expect((await mark(anonClient(), delayId, c.eve.id)).error?.code).toBe(PERMISSION_DENIED);
+
+    expect((await maria.client.from("weather_texts").select("*")).data).toEqual([]);
+    expect((await birch.client.from("weather_texts").select("*").eq("business_id", acme.businessId)).data).toEqual([]);
+    expect((await anonClient().from("weather_texts").select("*")).error?.code).toBe(PERMISSION_DENIED);
+    expect((await openedLog(acme)).map((r) => r.customer_id)).toEqual([c.jane.id]);
+  });
+
+  it("another business's texts are its own: its customers, in its name", async () => {
+    const { data } = await texts(birch.client, birchDelayId);
+    expect(data).toEqual([expect.objectContaining({ customer_id: birchJanet.id, to_phone: janePhone, can_text: true })]);
     expect(data![0].body).toMatch(/^Hi Janet, this is Birch Tree Services\./);
 
-    // Each owner's log holds only their own texts.
-    const { data: birchLog } = await birch.client.from("sms_messages").select("business_id, customer_id");
-    expect(birchLog).toEqual([{ business_id: birch.businessId, customer_id: birchJane.id }]);
-    const { data: acmeLog } = await acme.client.from("sms_messages").select("business_id");
-    expect(acmeLog!.every((m) => m.business_id === acme.businessId)).toBe(true);
+    await mark(birch.client, birchDelayId, birchJanet.id);
+    expect(await openedLog(birch)).toEqual([
+      { rain_delay_id: birchDelayId, customer_id: birchJanet.id, business_id: birch.businessId, opened_by: birch.userId },
+    ]);
+    // Acme's log is unchanged.
+    expect((await openedLog(acme)).map((r) => r.customer_id)).toEqual([c.jane.id]);
   });
 
-  it("another business can't record results on this business's texts", async () => {
-    const { data: rows } = await acme.client.from("sms_messages").select("id").limit(1);
-    const { error } = await birch.client.rpc("record_sms_result", {
-      message_id: rows![0].id,
-      error_code: 21610,
-      error_message: "x",
-    });
-    expect(error?.code).toBe(NOT_FOUND);
-  });
-
-  it("crew members and other businesses can't read the text log, and nobody can write it directly", async () => {
-    expect((await maria.client.from("sms_messages").select("*")).data).toEqual([]);
-    const { data: birchSees } = await birch.client.from("sms_messages").select("*").eq("business_id", acme.businessId);
-    expect(birchSees).toEqual([]);
-    expect((await anonClient().from("sms_messages").select("*")).error?.code).toBe(PERMISSION_DENIED);
-
-    const { error: insertError } = await acme.client.from("sms_messages").insert({
-      business_id: acme.businessId,
-      rain_delay_id: delayId,
-      to_phone: janePhone,
-      from_phone: acmeNumber,
-      body: "hi",
-    });
+  it("nobody can write the texts log directly", async () => {
+    const { error: insertError } = await acme.client
+      .from("weather_texts")
+      .insert({ rain_delay_id: delayId, customer_id: c.bob.id, business_id: acme.businessId });
     expect(insertError?.code).toBe(PERMISSION_DENIED);
-    const { error: updateError } = await acme.client.from("sms_messages").update({ status: "delivered" }).eq("rain_delay_id", delayId);
+    const { error: updateError } = await acme.client
+      .from("weather_texts")
+      .update({ opened_at: new Date().toISOString() })
+      .eq("rain_delay_id", delayId);
     expect(updateError?.code).toBe(PERMISSION_DENIED);
-  });
-});
-
-describe("Twilio webhooks", () => {
-  const today = todayIn(TZ);
-  let acme: TestOwner;
-  let birch: TestOwner;
-  let acmeNumber: string;
-  let birchNumber: string;
-  const phone = randomNumber();
-  let acmeCustomer: { id: string };
-  let birchCustomer: { id: string };
-  let sid: string;
-
-  const optedIn = async (owner: TestOwner, id: string) =>
-    (await owner.client.from("customers").select("sms_opt_in").eq("id", id).single()).data!.sms_opt_in;
-  const statusOf = async (owner: TestOwner, twilioSid: string) =>
-    (await owner.client.from("sms_messages").select("status, error_code").eq("twilio_sid", twilioSid).single()).data!;
-
-  beforeAll(async () => {
-    acme = await signUpOwner("hook-acme", "Acme Lawn Care", { time_zone: TZ });
-    birch = await signUpOwner("hook-birch", "Birch Tree Services", { time_zone: TZ });
-    acmeNumber = await assignNumber(acme);
-    birchNumber = await assignNumber(birch);
-    // The same person is a customer of both businesses.
-    acmeCustomer = await addCustomer(acme, { first_name: "Sam", phone: typed(phone), sms_opt_in: true });
-    birchCustomer = await addCustomer(birch, { first_name: "Sam", phone, sms_opt_in: true });
-
-    await visit(acme, acmeCustomer.id, addDays(today, 1));
-    const { data: id } = await moveDay(acme.client, addDays(today, 1), addDays(today, 2));
-    const [msg] = (await acme.client.rpc("start_rain_delay_texts", { rain_delay_id: id! })).data!;
-    sid = `SM${randomInt(1e9, 9e9)}${randomInt(1e9, 9e9)}`;
-    await acme.client.rpc("record_sms_result", {
-      message_id: msg.message_id,
-      twilio_sid: sid,
-      twilio_status: "queued",
-    });
-  });
-
-  it("only the server (service role) can call them — not owners, crew, or visitors", async () => {
-    for (const client of [acme.client, anonClient()]) {
-      const optOut = await client.rpc("twilio_opt_out", { to_number: acmeNumber, from_number: phone });
-      expect(optOut.error?.code).toBe(PERMISSION_DENIED);
-      const status = await client.rpc("twilio_message_status", {
-        message_sid: sid,
-        message_status: "failed",
-        error_code: 21610,
-      });
-      expect(status.error?.code).toBe(PERMISSION_DENIED);
-    }
-    expect(await optedIn(acme, acmeCustomer.id)).toBe(true);
-    expect(await statusOf(acme, sid)).toEqual({ status: "queued", error_code: null });
-  });
-
-  it("delivery updates move a text forward, never backward", async () => {
-    const admin = adminClient();
-    await admin.rpc("twilio_message_status", { message_sid: sid, message_status: "delivered" });
-    expect(await statusOf(acme, sid)).toEqual({ status: "delivered", error_code: null });
-    // A late "sent" arriving after "delivered" changes nothing.
-    await admin.rpc("twilio_message_status", { message_sid: sid, message_status: "sent" });
-    expect((await statusOf(acme, sid)).status).toBe("delivered");
-    // An unknown SID changes nothing anywhere.
-    const { error } = await admin.rpc("twilio_message_status", {
-      message_sid: "SMnotours",
-      message_status: "failed",
-      error_code: 30007,
-    });
-    expect(error).toBeNull();
-  });
-
-  it("a STOP reply opts the customer out of that business only", async () => {
-    const admin = adminClient();
-    const { data: changed } = await admin.rpc("twilio_opt_out", { to_number: acmeNumber, from_number: phone });
-    expect(changed).toBe(1);
-    expect(await optedIn(acme, acmeCustomer.id)).toBe(false);
-    // The same person, as Birch's customer, still gets Birch's texts.
-    expect(await optedIn(birch, birchCustomer.id)).toBe(true);
-
-    const { data: birchChanged } = await admin.rpc("twilio_opt_out", { to_number: birchNumber, from_number: phone });
-    expect(birchChanged).toBe(1);
-    expect(await optedIn(birch, birchCustomer.id)).toBe(false);
-  });
-
-  it("a STOP to a number that isn't any business's changes nothing", async () => {
-    const other = await signUpOwner("hook-other", "Other Lawns", { time_zone: TZ });
-    const customer = await addCustomer(other, { phone, sms_opt_in: true });
-    const { data } = await adminClient().rpc("twilio_opt_out", { to_number: randomNumber(), from_number: phone });
-    expect(data).toBe(0);
-    expect(await optedIn(other, customer.id)).toBe(true);
+    const { error: deleteError } = await acme.client.from("weather_texts").delete().eq("rain_delay_id", delayId);
+    expect(deleteError?.code).toBe(PERMISSION_DENIED);
   });
 });

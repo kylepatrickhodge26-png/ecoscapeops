@@ -1373,19 +1373,6 @@ td:first-child {
 .area-field {
   max-width: 280px;
 }
-.send-texts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px 16px;
-  margin-bottom: 14px;
-}
-.send-texts p {
-  margin: 0;
-  flex: 1 1 280px;
-  font-size: 13px;
-}
 .text-list {
   list-style: none;
   margin: 0;
@@ -1412,19 +1399,21 @@ td:first-child {
   font-size: 13px;
   overflow-wrap: anywhere;
 }
-.pill.sms-ok {
+.text-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.pill.text-opened {
   background: var(--success-soft);
   color: var(--success-ink);
 }
-.pill.sms-pending {
+.pill.text-pending {
   background: var(--sky-soft);
   color: var(--sky);
 }
-.pill.sms-bad {
-  background: var(--danger-soft);
-  color: var(--danger);
-}
-.pill.sms-none {
+.pill.text-none {
   background: var(--paper-2);
   color: var(--ink-soft);
 }

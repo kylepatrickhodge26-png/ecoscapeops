@@ -1,16 +1,15 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireOwner } from "@/lib/auth";
 import { isISODate } from "@/lib/dates";
-import { siteOrigin } from "@/lib/site-origin";
 import { createClient } from "@/lib/supabase/server";
-import { sendSms, twilioConfig } from "@/lib/twilio/client";
 import { geocodeZip } from "@/lib/weather/openweather";
 
-// All owner-only. The database enforces that regardless, and decides who gets texted.
+// All owner-only. The database enforces that regardless, and decides who can be texted.
 
 const uuid = z.uuid();
 
@@ -81,48 +80,13 @@ export async function moveDay(_prev: MoveDayState, formData: FormData): Promise<
   redirect(`/weather/delays/${rainDelayId}?notice=moved`);
 }
 
-// Runs fn over items, a few at a time.
-async function inBatches<T>(items: T[], size: number, fn: (item: T) => Promise<void>) {
-  for (let i = 0; i < items.length; i += size) await Promise.all(items.slice(i, i + size).map(fn));
-}
-
-// Texts the customers a rain delay affects. The database picks the recipients (opted-in
-// customers of this business with a visit in the rain delay and a usable number) and
-// claims each text before it's sent, so nobody is texted twice.
-export async function sendRainDelayTexts(rainDelayId: string): Promise<{ error?: string }> {
+// Records that the owner opened a customer's weather text (in their own Messages app).
+// The database refuses it unless that customer can be texted.
+export async function markWeatherTextOpened(rainDelayId: string, customerId: string): Promise<void> {
   await requireOwner();
-  if (!uuid.safeParse(rainDelayId).success) return { error: "This rain delay no longer exists." };
-  const twilio = twilioConfig();
-  if (!twilio) return { error: "Texting isn't connected yet (the server has no Twilio credentials)." };
-
+  if (!uuid.safeParse(rainDelayId).success || !uuid.safeParse(customerId).success) return;
   const supabase = await createClient();
-  const { data: claimed, error } = await supabase.rpc("start_rain_delay_texts", { rain_delay_id: rainDelayId });
-  if (error) {
-    if (error.code === "55000") return { error: "Texting isn't set up for your business yet: it needs a texting number." };
-    if (error.code === "P0002") return { error: "This rain delay no longer exists." };
-    console.error("Starting rain delay texts failed", error);
-    return { error: "We couldn't send the texts. Please try again." };
-  }
-
-  const statusCallback = `${await siteOrigin()}/api/twilio/status`;
-  let sent = 0;
-  let failed = 0;
-  await inBatches(claimed, 4, async (text) => {
-    const result = await sendSms(twilio, { to: text.to_phone, from: text.from_phone, body: text.body, statusCallback });
-    if (result.ok) sent++;
-    else failed++;
-    const { error: recordError } = await supabase.rpc(
-      "record_sms_result",
-      result.ok
-        ? { message_id: text.message_id, twilio_sid: result.sid, twilio_status: result.status }
-        : {
-            message_id: text.message_id,
-            ...(result.code != null ? { error_code: result.code } : {}),
-            error_message: result.message,
-          },
-    );
-    if (recordError) console.error("Recording a text's result failed", recordError);
-  });
-
-  redirect(`/weather/delays/${rainDelayId}?notice=sent&sent=${sent}&failed=${failed}`);
+  const { error } = await supabase.rpc("mark_weather_text_opened", { rain_delay_id: rainDelayId, customer_id: customerId });
+  if (error) console.error("Recording an opened weather text failed", error);
+  refresh();
 }

@@ -27,11 +27,3 @@ export async function getBusinessForecast(): Promise<BusinessForecast> {
   const forecast = await getDailyForecast(area.latitude, area.longitude);
   return forecast.ok ? { status: "ok", area, days: forecast.days } : { status: forecast.reason, area };
 }
-
-// The number this business's texts come from, if one has been assigned (owners only).
-export async function getTextingNumber(businessId: string): Promise<string | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("sms_senders").select("phone_number").eq("business_id", businessId).maybeSingle();
-  if (error) throw new Error(`Could not load your texting number: ${error.message}`);
-  return data?.phone_number ?? null;
-}

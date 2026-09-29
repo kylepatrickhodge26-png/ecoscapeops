@@ -3,18 +3,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
-import { ConfirmButton } from "@/components/confirm-button";
 import { StatusPill } from "@/components/job-status";
 import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
-import { formatShortDate } from "@/lib/dates";
 import { customerDisplayName } from "@/lib/customers/schema";
+import { formatShortDate } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
-import { twilioConfig } from "@/lib/twilio/client";
-import { SMS_STATUS_LABELS, SMS_STATUS_TONES, describeSmsError, formatPhone } from "@/lib/twilio/messages";
-import { getTextingNumber } from "@/lib/weather/queries";
+import { formatPhone, smsLink } from "@/lib/weather/texts";
 
-import { sendRainDelayTexts } from "../../actions";
+import { markWeatherTextOpened } from "../../actions";
+import { TextActions } from "./text-actions";
 
 export const metadata: Metadata = { title: "Rain delay · EcoScape Ops" };
 
@@ -26,7 +24,7 @@ const REASONS: Record<string, string> = {
 export default async function RainDelayPage(props: PageProps<"/weather/delays/[id]">) {
   const { business } = await requireOwner();
   const { id } = await props.params;
-  const search = await props.searchParams;
+  const { notice } = await props.searchParams;
   if (!z.uuid().safeParse(id).success) notFound();
 
   const supabase = await createClient();
@@ -38,7 +36,7 @@ export default async function RainDelayPage(props: PageProps<"/weather/delays/[i
   if (error) throw new Error(`Could not load this rain delay: ${error.message}`);
   if (!delay) notFound();
 
-  const [{ data: visits, error: visitsError }, { data: texts, error: textsError }, textingNumber] = await Promise.all([
+  const [{ data: visits, error: visitsError }, { data: texts, error: textsError }] = await Promise.all([
     supabase
       .from("rain_delay_visits")
       .select(
@@ -46,7 +44,6 @@ export default async function RainDelayPage(props: PageProps<"/weather/delays/[i
       )
       .eq("rain_delay_id", id),
     supabase.rpc("rain_delay_texts", { rain_delay_id: id }),
-    getTextingNumber(business.id),
   ]);
   if (visitsError) throw new Error(`Could not load the moved visits: ${visitsError.message}`);
   if (textsError) throw new Error(`Could not load the texts: ${textsError.message}`);
@@ -54,11 +51,9 @@ export default async function RainDelayPage(props: PageProps<"/weather/delays/[i
   const nameOf = (job: { customer: Parameters<typeof customerDisplayName>[0] | null }) =>
     job.customer ? customerDisplayName(job.customer) : "";
   const jobs = visits.flatMap((v) => (v.job ? [v.job] : [])).sort((a, b) => nameOf(a).localeCompare(nameOf(b)));
-  const toSend = texts.filter((t) => t.can_text && (t.message_id === null || t.status === "failed")).length;
-  const optedIn = texts.filter((t) => t.can_text || t.message_id !== null).length;
-  const twilioReady = twilioConfig() !== null;
-  const sent = Number(search.sent ?? 0);
-  const failed = Number(search.failed ?? 0);
+  const textable = texts.filter((t) => t.can_text);
+  const opened = textable.filter((t) => t.opened_at !== null).length;
+  const time = new Intl.DateTimeFormat("en-US", { timeZone: business.time_zone, hour: "numeric", minute: "2-digit" });
 
   return (
     <>
@@ -72,69 +67,41 @@ export default async function RainDelayPage(props: PageProps<"/weather/delays/[i
           </h1>
           <div className="meta">
             {jobs.length} {jobs.length === 1 ? "visit" : "visits"} moved · {texts.length}{" "}
-            {texts.length === 1 ? "customer" : "customers"} affected · {optedIn} opted in to texts
+            {texts.length === 1 ? "customer" : "customers"} affected · {textable.length} opted in to texts
           </div>
         </div>
       </div>
 
-      {search.notice === "moved" && (
+      {notice === "moved" && (
         <Notice tone="success">
           Moved {jobs.length} {jobs.length === 1 ? "visit" : "visits"} to {formatShortDate(delay.to_date)}. They&apos;re
           marked Weather delay on the schedule.
-        </Notice>
-      )}
-      {search.notice === "sent" && (
-        <Notice tone={failed > 0 ? "warn" : "success"}>
-          Sent {sent} {sent === 1 ? "text" : "texts"}.
-          {failed > 0 && ` ${failed} couldn't be sent — see below.`}
         </Notice>
       )}
 
       <div className="panel">
         <div className="panel-head">
           <h3>Text customers</h3>
-          <Link className="btn secondary small" href={`/weather/delays/${delay.id}`}>
-            Refresh status
-          </Link>
+          {textable.length > 0 && (
+            <span className="subtext" data-testid="texts-opened">
+              {opened} of {textable.length} opened
+            </span>
+          )}
         </div>
         <div className="panel-body">
-          {!textingNumber ? (
-            <Notice tone="warn">
-              Texting isn&apos;t set up for your business yet: it needs a texting number, which is assigned by whoever
-              runs EcoScape Ops.
-            </Notice>
-          ) : !twilioReady ? (
-            <Notice tone="warn">Texting isn&apos;t connected yet (the server has no Twilio credentials).</Notice>
-          ) : toSend > 0 ? (
-            <div className="send-texts">
-              <p>
-                Each opted-in customer gets their own text from <b>{formatPhone(textingNumber)}</b>. Customers who
-                haven&apos;t opted in are never texted.
-              </p>
-              <ConfirmButton
-                action={sendRainDelayTexts.bind(null, delay.id)}
-                label={`Text ${toSend} ${toSend === 1 ? "customer" : "customers"}`}
-                confirmText={
-                  <>
-                    Send {toSend} {toSend === 1 ? "text" : "texts"} now? Texts can&apos;t be unsent.
-                  </>
-                }
-                confirmLabel="Send texts"
-                pendingLabel="Sending…"
-                danger={false}
-              />
-            </div>
+          {textable.length === 0 ? (
+            <p className="hint">None of these customers have opted in to texts.</p>
           ) : (
             <p className="hint">
-              {optedIn === 0 ? "None of these customers have opted in to texts." : "Everyone who can be texted has been."}
+              Tap <b>Open text</b> to open each customer&apos;s message in your phone&apos;s Messages app, then send it.
+              Only customers who have opted in to texts get a message. On a computer, use <b>Copy message</b>, or open
+              this page on your phone. If someone replies STOP, turn off their text opt-in.
             </p>
           )}
 
           <ul className="text-list">
             {texts.map((t) => {
               const name = customerDisplayName({ ...t, email: "" });
-              const problem =
-                t.status === "failed" || t.status === "undelivered" ? describeSmsError(t.error_code, t.error_message) : null;
               return (
                 <li key={t.customer_id} className="text-row" data-customer={name}>
                   <div className="text-who">
@@ -144,26 +111,36 @@ export default async function RainDelayPage(props: PageProps<"/weather/delays/[i
                     <div className="subtext">{t.to_phone ? formatPhone(t.to_phone) : t.phone || "No phone"}</div>
                   </div>
                   <div className="text-what">
-                    {t.status ? (
-                      <span className={`pill sms-${SMS_STATUS_TONES[t.status]}`} data-sms-status={t.status}>
-                        {SMS_STATUS_LABELS[t.status]}
-                      </span>
-                    ) : t.can_text ? (
-                      <span className="pill sms-pending" data-sms-status="not-sent">
-                        Not sent yet
+                    {!t.can_text ? (
+                      <>
+                        <span className="pill text-none" data-text-status="wont-text">
+                          Won&apos;t be texted
+                        </span>
+                        <div className="subtext">
+                          {REASONS[t.reason ?? ""] ?? t.reason} ·{" "}
+                          <Link href={`/customers/${t.customer_id}/edit`}>Edit customer</Link>
+                        </div>
+                      </>
+                    ) : t.opened_at ? (
+                      <span className="pill text-opened" data-text-status="opened">
+                        Opened {time.format(new Date(t.opened_at))}
                       </span>
                     ) : (
-                      <span className="pill sms-none" data-sms-status="wont-text">
-                        Won&apos;t be texted
+                      <span className="pill text-pending" data-text-status="not-opened">
+                        Not texted yet
                       </span>
                     )}
-                    {problem && <div className="field-error">{problem}</div>}
-                    {!t.status && t.reason && (
-                      <div className="subtext">
-                        {REASONS[t.reason] ?? t.reason} · <Link href={`/customers/${t.customer_id}/edit`}>Edit customer</Link>
-                      </div>
+                    {t.body && t.to_phone && (
+                      <>
+                        <blockquote className="text-body">{t.body}</blockquote>
+                        <TextActions
+                          href={smsLink(t.to_phone, t.body)}
+                          body={t.body}
+                          name={name}
+                          markOpened={markWeatherTextOpened.bind(null, delay.id, t.customer_id)}
+                        />
+                      </>
                     )}
-                    {t.body && <blockquote className="text-body">{t.body}</blockquote>}
                   </div>
                 </li>
               );
