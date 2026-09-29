@@ -308,6 +308,119 @@ export type Database = {
           },
         ]
       }
+      rain_delay_visits: {
+        Row: {
+          business_id: string
+          job_id: string
+          rain_delay_id: string
+        }
+        Insert: {
+          business_id: string
+          job_id: string
+          rain_delay_id: string
+        }
+        Update: {
+          business_id?: string
+          job_id?: string
+          rain_delay_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rain_delay_visits_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rain_delay_visits_job_id_business_id_fkey"
+            columns: ["job_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "business_id"]
+          },
+          {
+            foreignKeyName: "rain_delay_visits_rain_delay_id_business_id_fkey"
+            columns: ["rain_delay_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "rain_delays"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      rain_delays: {
+        Row: {
+          business_id: string
+          created_at: string
+          created_by: string | null
+          from_date: string
+          id: string
+          to_date: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          from_date: string
+          id?: string
+          to_date: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          from_date?: string
+          id?: string
+          to_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rain_delays_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_areas: {
+        Row: {
+          business_id: string
+          created_at: string
+          latitude: number
+          longitude: number
+          place_name: string
+          postal_code: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          latitude: number
+          longitude: number
+          place_name: string
+          postal_code: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          latitude?: number
+          longitude?: number
+          place_name?: string
+          postal_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_areas_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_plans: {
         Row: {
           active: boolean
@@ -375,6 +488,52 @@ export type Database = {
           },
         ]
       }
+      weather_texts: {
+        Row: {
+          business_id: string
+          customer_id: string
+          opened_at: string
+          opened_by: string | null
+          rain_delay_id: string
+        }
+        Insert: {
+          business_id: string
+          customer_id: string
+          opened_at?: string
+          opened_by?: string | null
+          rain_delay_id: string
+        }
+        Update: {
+          business_id?: string
+          customer_id?: string
+          opened_at?: string
+          opened_by?: string | null
+          rain_delay_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weather_texts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weather_texts_customer_id_business_id_fkey"
+            columns: ["customer_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id", "business_id"]
+          },
+          {
+            foreignKeyName: "weather_texts_rain_delay_id_business_id_fkey"
+            columns: ["rain_delay_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "rain_delays"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -386,6 +545,15 @@ export type Database = {
         Returns: {
           crew_member_id: string
           invite_token: string
+        }[]
+      }
+      business_service_area: {
+        Args: never
+        Returns: {
+          latitude: number
+          longitude: number
+          place_name: string
+          postal_code: string
         }[]
       }
       create_business: {
@@ -447,6 +615,28 @@ export type Database = {
           today_total: number
           tomorrow_total: number
           week_total: number
+        }[]
+      }
+      mark_weather_text_opened: {
+        Args: { customer_id: string; rain_delay_id: string }
+        Returns: string
+      }
+      move_day_visits: {
+        Args: { from_date: string; to_date: string }
+        Returns: string
+      }
+      rain_delay_texts: {
+        Args: { rain_delay_id: string }
+        Returns: {
+          body: string
+          can_text: boolean
+          customer_id: string
+          first_name: string
+          last_name: string
+          opened_at: string
+          phone: string
+          reason: string
+          to_phone: string
         }[]
       }
       regenerate_crew_invite: {
