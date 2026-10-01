@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { InvoiceStatusPill } from "@/components/invoice-status";
 import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
 import {
@@ -9,7 +10,9 @@ import {
   preferredDayLabel,
   type NotificationPreference,
 } from "@/lib/customers/schema";
-import { todayInTimeZone } from "@/lib/dates";
+import { formatShortDate, todayInTimeZone } from "@/lib/dates";
+import { invoiceNumber } from "@/lib/invoices/constants";
+import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
 import { deleteCustomer } from "../actions";
@@ -39,6 +42,12 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
     .from("jobs")
     .select("id", { count: "exact", head: true })
     .eq("customer_id", customer.id);
+  const { data: invoices, error: invoicesError } = await supabase
+    .from("invoices")
+    .select("id, number, issue_date, total, display_status")
+    .eq("customer_id", customer.id)
+    .order("number", { ascending: false });
+  if (invoicesError) throw new Error(`Could not load invoices: ${invoicesError.message}`);
   const name = customerDisplayName(customer);
   const contact = [customer.phone, customer.email].filter(Boolean).join(" · ");
 
@@ -61,6 +70,7 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
             action={deleteCustomer.bind(null, customer.id)}
             customerName={name}
             visitCount={visitCount ?? 0}
+            invoiceCount={invoices.length}
           />
         </div>
       </div>
@@ -141,6 +151,47 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
         </div>
       </div>
       <CustomerSchedule customerId={customer.id} customerName={name} today={todayInTimeZone(business.time_zone)} />
+
+      <div className="panel" aria-labelledby="customer-invoices">
+        <div className="panel-head">
+          <h3 id="customer-invoices">Invoices</h3>
+          <Link className="btn secondary small" href={`/invoices/new?customer=${customer.id}`}>
+            + New invoice
+          </Link>
+        </div>
+        <div className="panel-body flush">
+          {invoices.length === 0 ? (
+            <div className="empty">No invoices yet.</div>
+          ) : (
+            <table className="invoice-table">
+              <thead>
+                <tr>
+                  <th>Invoice</th>
+                  <th>Issued</th>
+                  <th className="num">Total</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map((inv) => (
+                  <tr key={inv.id}>
+                    <td>
+                      <Link className="row-link" href={`/invoices/${inv.id}`}>
+                        <b>{invoiceNumber(inv.number)}</b>
+                      </Link>
+                    </td>
+                    <td className="nowrap">{formatShortDate(inv.issue_date)}</td>
+                    <td className="num">{formatPrice(inv.total)}</td>
+                    <td>
+                      <InvoiceStatusPill status={inv.display_status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </>
   );
 }

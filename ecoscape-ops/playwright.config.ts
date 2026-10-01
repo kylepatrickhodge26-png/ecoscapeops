@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-import { FAKE_ENV, FAKE_SERVICES_PORT } from "./tests/e2e/fakes";
+import { FAKE_ENV, FAKE_SERVICES_PORT, localSupabaseSecretKey } from "./tests/e2e/fakes";
 
 // Optional: point at an already-installed Chromium instead of Playwright's download.
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
@@ -28,7 +28,7 @@ export default defineConfig({
   ],
   // Needs the local Supabase stack running (`npx supabase start`) and .env.local.
   webServer: [
-    // A fake National Weather Service, so tests never touch the real one.
+    // A fake National Weather Service and Stripe, so tests never touch the real ones.
     {
       command: "node tests/e2e/fake-services.mjs",
       url: `http://127.0.0.1:${FAKE_SERVICES_PORT}/health`,
@@ -40,7 +40,8 @@ export default defineConfig({
       url: `http://localhost:${PORT}/login`,
       reuseExistingServer: !process.env.CI,
       timeout: 240_000,
-      env: FAKE_ENV,
+      // The secret key is for the app's Stripe webhook.
+      env: { ...FAKE_ENV, SUPABASE_SECRET_KEY: localSupabaseSecretKey() },
     },
   ],
 });

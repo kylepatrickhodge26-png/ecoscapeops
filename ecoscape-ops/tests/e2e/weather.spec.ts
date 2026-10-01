@@ -1,7 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
 import { addDays, formatShortDate, todayInTimeZone } from "../../src/lib/dates";
-import { smsLink } from "../../src/lib/weather/texts";
+import { smsLink } from "../../src/lib/sms";
 import { FAKE_PLACES, randomNumber } from "./fakes";
 import { PASSWORD, bookService, signUpBusiness, uniqueEmail } from "./helpers";
 

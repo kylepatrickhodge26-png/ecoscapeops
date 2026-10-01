@@ -22,6 +22,9 @@ export const metadata: Metadata = { title: "Home · EcoScape Ops" };
 // From dashboard_summary(): the money fields are null for crew members.
 type Summary = {
   month_expenses: number | null;
+  outstanding: number | null;
+  overdue: number | null;
+  month_collected: number | null;
   today: string;
   today_total: number;
   today_completed: number;
@@ -97,6 +100,8 @@ async function OwnerDashboard({
   const booked = summary.month_booked ?? 0;
   const completed = summary.month_completed ?? 0;
   const expenses = summary.month_expenses ?? 0;
+  const outstanding = summary.outstanding ?? 0;
+  const overdue = summary.overdue ?? 0;
   const [todaysJobs, crew] = await Promise.all([
     jobsBetween(business.id, summary.today, summary.today),
     getCrew(business.id, user.id),
@@ -119,18 +124,27 @@ async function OwnerDashboard({
         weather={<WeatherCard area={area} today={summary.today} isOwner />}
       />
 
-      <div className="grid g2">
+      <div className="grid money">
         <div className="card accent-sage" data-card="revenue">
           <div className="label">REVENUE · {month.toUpperCase()}</div>
           <div className="big">{formatPrice(booked)}</div>
-          <div className="sub">booked this month, completed or not</div>
+          <div className="sub">booked this month, completed or not (invoiced visits at their invoiced amount)</div>
           <div className="sub strong">{formatPrice(completed)} completed so far</div>
+          <div className="sub">{formatPrice(summary.month_collected ?? 0)} collected this month</div>
         </div>
         <div className="card" data-card="profit">
           <div className="label">EST. PROFIT · {month.toUpperCase()}</div>
           <div className="big">{formatPrice(booked - expenses)}</div>
           <div className="sub">
             revenue minus <Link href="/expenses">{formatPrice(expenses)} in expenses</Link> this month
+          </div>
+        </div>
+        <div className="card accent-sun" data-card="outstanding">
+          <div className="label">OUTSTANDING</div>
+          <div className="big">{formatPrice(outstanding)}</div>
+          <div className="sub">owed on sent invoices</div>
+          <div className={overdue > 0 ? "sub strong overdue-text" : "sub"}>
+            {overdue > 0 ? <Link href="/invoices?status=overdue">{formatPrice(overdue)} overdue</Link> : "nothing overdue"}
           </div>
         </div>
       </div>
@@ -145,6 +159,9 @@ async function OwnerDashboard({
           </Link>
           <Link className="btn secondary small" href="/schedule/new">
             + Book a job
+          </Link>
+          <Link className="btn secondary small" href="/invoices/new">
+            + New invoice
           </Link>
           {/* Keyed on the last logged expense so the quick-log forms close after saving. */}
           <QuickLog

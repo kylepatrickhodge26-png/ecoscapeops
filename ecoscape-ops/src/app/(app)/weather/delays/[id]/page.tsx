@@ -9,7 +9,7 @@ import { requireOwner } from "@/lib/auth";
 import { customerDisplayName } from "@/lib/customers/schema";
 import { formatShortDate } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
-import { formatPhone, smsLink } from "@/lib/weather/texts";
+import { formatPhone, smsLink } from "@/lib/sms";
 
 import { markWeatherTextOpened } from "../../actions";
 import { TextActions } from "./text-actions";

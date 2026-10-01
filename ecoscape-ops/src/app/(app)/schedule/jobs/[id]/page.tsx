@@ -8,6 +8,7 @@ import { requireOwner } from "@/lib/auth";
 import { getCrew, showAssignment } from "@/lib/crew";
 import { customerDisplayName } from "@/lib/customers/schema";
 import { addDays, formatLongDate, formatShortDate, monthOf, todayInTimeZone } from "@/lib/dates";
+import { INVOICE_STATUS_LABELS, invoiceNumber, isInvoiceStatus } from "@/lib/invoices/constants";
 import { FREQUENCY_LABELS, formatPrice, isClosed, isOverdue } from "@/lib/schedule/constants";
 
 import { couldNotService, deleteJob, markJobCompleted } from "../../actions";
@@ -34,6 +35,7 @@ export default async function JobPage(props: PageProps<"/schedule/jobs/[id]">) {
   const name = customerDisplayName(job.customer);
   const open = !isClosed(job.status);
   const latest = (a: string, b: string) => (a > b ? a : b);
+  const invoice = job.invoice_lines.find((l) => !l.invoice_cancelled)?.invoice ?? null;
 
   return (
     <>
@@ -126,6 +128,20 @@ export default async function JobPage(props: PageProps<"/schedule/jobs/[id]">) {
                 <dd>{job.assignee?.name ?? "Unassigned"}</dd>
               </div>
             )}
+            <div>
+              <dt>Invoice</dt>
+              <dd>
+                {invoice ? (
+                  <Link href={`/invoices/${invoice.id}`}>
+                    {invoiceNumber(invoice.number)} ({INVOICE_STATUS_LABELS[isInvoiceStatus(invoice.display_status) ? invoice.display_status : "draft"].toLowerCase()})
+                  </Link>
+                ) : job.status === "cancelled" ? (
+                  "—"
+                ) : (
+                  <Link href={`/invoices/new?customer=${job.customer.id}&visit=${job.id}`}>Create invoice</Link>
+                )}
+              </dd>
+            </div>
             {job.completed_at && (
               <div>
                 <dt>Completed</dt>

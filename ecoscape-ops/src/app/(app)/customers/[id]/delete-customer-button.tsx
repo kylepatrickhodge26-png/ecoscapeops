@@ -8,9 +8,10 @@ type Props = {
   action: (state: DeleteCustomerState) => Promise<DeleteCustomerState>;
   customerName: string;
   visitCount: number;
+  invoiceCount: number;
 };
 
-export function DeleteCustomerButton({ action, customerName, visitCount }: Props) {
+export function DeleteCustomerButton({ action, customerName, visitCount, invoiceCount }: Props) {
   return (
     <ConfirmButton
       action={action}
@@ -22,6 +23,8 @@ export function DeleteCustomerButton({ action, customerName, visitCount }: Props
           Delete <b>{customerName}</b>?{" "}
           {visitCount > 0 &&
             `This also permanently deletes their ${visitCount} ${visitCount === 1 ? "visit" : "visits"} and booked services. `}
+          {invoiceCount > 0 &&
+            `It deletes their ${invoiceCount} ${invoiceCount === 1 ? "invoice" : "invoices"} and payment records too. `}
           This can&apos;t be undone.
         </>
       }
