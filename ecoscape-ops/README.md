@@ -113,7 +113,7 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 Invoicing works without Stripe (cash and check); online payments need:
 
 1. A Stripe account (stripe.com; free, no monthly fee; Stripe charges per payment: 2.9% + 30¢ by card, 0.8% capped at $5 by US bank account). Build and test in test mode.
-2. **Connect** turned on (Dashboard → Connect → Get started), set up so connected accounts get their own Stripe Dashboard and pay Stripe's fees themselves.
+2. **Connect** turned on (Dashboard → Connect → Get started), set up so connected accounts get their own Stripe Dashboard and pay Stripe's fees themselves. The app creates each business's account with Stripe's **Accounts v2** API (Stripe refuses v1 account creation from new platforms), so there's nothing to switch on for v1.
 3. These **server-only** variables on your host (never `NEXT_PUBLIC_`, never committed):
 
    | Variable | Where it comes from |
@@ -123,7 +123,7 @@ Invoicing works without Stripe (cash and check); online payments need:
    | `SUPABASE_SECRET_KEY` | Supabase → Project Settings → API Keys → Secret key. Stripe's webhook arrives without a signed-in user, so the app records payments with this key (through functions only it can run). |
 
 4. A webhook (Stripe → Developers → Webhooks → Add endpoint): URL `https://<your-app>/api/stripe/webhook`, listening to events on **Connected accounts**: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `account.updated`.
-5. Each business (including yours) then connects its Stripe account from **Invoices → Connect Stripe**. For bank payments, turn on **ACH Direct Debit** in that Stripe account's payment method settings.
+5. Each business (including yours) then connects its Stripe account from **Invoices → Connect Stripe**. The app asks Stripe for card and US bank (ACH Direct Debit) payments on each account; if bank payments aren't on for an account, turn on **ACH Direct Debit** in its payment method settings (until then, customers pay by card). If Stripe is still reviewing a business's details after onboarding, online payments switch on by themselves once it's done (checked whenever the owner opens Invoices, and by the `account.updated` webhook).
 
 ## Local development
 

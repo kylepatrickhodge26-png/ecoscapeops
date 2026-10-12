@@ -9,6 +9,7 @@ import { formatShortDate } from "@/lib/dates";
 import { INVOICE_STATUSES, INVOICE_STATUS_LABELS, invoiceNumber, isInvoiceStatus } from "@/lib/invoices/constants";
 import { formatPrice } from "@/lib/schedule/constants";
 import { isStripeConfigured } from "@/lib/stripe/client";
+import { syncStripeAccount } from "@/lib/stripe/connect";
 import { createClient } from "@/lib/supabase/server";
 
 import { connectStripe, setAutoInvoice } from "./actions";
@@ -28,11 +29,18 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
   const params = await props.searchParams;
   const status = isInvoiceStatus(params.status) ? params.status : null;
   const supabase = await createClient();
-  const [invoices, settings, { data: summary }] = await Promise.all([
+  const [invoices, firstSettings, { data: summary }] = await Promise.all([
     listInvoices(business.id, status),
     invoiceSettings(business.id),
     supabase.rpc("dashboard_summary"),
   ]);
+  let settings = firstSettings;
+  // Stripe can switch payments on after reviewing the business's details, some time after
+  // onboarding: check again while it's reviewing them.
+  if (settings.stripe?.details_submitted && !settings.stripe.charges_enabled && isStripeConfigured()) {
+    const fresh = await syncStripeAccount(business.id);
+    if (fresh) settings = { ...settings, stripe: fresh };
+  }
   const totals = summary?.[0];
   const notice = typeof params.notice === "string" ? NOTICES[params.notice] : undefined;
 
