@@ -4,7 +4,8 @@
 //
 //   Weather: /points/{lat},{lon} and the forecast it links to, for the ZIP codes below
 //            (positions come from the same ZIP code list the app uses).
-//   Stripe:  the API calls the app makes (accounts, account links, Checkout sessions),
+//   Stripe:  the API calls the app makes (Accounts v2 accounts and account links,
+//            Checkout sessions),
 //            plus pages standing in for Stripe's hosted onboarding and Checkout, which send
 //            the app signed webhooks just like Stripe does. /__stripe/* lets tests look
 //            at and resend events.
@@ -97,8 +98,7 @@ function json(res, status, body) {
 // Stripe
 // ---------------------------------------------------------------------------
 const signer = new Stripe("sk_test_signer");
-const accounts = new Map(); // id → account
-const accountsByIdempotencyKey = new Map();
+const accounts = new Map(); // id → account (our own record; shown as Accounts v2 or v1 objects)
 const sessions = new Map(); // id → { session, account }
 const events = []; // every event sent, with the app's response
 
@@ -122,6 +122,52 @@ function parseStripeForm(body) {
 function stripeError(res, status, message, param) {
   return json(res, status, { error: { type: "invalid_request_error", message, ...(param ? { param } : {}) } });
 }
+
+// An account as Accounts v2 shows it. Like Stripe, configuration and requirements only
+// come back when the request asks for them.
+function v2Account(account, include = []) {
+  const status = (on) => ({ status: account.closed ? "unsupported" : on ? "active" : "pending", status_details: [] });
+  return {
+    id: account.id,
+    object: "v2.core.account",
+    applied_configurations: ["merchant"],
+    closed: account.closed,
+    contact_email: account.contact_email,
+    display_name: account.display_name,
+    dashboard: "full",
+    created: account.created,
+    livemode: false,
+    metadata: account.metadata,
+    ...(include.includes("configuration.merchant")
+      ? {
+          configuration: {
+            merchant: {
+              applied: true,
+              capabilities: { card_payments: status(account.charges_enabled), ach_debit_payments: status(account.charges_enabled && account.bank_payments) },
+            },
+          },
+        }
+      : {}),
+    ...(include.includes("requirements")
+      ? {
+          requirements: {
+            entries: account.details_submitted
+              ? []
+              : [{ awaiting_action_from: "user", description: "Business details", errors: [], impact: {}, minimum_deadline: { status: "currently_due" }, requested_reasons: [] }],
+          },
+        }
+      : {}),
+  };
+}
+
+// The same account as a v1 object, which is what account.updated webhooks carry.
+const v1Account = (account) => ({
+  id: account.id,
+  object: "account",
+  charges_enabled: account.charges_enabled,
+  details_submitted: account.details_submitted,
+  metadata: account.metadata,
+});
 
 async function sendEvent(type, object, account, eventId = newId("evt")) {
   const event = { id: eventId, object: "event", api_version: "2026-08-26.dahlia", created: Math.floor(Date.now() / 1000), livemode: false, type, account, data: { object } };
@@ -160,30 +206,16 @@ async function handleStripe(req, res, url) {
     const body = req.method === "POST" ? parseStripeForm(await readBody(req)) : {};
 
     if (url.pathname === "/v1/accounts" && req.method === "POST") {
-      const key = req.headers["idempotency-key"];
-      if (key && accountsByIdempotencyKey.has(key)) return json(res, 200, accounts.get(accountsByIdempotencyKey.get(key)));
-      if (body.controller?.stripe_dashboard?.type !== "full" || body.controller?.fees?.payer !== "account") {
-        return stripeError(res, 400, "Expected a connected account with its own Stripe Dashboard that pays its own fees");
-      }
-      const account = { id: newId("acct"), object: "account", email: body.email ?? null, business_profile: body.business_profile ?? {}, charges_enabled: false, details_submitted: false, bank_payments: true, metadata: body.metadata ?? {} };
-      accounts.set(account.id, account);
-      if (key) accountsByIdempotencyKey.set(key, account.id);
-      return json(res, 200, account);
-    }
-    const accountMatch = /^\/v1\/accounts\/(acct_\w+)$/.exec(url.pathname);
-    if (accountMatch && req.method === "GET") {
-      const account = accounts.get(accountMatch[1]);
-      return account ? json(res, 200, account) : stripeError(res, 404, "No such account");
-    }
-    if (url.pathname === "/v1/account_links" && req.method === "POST") {
-      if (!accounts.has(body.account)) return stripeError(res, 400, "No such account", "account");
-      if (body.type !== "account_onboarding") return stripeError(res, 400, "Unsupported type", "type");
-      const link = `${BASE}/connect/onboard/${body.account}?return_url=${encodeURIComponent(body.return_url)}`;
-      return json(res, 200, { object: "account_link", created: Math.floor(Date.now() / 1000), expires_at: Math.floor(Date.now() / 1000) + 300, url: link });
+      // What Stripe now answers a new Connect platform.
+      return stripeError(
+        res,
+        400,
+        "Stripe no longer recommends Accounts v1 for new Connect integrations. Create connected accounts with POST /v2/core/accounts instead.",
+      );
     }
     if (url.pathname === "/v1/checkout/sessions" && req.method === "POST") {
       const account = accounts.get(req.headers["stripe-account"]);
-      if (!account) return stripeError(res, 400, "Direct charges need a Stripe-Account header for a connected account");
+      if (!account || account.closed) return stripeError(res, 400, "Direct charges need a Stripe-Account header for a connected account");
       if (!account.charges_enabled) return stripeError(res, 400, "This account can't accept payments yet");
       const methods = body.payment_method_types ?? ["card"];
       if (methods.includes("us_bank_account") && !account.bank_payments) {
@@ -213,6 +245,69 @@ async function handleStripe(req, res, url) {
     return stripeError(res, 404, `Unrecognized request URL (${req.method}: ${url.pathname})`);
   }
 
+  // Accounts v2: JSON bodies; arrays in the query string come as include[0]=…
+  if (url.pathname.startsWith("/v2/")) {
+    if (req.headers.authorization !== `Bearer ${STRIPE_SECRET_KEY}`) return stripeError(res, 401, "Invalid API Key provided");
+    const raw = req.method === "POST" ? await readBody(req) : "";
+    const body = raw ? JSON.parse(raw) : {};
+
+    if (url.pathname === "/v2/core/accounts" && req.method === "POST") {
+      const merchant = body.configuration?.merchant?.capabilities;
+      const fees = body.defaults?.responsibilities;
+      if (body.dashboard !== "full" || fees?.fees_collector !== "stripe" || fees?.losses_collector !== "stripe") {
+        return stripeError(res, 400, "Expected a connected account with its own Stripe Dashboard that pays its own fees and losses");
+      }
+      if (!merchant?.card_payments?.requested || body.identity?.country?.toLowerCase() !== "us") {
+        return stripeError(res, 400, "Expected a US merchant account that requests card payments");
+      }
+      const account = {
+        id: newId("acct"),
+        created: new Date().toISOString(),
+        display_name: body.display_name,
+        contact_email: body.contact_email ?? null,
+        metadata: body.metadata ?? {},
+        charges_enabled: false,
+        details_submitted: false,
+        bank_payments: Boolean(merchant.ach_debit_payments?.requested),
+        closed: false,
+      };
+      accounts.set(account.id, account);
+      return json(res, 200, v2Account(account, body.include));
+    }
+    const accountMatch = /^\/v2\/core\/accounts\/(acct_\w+)(\/close)?$/.exec(url.pathname);
+    if (accountMatch) {
+      const account = accounts.get(accountMatch[1]);
+      if (!account) return stripeError(res, 404, "No such account");
+      if (accountMatch[2] && req.method === "POST") {
+        account.closed = true;
+        return json(res, 200, v2Account(account));
+      }
+      if (!accountMatch[2] && req.method === "GET") {
+        const include = [...url.searchParams].filter(([key]) => /^include(\[\d*\])?$/.test(key)).map(([, value]) => value);
+        return json(res, 200, v2Account(account, include));
+      }
+    }
+    if (url.pathname === "/v2/core/account_links" && req.method === "POST") {
+      const account = accounts.get(body.account);
+      if (!account || account.closed) return stripeError(res, 400, "No such account", "account");
+      const onboarding = body.use_case?.account_onboarding;
+      if (body.use_case?.type !== "account_onboarding" || !onboarding?.configurations?.includes("merchant") || !onboarding.refresh_url) {
+        return stripeError(res, 400, "Expected merchant onboarding with a refresh URL", "use_case");
+      }
+      const now = Date.now();
+      return json(res, 200, {
+        object: "v2.core.account_link",
+        account: account.id,
+        created: new Date(now).toISOString(),
+        expires_at: new Date(now + 300_000).toISOString(),
+        livemode: false,
+        use_case: body.use_case,
+        url: `${BASE}/connect/onboard/${account.id}?return_url=${encodeURIComponent(onboarding.return_url)}`,
+      });
+    }
+    return stripeError(res, 404, `Unrecognized request URL (${req.method}: ${url.pathname})`);
+  }
+
   // --- Stand-in for Stripe's hosted onboarding ---
   const onboard = /^\/connect\/onboard\/(acct_\w+)(\/finish)?$/.exec(url.pathname);
   if (onboard) {
@@ -222,13 +317,18 @@ async function handleStripe(req, res, url) {
     if (!onboard[2]) {
       return html(
         res,
-        `<h1>Stripe onboarding (test)</h1><p>${account.business_profile?.name ?? ""}</p>
-         <form method="post" action="/connect/onboard/${account.id}/finish?return_url=${encodeURIComponent(returnUrl)}"><button name="bank" value="on">Finish setup</button><button name="bank" value="off">Finish setup (card only)</button></form>`,
+        `<h1>Stripe onboarding (test)</h1><p>${account.display_name ?? ""}</p>
+         <form method="post" action="/connect/onboard/${account.id}/finish?return_url=${encodeURIComponent(returnUrl)}"><button name="bank" value="on">Finish setup</button><button name="bank" value="off">Finish setup (card only)</button><button name="bank" value="review">Finish setup (Stripe reviews it later)</button></form>`,
       );
     }
-    const form = new URLSearchParams(await readBody(req));
-    Object.assign(account, { charges_enabled: true, details_submitted: true, bank_payments: form.get("bank") !== "off" });
-    await sendEvent("account.updated", account, account.id);
+    const choice = new URLSearchParams(await readBody(req)).get("bank");
+    if (choice === "review") {
+      // Details are in, but payments wait on Stripe's review, and no webhook says when.
+      account.details_submitted = true;
+      return redirect(res, returnUrl);
+    }
+    Object.assign(account, { charges_enabled: true, details_submitted: true, bank_payments: account.bank_payments && choice !== "off" });
+    await sendEvent("account.updated", v1Account(account), account.id);
     return redirect(res, returnUrl);
   }
 
@@ -256,6 +356,14 @@ async function handleStripe(req, res, url) {
 
   // --- Test controls ---
   if (url.pathname === "/__stripe/events") return json(res, 200, events);
+  const approve = /^\/__stripe\/approve\/(acct_\w+)$/.exec(url.pathname);
+  if (approve && req.method === "POST") {
+    // Stripe finishing its review of an account (without sending a webhook).
+    const account = accounts.get(approve[1]);
+    if (!account) return json(res, 404, {});
+    account.charges_enabled = true;
+    return json(res, 200, v2Account(account, ["configuration.merchant", "requirements"]));
+  }
   const settle = /^\/__stripe\/settle\/(cs_test_\w+)$/.exec(url.pathname);
   if (settle && req.method === "POST") {
     const entry = sessions.get(settle[1]);
@@ -276,7 +384,7 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url, BASE);
   if (url.pathname === "/health") return json(res, 200, { ok: true });
 
-  if (/^\/(v1|connect|checkout|__stripe)\//.test(url.pathname)) {
+  if (/^\/(v1|v2|connect|checkout|__stripe)\//.test(url.pathname)) {
     const handled = await handleStripe(req, res, url);
     if (handled !== null) return;
     return json(res, 404, { message: "Not found" });

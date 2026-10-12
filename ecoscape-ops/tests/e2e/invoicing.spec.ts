@@ -3,7 +3,7 @@ import Stripe from "stripe";
 
 import { formatShortDate, todayInTimeZone } from "../../src/lib/dates";
 import { formatPrice } from "../../src/lib/schedule/constants";
-import { FAKE_ENV, randomNumber, resendStripeEvent, settleBankPayment, stripeEvents } from "./fakes";
+import { FAKE_ENV, approveStripeAccount, randomNumber, resendStripeEvent, settleBankPayment, stripeEvents } from "./fakes";
 import { PASSWORD, bookService, signUpBusiness, uniqueEmail } from "./helpers";
 
 const TIME_ZONE = "America/New_York";
@@ -222,6 +222,33 @@ test("a business without bank payments turned on offers card only", async ({ pag
   await cal.getByRole("button", { name: "Pay $65.00" }).click();
   await expect(cal.getByRole("button", { name: "Pay with card" })).toBeVisible();
   await expect(cal.getByRole("button", { name: "Pay by bank" })).toHaveCount(0);
+});
+
+test("online payments switch on when Stripe finishes reviewing the account, even without a webhook", async ({ page, browser }) => {
+  await signUpBusiness(page, "Review Lawns");
+  await page.goto("/invoices");
+  await page.getByRole("button", { name: "Connect Stripe" }).click();
+  await expect(page.getByRole("heading", { name: "Stripe onboarding (test)" })).toBeVisible();
+  await expect(page.getByText("Review Lawns")).toBeVisible();
+  const accountId = new URL(page.url()).pathname.split("/").at(-1)!;
+  await page.getByRole("button", { name: "Finish setup (Stripe reviews it later)" }).click();
+  await expect(page).toHaveURL(/\/invoices\?notice=stripe$/);
+  await expect(page.getByTestId("stripe-status")).toContainText("Finish setting up Stripe to let customers pay online.");
+
+  // Until then, customers can't pay online.
+  const customer = await addCustomer(page, { firstName: "Rae", lastName: "View" });
+  await createInvoice(page, customer, { lines: [["Mowing", "1", "65"]] });
+  await markSent(page);
+  const payLink = await page.getByLabel("Pay link").inputValue();
+  const rae = await customerPage(browser);
+  await rae.goto(payLink);
+  await expect(rae.getByText("To pay this invoice, please contact Review Lawns.")).toBeVisible();
+
+  await approveStripeAccount(accountId);
+  await page.goto("/invoices");
+  await expect(page.getByTestId("stripe-status")).toContainText("Online payments are on.");
+  await rae.reload();
+  await expect(rae.getByRole("button", { name: "Pay $65.00" })).toBeVisible();
 });
 
 test("with auto-invoicing on, completing a visit creates a draft invoice for it", async ({ page }) => {

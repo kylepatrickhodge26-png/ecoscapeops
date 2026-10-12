@@ -58,3 +58,10 @@ export async function resendStripeEvent(eventId: string) {
 export async function settleBankPayment(sessionId: string) {
   return (await fetch(`${FAKE_URL}/__stripe/settle/${sessionId}`, { method: "POST" })).json();
 }
+
+// Stripe finishing its review of a connected account, some time after onboarding (with no
+// webhook to say so).
+export async function approveStripeAccount(accountId: string) {
+  const response = await fetch(`${FAKE_URL}/__stripe/approve/${accountId}`, { method: "POST" });
+  if (!response.ok) throw new Error(`Fake Stripe has no account ${accountId}`);
+}
