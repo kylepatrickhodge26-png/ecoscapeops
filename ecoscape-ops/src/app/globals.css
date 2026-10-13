@@ -1472,9 +1472,12 @@ td:first-child {
   align-items: center;
   font-size: 13.5px;
 }
-.stripe-status p {
+.payment-options-status p {
   margin: 0 0 8px;
   font-size: 13.5px;
+}
+.payment-options-form textarea {
+  resize: vertical;
 }
 .invoice-table,
 .invoice-lines {
@@ -1645,10 +1648,49 @@ td:first-child {
 .pay-action {
   margin-top: 20px;
 }
+.pay-action h2 {
+  margin: 0 0 10px;
+  font-size: 17px;
+}
+.pay-options {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.pay-option.zelle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
 .pay-button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   width: 100%;
-  padding: 12px;
+  padding: 12px 14px;
   font-size: 15px;
+  text-decoration: none;
+}
+.pay-detail {
+  font-size: 12.5px;
+  font-weight: 400;
+  opacity: 0.85;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+.pay-note {
+  white-space: pre-line;
+  font-size: 14px;
+  margin: 0 0 10px;
 }
 .pay-foot {
   text-align: center;

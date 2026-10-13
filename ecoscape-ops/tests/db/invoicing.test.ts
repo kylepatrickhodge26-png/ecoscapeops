@@ -1,7 +1,8 @@
-// Invoicing: invoices, live statuses, payments (recorded by hand or through Stripe), and
-// the dashboard's money. Checks that crew members and other businesses can never see or
-// act on a business's invoices, that a payment is never recorded twice, and that the
-// dashboard counts a visit once even when it's also invoiced.
+// Invoicing: invoices, live statuses, payments (recorded by the owner), how customers can
+// pay each business, and the dashboard's money. Checks that crew members and other
+// businesses can never see or act on a business's invoices or payment options, that a
+// payment is never recorded twice, and that the dashboard counts a visit once even when
+// it's also invoiced.
 import { randomBytes, randomUUID } from "node:crypto";
 
 import { beforeAll, describe, expect, it } from "vitest";
@@ -25,7 +26,8 @@ const PERMISSION_DENIED = "42501";
 const INVALID = "22023";
 const NOT_FOUND = "P0002";
 const DUPLICATE = "23505";
-const NOT_READY = "55000";
+const CHECK_FAILED = "23514";
+const BAD_ENUM = "22P02";
 const TZ = "America/New_York";
 const today = todayIn(TZ);
 
@@ -86,44 +88,18 @@ function pay(client: Client, invoiceId: string, amount: number, opts: { requestI
 }
 
 const paymentsOf = async (owner: TestOwner, invoiceId: string) =>
-  (await owner.client.from("payments").select("id, amount, method, checkout_session_id").eq("invoice_id", invoiceId)).data!;
+  (await owner.client.from("payments").select("id, amount, method").eq("invoice_id", invoiceId)).data!;
 
-// Stripe bookkeeping is done by the app's server with the service role.
-const accountId = () => `acct_${randomBytes(8).toString("hex")}`;
-const sessionId = () => `cs_test_${randomBytes(12).toString("hex")}`;
-
-async function connectStripe(owner: TestOwner, chargesEnabled = true) {
-  const account = accountId();
-  const { error } = await adminClient()
-    .from("stripe_accounts")
-    .insert({ business_id: owner.businessId, account_id: account, charges_enabled: chargesEnabled, details_submitted: chargesEnabled });
-  expect(error).toBeNull();
-  return account;
-}
-
-async function startCheckout(owner: TestOwner, invoiceId: string) {
-  const { pay_token } = await invoiceOf(owner, invoiceId);
-  const { data, error } = await adminClient().rpc("begin_invoice_checkout", { token: pay_token }).single();
-  expect(error).toBeNull();
-  const id = sessionId();
-  const recorded = await adminClient().rpc("record_checkout_session", {
-    session_id: id,
-    invoice_id: data!.invoice_id,
-    account_id: data!.account_id,
-    amount: data!.amount,
-    url: `https://checkout.stripe.com/c/pay/${id}`,
-  });
-  expect(recorded.error).toBeNull();
-  return { sessionId: id, account: data!.account_id, amount: Number(data!.amount) };
-}
-
-const applyEvent = (session: string, account: string, outcome: string, amountCents?: number) =>
-  adminClient().rpc("apply_checkout_event", {
-    session_id: session,
-    account_id: account,
-    outcome,
-    ...(amountCents !== undefined ? { amount_cents: amountCents } : {}),
-  });
+const noOptions = { venmo: "", cash_app: "", paypal: "", zelle: "", pay_link: "", payment_note: "" };
+const setOptions = (client: Client, options: Partial<typeof noOptions>) => client.rpc("set_payment_options", { ...noOptions, ...options });
+const optionsOf = async (owner: TestOwner) =>
+  (
+    await owner.client
+      .from("invoice_settings")
+      .select("venmo, cash_app, paypal, zelle, pay_link, payment_note, auto_invoice")
+      .eq("business_id", owner.businessId)
+      .single()
+  ).data!;
 
 describe("creating and editing invoices", () => {
   let acme: TestOwner;
@@ -288,7 +264,7 @@ describe("recording payments by hand", () => {
     customerId = (await addCustomer(acme)).id;
   });
 
-  it("records cash, check or other payments on a sent invoice, up to the balance", async () => {
+  it("records cash, check, app, card or other payments on a sent invoice, up to the balance", async () => {
     const draft = await newInvoice(acme, customerId, [{ description: "Mowing", unit_price: 50 }]);
     expect((await pay(acme.client, draft, 10)).error?.code).toBe(INVALID);
 
@@ -296,9 +272,11 @@ describe("recording payments by hand", () => {
     expect((await pay(acme.client, id, 60)).error?.message).toBe("That's more than the balance due");
     expect((await pay(acme.client, id, 0)).error?.code).toBe(INVALID);
     expect((await pay(acme.client, id, 10, { receivedOn: addDays(today, 1) })).error?.code).toBe(INVALID);
-    expect((await pay(acme.client, id, 10, { method: "online" })).error?.code).toBe(INVALID);
-    expect((await pay(acme.client, id, 10, { method: "other" })).error).toBeNull();
-    expect((await invoiceOf(acme, id)).balance).toBe(40);
+    // Stripe's old "paid online" method is gone.
+    expect((await pay(acme.client, id, 10, { method: "online" })).error?.code).toBe(BAD_ENUM);
+    for (const method of ["venmo", "zelle", "card", "other"]) expect((await pay(acme.client, id, 5, { method })).error).toBeNull();
+    expect((await invoiceOf(acme, id)).balance).toBe(30);
+    expect((await paymentsOf(acme, id)).map((p) => p.method).sort()).toEqual(["card", "other", "venmo", "zelle"]);
   });
 
   it("records a payment once, however many times the same form is submitted", async () => {
@@ -351,14 +329,13 @@ describe("crew members, other businesses and signed-out visitors", () => {
     invoiceId = await newInvoice(acme, customer.id, [{ job_id: job.id, description: "Mowing", unit_price: 250 }], { send: true });
     paymentId = (await pay(acme.client, invoiceId, 50)).data!;
     token = (await invoiceOf(acme, invoiceId)).pay_token;
-    await connectStripe(acme);
+    expect((await setOptions(acme.client, { venmo: "Acme-Lawn", zelle: "pay@acme.test", payment_note: "Thanks!" })).error).toBeNull();
   });
 
-  const tables = ["invoices", "invoice_lines", "payments", "invoice_settings", "stripe_accounts", "checkout_sessions"] as const;
+  const tables = ["invoices", "invoice_lines", "payments", "invoice_settings"] as const;
 
   it("a crew member sees none of it, not even for the visits they did", async () => {
     for (const table of tables) expect((await maria.client.from(table).select("*")).data).toEqual([]);
-    expect((await maria.client.from("stripe_events").select("*")).error?.code).toBe(PERMISSION_DENIED);
   });
 
   it("a crew member can't create, send, cancel, pay or change anything", async () => {
@@ -371,9 +348,11 @@ describe("crew members, other businesses and signed-out visitors", () => {
       pay(maria.client, invoiceId, 10),
       maria.client.rpc("delete_manual_payment", { payment_id: paymentId }),
       maria.client.rpc("set_auto_invoice", { enabled: true }),
+      setOptions(maria.client, { venmo: "Maria-Takes-It" }),
     ];
     for (const { error } of await Promise.all(calls)) expect(error?.code).toBe(PERMISSION_DENIED);
     expect(await invoiceOf(acme, invoiceId)).toMatchObject({ status: "sent", amount_paid: 50 });
+    expect(await optionsOf(acme)).toMatchObject({ venmo: "Acme-Lawn", zelle: "pay@acme.test" });
   });
 
   it("another business can't see this business's invoices, even by id", async () => {
@@ -398,11 +377,19 @@ describe("crew members, other businesses and signed-out visitors", () => {
     expect(await paymentsOf(acme, invoiceId)).toHaveLength(1);
   });
 
+  it("another business's payment options are its own: setting them never changes this business's", async () => {
+    expect((await setOptions(birch.client, { venmo: "Birch-Trees", pay_link: "https://birch.example/pay" })).error).toBeNull();
+    expect(await optionsOf(acme)).toMatchObject({ venmo: "Acme-Lawn", zelle: "pay@acme.test", pay_link: null, payment_note: "Thanks!" });
+    // So a customer paying Acme is never sent to Birch.
+    expect((await anonClient().rpc("public_invoice", { token })).data![0]).toMatchObject({ venmo: "Acme-Lawn", pay_link: null });
+  });
+
   it("signed-out visitors get nothing from the tables or functions", async () => {
     const anon = anonClient();
     for (const table of tables) expect((await anon.from(table).select("*")).error?.code).toBe(PERMISSION_DENIED);
     expect((await pay(anon, invoiceId, 10)).error?.code).toBe(PERMISSION_DENIED);
     expect((await anon.rpc("send_invoice", { invoice_id: invoiceId })).error?.code).toBe(PERMISSION_DENIED);
+    expect((await setOptions(anon, { venmo: "Anon-Takes-It" })).error?.code).toBe(PERMISSION_DENIED);
   });
 
   it("the pay link shows its one invoice to anyone who has it, and nothing more", async () => {
@@ -420,8 +407,12 @@ describe("crew members, other businesses and signed-out visitors", () => {
         amount_paid: 50,
         balance: 200,
         lines: [{ description: "Mowing", quantity: 1, unit_price: 250, amount: 250 }],
-        can_pay_online: true,
-        payment_processing: false,
+        venmo: "Acme-Lawn",
+        cash_app: null,
+        paypal: null,
+        zelle: "pay@acme.test",
+        pay_link: null,
+        payment_note: "Thanks!",
       },
     ]);
     // No phone number, address, ids or other invoices.
@@ -498,135 +489,77 @@ describe("auto-invoicing when a visit is completed", () => {
   });
 });
 
-describe("Stripe payments", () => {
+describe("how customers can pay", () => {
   let acme: TestOwner;
-  let birch: TestOwner;
-  let acmeAccount: string;
-  let birchAccount: string;
-  let customerId: string;
 
   beforeAll(async () => {
-    acme = await signUpOwner("inv-stripe", "Acme Lawn Care", { time_zone: TZ });
-    birch = await signUpOwner("inv-stripe-birch", "Birch Tree Services", { time_zone: TZ });
-    customerId = (await addCustomer(acme)).id;
-    acmeAccount = await connectStripe(acme);
-    birchAccount = await connectStripe(birch);
+    acme = await signUpOwner("inv-options", "Option Lawns", { time_zone: TZ });
   });
 
-  it("only the app's server (service role) can start checkouts or record Stripe payments", async () => {
-    const id = await newInvoice(acme, customerId, [{ description: "Mowing", unit_price: 65 }], { send: true });
-    const { pay_token } = await invoiceOf(acme, id);
-    for (const client of [acme.client, anonClient()]) {
-      expect((await client.rpc("begin_invoice_checkout", { token: pay_token })).error?.code).toBe(PERMISSION_DENIED);
-      expect((await client.rpc("apply_checkout_event", { session_id: sessionId(), account_id: acmeAccount, outcome: "paid" })).error?.code).toBe(
-        PERMISSION_DENIED,
-      );
-      expect(
-        (await client.rpc("record_checkout_session", { session_id: sessionId(), invoice_id: id, account_id: acmeAccount, amount: 65, url: "x" })).error
-          ?.code,
-      ).toBe(PERMISSION_DENIED);
-      expect((await client.rpc("record_stripe_event", { event_id: "evt_1", event_type: "x" })).error?.code).toBe(PERMISSION_DENIED);
-    }
-    for (const table of ["stripe_accounts", "checkout_sessions"] as const) {
-      expect((await acme.client.from(table).insert({} as never)).error?.code).toBe(PERMISSION_DENIED);
-    }
-  });
-
-  it("records a card payment once, however many times Stripe sends the event", async () => {
-    const id = await newInvoice(acme, customerId, [{ description: "Mowing", unit_price: 65 }], { send: true });
-    const checkout = await startCheckout(acme, id);
-    expect(checkout).toMatchObject({ account: acmeAccount, amount: 65 });
-
-    expect((await applyEvent(checkout.sessionId, acmeAccount, "paid", 6500)).data).toBe("recorded");
-    expect((await applyEvent(checkout.sessionId, acmeAccount, "paid", 6500)).data).toBe("already_recorded");
-    expect((await applyEvent(checkout.sessionId, acmeAccount, "paid_later", 6500)).data).toBe("already_recorded");
-    // Stripe retrying several deliveries at the same moment.
-    await Promise.all([1, 2, 3].map(() => applyEvent(checkout.sessionId, acmeAccount, "paid", 6500)));
-
-    expect(await paymentsOf(acme, id)).toEqual([expect.objectContaining({ amount: 65, method: "online", checkout_session_id: checkout.sessionId })]);
-    expect(await invoiceOf(acme, id)).toMatchObject({ display_status: "paid", amount_paid: 65 });
-  });
-
-  it("ignores checkouts EcoScape Ops didn't start, or events from another account", async () => {
-    const id = await newInvoice(acme, customerId, [{ description: "Mowing", unit_price: 65 }], { send: true });
-    const checkout = await startCheckout(acme, id);
-    // Another business's Stripe account can't mark this invoice paid.
-    expect((await applyEvent(checkout.sessionId, birchAccount, "paid", 6500)).data).toBe("unknown_checkout");
-    expect((await applyEvent(sessionId(), acmeAccount, "paid", 6500)).data).toBe("unknown_checkout");
-    expect(await paymentsOf(acme, id)).toEqual([]);
-  });
-
-  it("a checkout can only be started on the invoice's own business's account", async () => {
-    const id = await newInvoice(acme, customerId, [{ description: "Mowing", unit_price: 65 }], { send: true });
-    const { error } = await adminClient().rpc("record_checkout_session", {
-      session_id: sessionId(),
-      invoice_id: id,
-      account_id: birchAccount,
-      amount: 65,
-      url: "https://checkout.stripe.com/x",
+  it("saves the business's payment apps, without the @ or $ people type", async () => {
+    const { error } = await setOptions(acme.client, {
+      venmo: " @Option-Lawns ",
+      cash_app: "$OptionLawns",
+      paypal: "OptionLawns",
+      zelle: "Pay@OptionLawns.com",
+      pay_link: "https://square.link/u/AbC123",
+      payment_note: "  Checks payable to Option Lawns LLC  ",
     });
+    expect(error).toBeNull();
+    expect(await optionsOf(acme)).toEqual({
+      venmo: "Option-Lawns",
+      cash_app: "OptionLawns",
+      paypal: "OptionLawns",
+      zelle: "pay@optionlawns.com",
+      pay_link: "https://square.link/u/AbC123",
+      payment_note: "Checks payable to Option Lawns LLC",
+      auto_invoice: false,
+    });
+  });
+
+  it("keeps a Zelle phone number in +1 form, and clears what's left blank", async () => {
+    expect((await setOptions(acme.client, { zelle: "(631) 555-0100" })).error).toBeNull();
+    expect(await optionsOf(acme)).toMatchObject({ venmo: null, cash_app: null, paypal: null, zelle: "+16315550100", pay_link: null, payment_note: "" });
+  });
+
+  it.each([
+    ["venmo", "abc", CHECK_FAILED],
+    ["venmo", "has space", CHECK_FAILED],
+    ["cash_app", "$12345", CHECK_FAILED],
+    ["paypal", "option.lawns", CHECK_FAILED],
+    ["zelle", "not-an-email", INVALID],
+    ["zelle", "+44 20 7946 0958", INVALID],
+    ["zelle", "a@b", CHECK_FAILED],
+    ["pay_link", "http://square.link/u/AbC123", CHECK_FAILED],
+    ["pay_link", "javascript:alert(1)", CHECK_FAILED],
+    ["pay_link", 'https://x.example/"><script>alert(1)</script>', CHECK_FAILED],
+    ["payment_note", "x".repeat(301), CHECK_FAILED],
+  ] as const)("refuses %s %j", async (field, value, code) => {
+    expect((await setOptions(acme.client, { venmo: "Option-Lawns" })).error).toBeNull();
+    expect((await setOptions(acme.client, { [field]: value })).error?.code).toBe(code);
+    expect((await optionsOf(acme)).venmo).toBe("Option-Lawns");
+  });
+
+  it("payment options and the auto-invoice setting don't overwrite each other", async () => {
+    await acme.client.rpc("set_auto_invoice", { enabled: true });
+    await setOptions(acme.client, { cash_app: "OptionLawns" });
+    expect(await optionsOf(acme)).toMatchObject({ auto_invoice: true, cash_app: "OptionLawns" });
+    await acme.client.rpc("set_auto_invoice", { enabled: false });
+    expect(await optionsOf(acme)).toMatchObject({ auto_invoice: false, cash_app: "OptionLawns" });
+  });
+
+  it("nobody writes them directly, not even the owner", async () => {
+    const { error } = await acme.client.from("invoice_settings").update({ venmo: "Sneaky-Change" }).eq("business_id", acme.businessId);
     expect(error?.code).toBe(PERMISSION_DENIED);
+    expect((await optionsOf(acme)).venmo).not.toBe("Sneaky-Change");
   });
 
-  it("reuses an open checkout for the same amount, so two taps don't start two payments", async () => {
-    const id = await newInvoice(acme, customerId, [{ description: "Mowing", unit_price: 100 }], { send: true });
-    const first = await startCheckout(acme, id);
-    const { pay_token } = await invoiceOf(acme, id);
-    const { data } = await adminClient().rpc("begin_invoice_checkout", { token: pay_token }).single();
-    expect(data!.reusable_url).toBe(`https://checkout.stripe.com/c/pay/${first.sessionId}`);
-
-    // After a cash payment the balance differs, so a new checkout is needed.
-    await pay(acme.client, id, 25);
-    const { data: after } = await adminClient().rpc("begin_invoice_checkout", { token: pay_token }).single();
-    expect(after).toMatchObject({ amount: 75, reusable_url: null });
-  });
-
-  it("follows a bank payment from processing to cleared, or failed", async () => {
-    const id = await newInvoice(acme, customerId, [{ description: "Mowing", unit_price: 300 }], { send: true });
-    const { pay_token } = await invoiceOf(acme, id);
-    const checkout = await startCheckout(acme, id);
-    expect((await applyEvent(checkout.sessionId, acmeAccount, "processing")).data).toBe("processing");
-    const { data: shown } = await anonClient().rpc("public_invoice", { token: pay_token });
-    expect(shown![0]).toMatchObject({ payment_processing: true, status: "sent" });
-
-    expect((await applyEvent(checkout.sessionId, acmeAccount, "paid_later", 30000)).data).toBe("recorded");
-    expect(await paymentsOf(acme, id)).toEqual([expect.objectContaining({ amount: 300, method: "bank_transfer" })]);
-
-    const other = await newInvoice(acme, customerId, [{ description: "Mowing", unit_price: 50 }], { send: true });
-    const failing = await startCheckout(acme, other);
-    await applyEvent(failing.sessionId, acmeAccount, "processing");
-    expect((await applyEvent(failing.sessionId, acmeAccount, "failed")).data).toBe("failed");
-    expect(await invoiceOf(acme, other)).toMatchObject({ display_status: "sent", amount_paid: 0 });
-  });
-
-  it("won't start a checkout before the business can take payments, or for a draft or paid invoice", async () => {
-    const pending = await signUpOwner("inv-stripe-pending", "Pending Lawns", { time_zone: TZ });
-    await connectStripe(pending, false);
-    const invoice = await newInvoice(pending, (await addCustomer(pending)).id, [{ description: "Mowing", unit_price: 65 }], { send: true });
-    const { data: shown } = await anonClient().rpc("public_invoice", { token: (await invoiceOf(pending, invoice)).pay_token });
-    expect(shown![0].can_pay_online).toBe(false);
-    expect((await adminClient().rpc("begin_invoice_checkout", { token: (await invoiceOf(pending, invoice)).pay_token })).error?.code).toBe(NOT_READY);
-
-    const draft = await newInvoice(acme, customerId, [{ description: "Mowing", unit_price: 65 }]);
-    expect((await adminClient().rpc("begin_invoice_checkout", { token: (await invoiceOf(acme, draft)).pay_token })).error?.code).toBe(NOT_FOUND);
-
-    const paid = await newInvoice(acme, customerId, [{ description: "Mowing", unit_price: 65 }], { send: true });
-    await pay(acme.client, paid, 65);
-    expect((await adminClient().rpc("begin_invoice_checkout", { token: (await invoiceOf(acme, paid)).pay_token })).error?.code).toBe(INVALID);
-  });
-
-  it("logs each Stripe event once", async () => {
-    const eventId = `evt_${randomBytes(8).toString("hex")}`;
-    expect((await adminClient().rpc("record_stripe_event", { event_id: eventId, event_type: "checkout.session.completed" })).data).toBe(true);
-    expect((await adminClient().rpc("record_stripe_event", { event_id: eventId, event_type: "checkout.session.completed" })).data).toBe(false);
-  });
-
-  it("each owner sees only their own checkouts and Stripe account", async () => {
-    const { data: accounts } = await birch.client.from("stripe_accounts").select("account_id");
-    expect(accounts).toEqual([{ account_id: birchAccount }]);
-    const { data: sessions } = await birch.client.from("checkout_sessions").select("id");
-    expect(sessions).toEqual([]);
-    expect((await acme.client.from("checkout_sessions").select("id")).data!.length).toBeGreaterThan(0);
+  it("an invoice from before any are set up still opens, with nothing to pay with", async () => {
+    const fresh = await signUpOwner("inv-options-none", "Plain Lawns", { time_zone: TZ });
+    const customer = await addCustomer(fresh);
+    const id = await newInvoice(fresh, customer.id, [{ description: "Mowing", unit_price: 40 }], { send: true });
+    const { data } = await anonClient().rpc("public_invoice", { token: (await invoiceOf(fresh, id)).pay_token });
+    expect(data![0]).toMatchObject({ balance: 40, venmo: null, cash_app: null, paypal: null, zelle: null, pay_link: null, payment_note: "" });
   });
 });
 

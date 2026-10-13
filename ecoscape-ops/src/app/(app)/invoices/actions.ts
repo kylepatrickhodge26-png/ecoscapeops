@@ -5,9 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireOwner } from "@/lib/auth";
+import { paymentOptionsSchema, type PaymentOptionField } from "@/lib/invoices/payment-options";
 import { invoiceSchema, paymentSchema, type InvoiceFormValues } from "@/lib/invoices/schema";
-import { siteOrigin } from "@/lib/site-origin";
-import { stripeOnboardingLink } from "@/lib/stripe/connect";
 import { createClient } from "@/lib/supabase/server";
 
 // Invoices are owner-only. The database enforces that and every invoice rule regardless;
@@ -149,7 +148,7 @@ export type PaymentFormState = {
   fieldErrors?: Partial<Record<PaymentField, string>>;
 };
 
-// Records a cash/check/other payment. The form carries a request id, so submitting it
+// Records a payment the business received. The form carries a request id, so submitting it
 // twice (a double tap, a retry) records the payment once.
 export async function recordPayment(invoiceId: string, _prev: PaymentFormState, formData: FormData): Promise<PaymentFormState> {
   await requireOwner();
@@ -207,10 +206,42 @@ export async function setAutoInvoice(enabled: boolean): Promise<{ error?: string
   return {};
 }
 
-// Starts (or continues) Stripe's own onboarding for this business's Stripe account.
-export async function connectStripe(): Promise<{ error?: string }> {
-  const membership = await requireOwner();
-  const result = await stripeOnboardingLink(membership, await siteOrigin());
-  if ("error" in result) return result;
-  redirect(result.url);
+export type PaymentOptionsFormValues = Record<PaymentOptionField, string>;
+export type PaymentOptionsFormState = {
+  values: PaymentOptionsFormValues;
+  error?: string;
+  fieldErrors?: Partial<Record<PaymentOptionField, string>>;
+};
+
+// Saves how customers can pay this business (shown on every sent invoice's pay page).
+export async function savePaymentOptions(_prev: PaymentOptionsFormState, formData: FormData): Promise<PaymentOptionsFormState> {
+  await requireOwner();
+  const field = (name: PaymentOptionField) => String(formData.get(name) ?? "");
+  const values: PaymentOptionsFormValues = {
+    venmo: field("venmo"),
+    cash_app: field("cash_app"),
+    paypal: field("paypal"),
+    zelle: field("zelle"),
+    pay_link: field("pay_link"),
+    payment_note: field("payment_note"),
+  };
+  const parsed = paymentOptionsSchema.safeParse(values);
+  if (!parsed.success) {
+    const fieldErrors: PaymentOptionsFormState["fieldErrors"] = {};
+    for (const issue of parsed.error.issues) fieldErrors[issue.path[0] as PaymentOptionField] ??= issue.message;
+    return { values, fieldErrors };
+  }
+
+  const supabase = await createClient();
+  const { payment_note, ...apps } = parsed.data;
+  // Blank clears a field.
+  const blankIfNone = Object.fromEntries(Object.entries(apps).map(([k, v]) => [k, v ?? ""])) as Record<keyof typeof apps, string>;
+  const { error } = await supabase.rpc("set_payment_options", { ...blankIfNone, payment_note });
+  if (error) {
+    if (error.code === "22023") return { values, error: `${error.message}.` };
+    if (error.code === "23514") return { values, error: "One of those doesn't look right. Please check it and try again." };
+    console.error("Saving payment options failed", error);
+    return { values, error: "We couldn't save your payment options. Please try again." };
+  }
+  redirect("/invoices?notice=payment-options");
 }

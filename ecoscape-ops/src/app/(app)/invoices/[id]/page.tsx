@@ -10,12 +10,13 @@ import { requireOwner } from "@/lib/auth";
 import { customerDisplayName } from "@/lib/customers/schema";
 import { formatShortDate, todayInTimeZone } from "@/lib/dates";
 import { PAYMENT_METHOD_LABELS, invoiceNumber } from "@/lib/invoices/constants";
+import { paymentOptionsSummary } from "@/lib/invoices/payment-options";
 import { formatPrice } from "@/lib/schedule/constants";
 import { siteOrigin } from "@/lib/site-origin";
 import { smsLink, toE164 } from "@/lib/sms";
 
 import { cancelInvoice, changeDueDate, deleteDraftInvoice, deletePayment, markInvoiceSent, recordPayment } from "../actions";
-import { getInvoiceOr404 } from "../queries";
+import { getInvoiceOr404, invoiceSettings } from "../queries";
 import { DueDateForm } from "./due-date-form";
 import { PaymentForm } from "./payment-form";
 import { SendInvoice } from "./send-invoice";
@@ -34,7 +35,8 @@ export default async function InvoicePage(props: PageProps<"/invoices/[id]">) {
   const { business } = await requireOwner();
   const { id } = await props.params;
   const { notice } = await props.searchParams;
-  const invoice = await getInvoiceOr404(id);
+  const [invoice, settings] = await Promise.all([getInvoiceOr404(id), invoiceSettings(business.id)]);
+  const ways = paymentOptionsSummary(settings.paymentOptions);
   const today = todayInTimeZone(business.time_zone);
   const customer = invoice.customer;
   const name = customer ? customerDisplayName(customer) : "Deleted customer";
@@ -42,7 +44,6 @@ export default async function InvoicePage(props: PageProps<"/invoices/[id]">) {
   const payUrl = `${await siteOrigin()}/pay/${invoice.pay_token}`;
   const isDraft = invoice.status === "draft";
   const isOpen = invoice.status === "sent" && balance > 0;
-  const processing = invoice.checkout_sessions.filter((s) => s.status === "processing");
 
   const phone = customer?.sms_opt_in ? toE164(customer.phone) : null;
   const message =
@@ -99,15 +100,7 @@ export default async function InvoicePage(props: PageProps<"/invoices/[id]">) {
       </div>
 
       {typeof notice === "string" && NOTICES[notice] && <Notice tone="success">{NOTICES[notice]}</Notice>}
-      {processing.map((s) => (
-        <Notice key={s.id} tone="warn">
-          A bank payment of {formatPrice(s.amount)} is on its way (started {formatShortDate(s.created_at.slice(0, 10))}). Bank payments
-          take a few business days to clear.
-        </Notice>
-      ))}
-      {balance < 0 && (
-        <Notice tone="warn">Overpaid by {formatPrice(-balance)}. Refund the difference in Stripe or to the customer directly.</Notice>
-      )}
+      {balance < 0 && <Notice tone="warn">Overpaid by {formatPrice(-balance)}. Refund the difference to the customer.</Notice>}
 
       <div className="panel">
         <div className="panel-head">
@@ -164,7 +157,14 @@ export default async function InvoicePage(props: PageProps<"/invoices/[id]">) {
           </div>
           <div className="panel-body">
             <p className="hint">
-              The customer can see this invoice and pay it online with their pay link.
+              {ways ? (
+                <>The pay link shows the customer this invoice and how to pay you ({ways}).</>
+              ) : (
+                <>
+                  The pay link shows the customer this invoice. <Link href="/invoices/payment-options">Add your payment apps</Link> so
+                  they can pay from it too.
+                </>
+              )}
               {!phone && " They haven't opted in to texts (or have no mobile number), so copy the link to email it."}
             </p>
             <SendInvoice
@@ -192,17 +192,15 @@ export default async function InvoicePage(props: PageProps<"/invoices/[id]">) {
                   <li key={p.id} className="payment-row" data-payment-method={p.method}>
                     <span>
                       <b>{formatPrice(p.amount)}</b> · {PAYMENT_METHOD_LABELS[p.method]} · {formatShortDate(p.received_on)}
-                      {p.note && p.method !== "online" && p.method !== "bank_transfer" && <span className="subtext"> · {p.note}</span>}
+                      {p.note && <span className="subtext"> · {p.note}</span>}
                     </span>
-                    {(p.method === "cash" || p.method === "check" || p.method === "other") && (
-                      <ConfirmButton
-                        action={deletePayment.bind(null, invoice.id, p.id)}
-                        label="Remove"
-                        confirmLabel="Remove"
-                        pendingLabel="Removing…"
-                        confirmText={<>Remove this {formatPrice(p.amount)} payment? Only do this if it was recorded by mistake.</>}
-                      />
-                    )}
+                    <ConfirmButton
+                      action={deletePayment.bind(null, invoice.id, p.id)}
+                      label="Remove"
+                      confirmLabel="Remove"
+                      pendingLabel="Removing…"
+                      confirmText={<>Remove this {formatPrice(p.amount)} payment? Only do this if it was recorded by mistake.</>}
+                    />
                   </li>
                 ))}
               </ul>
@@ -210,7 +208,7 @@ export default async function InvoicePage(props: PageProps<"/invoices/[id]">) {
 
             {isOpen && (
               <>
-                <h4 className="subhead">Record a cash or check payment</h4>
+                <h4 className="subhead">Record a payment</h4>
                 <PaymentForm
                   action={recordPayment.bind(null, invoice.id)}
                   today={today}
