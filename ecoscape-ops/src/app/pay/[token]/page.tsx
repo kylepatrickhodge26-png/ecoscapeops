@@ -4,17 +4,19 @@ import { notFound } from "next/navigation";
 import { InvoiceStatusPill } from "@/components/invoice-status";
 import { formatShortDate } from "@/lib/dates";
 import { invoiceNumber } from "@/lib/invoices/constants";
+import { payOptions } from "@/lib/invoices/payment-options";
 import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
-import { PayButton } from "./pay-button";
+import { CopyButton } from "./copy-button";
 
 // A customer's invoice, opened from the pay link the business sent them. No sign-in:
-// the link's secret token is the key, and it shows that one invoice and nothing else.
+// the link's secret token is the key, and it shows that one invoice and nothing else,
+// with the ways that business takes payment. The money goes straight to the business.
 export const metadata: Metadata = {
   title: "Invoice",
   robots: { index: false, follow: false },
-  // Don't pass the pay link on to other sites (e.g. Stripe) in the Referer header.
+  // Don't pass the pay link on to other sites (e.g. Venmo) in the Referer header.
   referrer: "no-referrer",
 };
 
@@ -22,7 +24,6 @@ type Line = { description: string; quantity: number; unit_price: number; amount:
 
 export default async function PayPage(props: PageProps<"/pay/[token]">) {
   const { token } = await props.params;
-  const { paid } = await props.searchParams;
   if (!/^[0-9a-f]{64}$/.test(token)) notFound();
 
   const supabase = await createClient();
@@ -32,6 +33,19 @@ export default async function PayPage(props: PageProps<"/pay/[token]">) {
   if (!invoice) notFound();
   const lines = invoice.lines as Line[];
   const isPaid = invoice.status === "paid";
+  const reference = `Invoice ${invoiceNumber(invoice.number)}`;
+  const options = payOptions(
+    {
+      venmo: invoice.venmo || null,
+      cash_app: invoice.cash_app || null,
+      paypal: invoice.paypal || null,
+      zelle: invoice.zelle || null,
+      pay_link: invoice.pay_link || null,
+      payment_note: invoice.payment_note,
+    },
+    invoice.balance,
+    reference,
+  );
 
   return (
     <main className="pay-card">
@@ -86,25 +100,46 @@ export default async function PayPage(props: PageProps<"/pay/[token]">) {
           <p className="notice success" role="status">
             Paid in full. Thank you!
           </p>
-        ) : invoice.payment_processing ? (
-          <p className="notice" role="status">
-            Your bank payment is on its way. Bank payments take a few business days to clear; there&apos;s nothing more you
-            need to do.
-          </p>
-        ) : paid === "1" ? (
-          <p className="notice" role="status">
-            Thanks! Your payment is being confirmed. <a href={`/pay/${token}`}>Refresh</a> in a moment to see it.
-          </p>
-        ) : invoice.can_pay_online ? (
-          <>
-            <PayButton token={token} label={`Pay ${formatPrice(invoice.balance)}`} />
-            <p className="hint">
-              You&apos;ll pay on Stripe&apos;s secure page, by card or US bank account. {invoice.business_name} never sees your card
-              number.
-            </p>
-          </>
         ) : (
-          <p className="hint">To pay this invoice, please contact {invoice.business_name}.</p>
+          <>
+            {options.length > 0 && (
+              <>
+                <h2>Pay {formatPrice(invoice.balance)}</h2>
+                <ul className="pay-options">
+                  {options.map((o) => (
+                    <li key={o.app} className={`pay-option ${o.app}`}>
+                      {o.app === "zelle" ? (
+                        <>
+                          <div>
+                            <b>Zelle</b>
+                            <span className="subtext">
+                              {" "}
+                              · Send {formatPrice(invoice.balance)} to <b data-testid="zelle-to">{o.send_to}</b> from your bank&apos;s app
+                            </span>
+                          </div>
+                          <CopyButton text={o.send_to} label="Copy" />
+                        </>
+                      ) : (
+                        <a className="btn pay-button" href={o.href} target="_blank" rel="noopener noreferrer">
+                          {o.app === "pay_link" ? `Pay online` : `Pay with ${o.label}`}
+                          <span className="pay-detail">{o.detail}</span>
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {invoice.payment_note && <p className="pay-note">{invoice.payment_note}</p>}
+            {options.length > 0 ? (
+              <p className="hint">
+                Please include &ldquo;{reference}&rdquo; with your payment. Your payment goes straight to {invoice.business_name}; this
+                invoice will show as paid once they&apos;ve received it.
+              </p>
+            ) : (
+              !invoice.payment_note && <p className="hint">To pay this invoice, please contact {invoice.business_name}.</p>
+            )}
+          </>
         )}
       </div>
     </main>

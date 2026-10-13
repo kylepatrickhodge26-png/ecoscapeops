@@ -62,57 +62,6 @@ export type Database = {
         }
         Relationships: []
       }
-      checkout_sessions: {
-        Row: {
-          account_id: string
-          amount: number
-          business_id: string
-          created_at: string
-          id: string
-          invoice_id: string
-          status: Database["public"]["Enums"]["checkout_status"]
-          updated_at: string
-          url: string
-        }
-        Insert: {
-          account_id: string
-          amount: number
-          business_id: string
-          created_at?: string
-          id: string
-          invoice_id: string
-          status?: Database["public"]["Enums"]["checkout_status"]
-          updated_at?: string
-          url: string
-        }
-        Update: {
-          account_id?: string
-          amount?: number
-          business_id?: string
-          created_at?: string
-          id?: string
-          invoice_id?: string
-          status?: Database["public"]["Enums"]["checkout_status"]
-          updated_at?: string
-          url?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "checkout_sessions_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "checkout_sessions_invoice_id_business_id_fkey"
-            columns: ["invoice_id", "business_id"]
-            isOneToOne: false
-            referencedRelation: "invoices"
-            referencedColumns: ["id", "business_id"]
-          },
-        ]
-      }
       crew_members: {
         Row: {
           business_id: string
@@ -347,20 +296,38 @@ export type Database = {
         Row: {
           auto_invoice: boolean
           business_id: string
+          cash_app: string | null
           next_number: number
+          pay_link: string | null
+          payment_note: string
+          paypal: string | null
           updated_at: string
+          venmo: string | null
+          zelle: string | null
         }
         Insert: {
           auto_invoice?: boolean
           business_id: string
+          cash_app?: string | null
           next_number?: number
+          pay_link?: string | null
+          payment_note?: string
+          paypal?: string | null
           updated_at?: string
+          venmo?: string | null
+          zelle?: string | null
         }
         Update: {
           auto_invoice?: boolean
           business_id?: string
+          cash_app?: string | null
           next_number?: number
+          pay_link?: string | null
+          payment_note?: string
+          paypal?: string | null
           updated_at?: string
+          venmo?: string | null
+          zelle?: string | null
         }
         Relationships: [
           {
@@ -527,7 +494,6 @@ export type Database = {
         Row: {
           amount: number
           business_id: string
-          checkout_session_id: string | null
           created_at: string
           id: string
           invoice_id: string
@@ -535,12 +501,11 @@ export type Database = {
           note: string
           received_on: string
           recorded_by: string | null
-          request_id: string | null
+          request_id: string
         }
         Insert: {
           amount: number
           business_id: string
-          checkout_session_id?: string | null
           created_at?: string
           id?: string
           invoice_id: string
@@ -548,12 +513,11 @@ export type Database = {
           note?: string
           received_on: string
           recorded_by?: string | null
-          request_id?: string | null
+          request_id: string
         }
         Update: {
           amount?: number
           business_id?: string
-          checkout_session_id?: string | null
           created_at?: string
           id?: string
           invoice_id?: string
@@ -561,7 +525,7 @@ export type Database = {
           note?: string
           received_on?: string
           recorded_by?: string | null
-          request_id?: string | null
+          request_id?: string
         }
         Relationships: [
           {
@@ -569,13 +533,6 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_checkout_session_id_fkey"
-            columns: ["checkout_session_id"]
-            isOneToOne: true
-            referencedRelation: "checkout_sessions"
             referencedColumns: ["id"]
           },
           {
@@ -767,59 +724,6 @@ export type Database = {
           },
         ]
       }
-      stripe_accounts: {
-        Row: {
-          account_id: string
-          business_id: string
-          charges_enabled: boolean
-          created_at: string
-          details_submitted: boolean
-          updated_at: string
-        }
-        Insert: {
-          account_id: string
-          business_id: string
-          charges_enabled?: boolean
-          created_at?: string
-          details_submitted?: boolean
-          updated_at?: string
-        }
-        Update: {
-          account_id?: string
-          business_id?: string
-          charges_enabled?: boolean
-          created_at?: string
-          details_submitted?: boolean
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "stripe_accounts_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: true
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      stripe_events: {
-        Row: {
-          id: string
-          received_at: string
-          type: string
-        }
-        Insert: {
-          id: string
-          received_at?: string
-          type: string
-        }
-        Update: {
-          id?: string
-          received_at?: string
-          type?: string
-        }
-        Relationships: []
-      }
       weather_texts: {
         Row: {
           business_id: string
@@ -879,32 +783,11 @@ export type Database = {
           invite_token: string
         }[]
       }
-      apply_checkout_event: {
-        Args: {
-          account_id: string
-          amount_cents?: number
-          outcome: string
-          session_id: string
-        }
-        Returns: string
-      }
       balance: {
         Args: { "": Database["public"]["Tables"]["invoices"]["Row"] }
         Returns: {
           error: true
         } & "the function public.balance with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache"
-      }
-      begin_invoice_checkout: {
-        Args: { token: string }
-        Returns: {
-          account_id: string
-          amount: number
-          business_id: string
-          business_name: string
-          invoice_id: string
-          number: number
-          reusable_url: string
-        }[]
       }
       business_service_area: {
         Args: never
@@ -1009,15 +892,19 @@ export type Database = {
           amount_paid: number
           balance: number
           business_name: string
-          can_pay_online: boolean
+          cash_app: string
           customer_name: string
           due_date: string
           issue_date: string
           lines: Json
           number: number
-          payment_processing: boolean
+          pay_link: string
+          payment_note: string
+          paypal: string
           status: string
           total: number
+          venmo: string
+          zelle: string
         }[]
       }
       rain_delay_texts: {
@@ -1034,16 +921,6 @@ export type Database = {
           to_phone: string
         }[]
       }
-      record_checkout_session: {
-        Args: {
-          account_id: string
-          amount: number
-          invoice_id: string
-          session_id: string
-          url: string
-        }
-        Returns: undefined
-      }
       record_manual_payment: {
         Args: {
           amount: number
@@ -1054,10 +931,6 @@ export type Database = {
           request_id: string
         }
         Returns: string
-      }
-      record_stripe_event: {
-        Args: { event_id: string; event_type: string }
-        Returns: boolean
       }
       regenerate_crew_invite: {
         Args: { crew_member_id: string }
@@ -1079,11 +952,21 @@ export type Database = {
       }
       send_invoice: { Args: { invoice_id: string }; Returns: undefined }
       set_auto_invoice: { Args: { enabled: boolean }; Returns: undefined }
+      set_payment_options: {
+        Args: {
+          cash_app: string
+          pay_link: string
+          payment_note: string
+          paypal: string
+          venmo: string
+          zelle: string
+        }
+        Returns: undefined
+      }
       stop_service_plan: { Args: { plan_id: string }; Returns: number }
     }
     Enums: {
       business_role: "owner" | "crew"
-      checkout_status: "open" | "processing" | "paid" | "failed" | "expired"
       expense_category:
         | "fuel"
         | "equipment"
@@ -1106,7 +989,16 @@ export type Database = {
         | "unable_to_complete"
         | "weather_delay"
         | "cancelled"
-      payment_method: "online" | "bank_transfer" | "cash" | "check" | "other"
+      payment_method:
+        | "cash"
+        | "check"
+        | "venmo"
+        | "cash_app"
+        | "paypal"
+        | "zelle"
+        | "card"
+        | "bank_transfer"
+        | "other"
       service_frequency: "weekly" | "biweekly" | "triweekly" | "one_time"
     }
     CompositeTypes: {
@@ -1236,7 +1128,6 @@ export const Constants = {
   public: {
     Enums: {
       business_role: ["owner", "crew"],
-      checkout_status: ["open", "processing", "paid", "failed", "expired"],
       expense_category: [
         "fuel",
         "equipment",
@@ -1261,7 +1152,17 @@ export const Constants = {
         "weather_delay",
         "cancelled",
       ],
-      payment_method: ["online", "bank_transfer", "cash", "check", "other"],
+      payment_method: [
+        "cash",
+        "check",
+        "venmo",
+        "cash_app",
+        "paypal",
+        "zelle",
+        "card",
+        "bank_transfer",
+        "other",
+      ],
       service_frequency: ["weekly", "biweekly", "triweekly", "one_time"],
     },
   },

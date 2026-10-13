@@ -27,25 +27,3 @@ export function AutoInvoiceToggle({ enabled, save }: { enabled: boolean; save: (
     </div>
   );
 }
-
-export function ConnectStripeButton({ label, connect }: { label: string; connect: () => Promise<{ error?: string }> }) {
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  return (
-    <div>
-      <button
-        type="button"
-        className="btn small"
-        disabled={pending}
-        onClick={() => startTransition(async () => setError((await connect()).error ?? null))}
-      >
-        {pending ? "Opening Stripe…" : label}
-      </button>
-      {error && (
-        <p className="field-error" role="alert">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}

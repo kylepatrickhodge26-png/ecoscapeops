@@ -7,21 +7,19 @@ import { requireOwner } from "@/lib/auth";
 import { customerDisplayName } from "@/lib/customers/schema";
 import { formatShortDate } from "@/lib/dates";
 import { INVOICE_STATUSES, INVOICE_STATUS_LABELS, invoiceNumber, isInvoiceStatus } from "@/lib/invoices/constants";
+import { paymentOptionsSummary } from "@/lib/invoices/payment-options";
 import { formatPrice } from "@/lib/schedule/constants";
-import { isStripeConfigured } from "@/lib/stripe/client";
-import { syncStripeAccount } from "@/lib/stripe/connect";
 import { createClient } from "@/lib/supabase/server";
 
-import { connectStripe, setAutoInvoice } from "./actions";
+import { setAutoInvoice } from "./actions";
 import { invoiceSettings, listInvoices } from "./queries";
-import { AutoInvoiceToggle, ConnectStripeButton } from "./settings-controls";
+import { AutoInvoiceToggle } from "./settings-controls";
 
 export const metadata: Metadata = { title: "Invoices · EcoScape Ops" };
 
 const NOTICES: Record<string, { tone: "success" | "error"; text: string }> = {
   deleted: { tone: "success", text: "Draft deleted." },
-  stripe: { tone: "success", text: "Back from Stripe." },
-  "stripe-error": { tone: "error", text: "We couldn't reach Stripe to continue setup. Please try again." },
+  "payment-options": { tone: "success", text: "Payment options saved." },
 };
 
 export default async function InvoicesPage(props: PageProps<"/invoices">) {
@@ -29,18 +27,12 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
   const params = await props.searchParams;
   const status = isInvoiceStatus(params.status) ? params.status : null;
   const supabase = await createClient();
-  const [invoices, firstSettings, { data: summary }] = await Promise.all([
+  const [invoices, settings, { data: summary }] = await Promise.all([
     listInvoices(business.id, status),
     invoiceSettings(business.id),
     supabase.rpc("dashboard_summary"),
   ]);
-  let settings = firstSettings;
-  // Stripe can switch payments on after reviewing the business's details, some time after
-  // onboarding: check again while it's reviewing them.
-  if (settings.stripe?.details_submitted && !settings.stripe.charges_enabled && isStripeConfigured()) {
-    const fresh = await syncStripeAccount(business.id);
-    if (fresh) settings = { ...settings, stripe: fresh };
-  }
+  const ways = paymentOptionsSummary(settings.paymentOptions);
   const totals = summary?.[0];
   const notice = typeof params.notice === "string" ? NOTICES[params.notice] : undefined;
 
@@ -82,24 +74,21 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
         </div>
         <div className="panel-body invoice-settings">
           <AutoInvoiceToggle enabled={settings.autoInvoice} save={setAutoInvoice} />
-          <div className="stripe-status" data-testid="stripe-status">
-            {!isStripeConfigured() ? (
-              <p className="hint">Online payments aren&apos;t connected yet (the server has no Stripe keys). Cash and check payments work.</p>
-            ) : settings.stripe?.charges_enabled ? (
+          <div className="payment-options-status" data-testid="payment-options-status">
+            {ways ? (
               <p>
-                <b>Online payments are on.</b> Customers pay by card or bank account on Stripe&apos;s secure page, straight to your
-                Stripe account. Card numbers never touch EcoScape Ops.
+                Customers can pay you with <b>{ways}</b> from their invoice link. The money goes straight to you; record each payment
+                when it arrives.
               </p>
             ) : (
-              <>
-                <p>
-                  {settings.stripe
-                    ? "Finish setting up Stripe to let customers pay online."
-                    : "Let customers pay invoices online by card or bank account. Stripe charges its fees per payment; there's no monthly fee."}
-                </p>
-                <ConnectStripeButton label={settings.stripe ? "Finish Stripe setup" : "Connect Stripe"} connect={connectStripe} />
-              </>
+              <p>
+                Add the payment apps you already use (Venmo, Cash App, PayPal, Zelle) so customers can pay from their invoice link.
+                It&apos;s free, and the money goes straight to you.
+              </p>
             )}
+            <Link className="btn small" href="/invoices/payment-options">
+              {ways ? "Edit payment options" : "Set up payment options"}
+            </Link>
           </div>
         </div>
       </div>

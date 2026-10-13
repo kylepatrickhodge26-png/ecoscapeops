@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { addDays } from "@/lib/dates";
 import type { InvoiceStatus } from "@/lib/invoices/constants";
+import type { PaymentOptions } from "@/lib/invoices/payment-options";
 import { createClient } from "@/lib/supabase/server";
 
 // Invoice reads. RLS limits them to the owner's own business; another business's invoice
@@ -30,7 +31,7 @@ export async function getInvoiceOr404(id: string) {
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "*, display_status, balance, customer:customers(id, first_name, last_name, phone, email, property_address, billing_address, sms_opt_in), invoice_lines(id, job_id, position, description, quantity, unit_price, amount), payments(id, amount, method, received_on, note, created_at), checkout_sessions(id, amount, status, created_at)",
+      "*, display_status, balance, customer:customers(id, first_name, last_name, phone, email, property_address, billing_address, sms_opt_in), invoice_lines(id, job_id, position, description, quantity, unit_price, amount), payments(id, amount, method, received_on, note, created_at)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "invoice_lines" })
@@ -65,9 +66,19 @@ export async function billableVisits(customerId: string, today: string, invoiceI
 
 export async function invoiceSettings(businessId: string) {
   const supabase = await createClient();
-  const [{ data: settings }, { data: stripe }] = await Promise.all([
-    supabase.from("invoice_settings").select("auto_invoice").eq("business_id", businessId).maybeSingle(),
-    supabase.from("stripe_accounts").select("charges_enabled, details_submitted").eq("business_id", businessId).maybeSingle(),
-  ]);
-  return { autoInvoice: settings?.auto_invoice ?? false, stripe };
+  const { data, error } = await supabase
+    .from("invoice_settings")
+    .select("auto_invoice, venmo, cash_app, paypal, zelle, pay_link, payment_note")
+    .eq("business_id", businessId)
+    .maybeSingle();
+  if (error) throw new Error(`Could not load invoice settings: ${error.message}`);
+  const paymentOptions: PaymentOptions = {
+    venmo: data?.venmo ?? null,
+    cash_app: data?.cash_app ?? null,
+    paypal: data?.paypal ?? null,
+    zelle: data?.zelle ?? null,
+    pay_link: data?.pay_link ?? null,
+    payment_note: data?.payment_note ?? "",
+  };
+  return { autoInvoice: data?.auto_invoice ?? false, paymentOptions };
 }

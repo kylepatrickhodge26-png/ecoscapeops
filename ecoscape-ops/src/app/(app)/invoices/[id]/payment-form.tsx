@@ -2,14 +2,14 @@
 
 import { useActionState } from "react";
 
-import { MANUAL_PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoices/constants";
+import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoices/constants";
 
 import type { PaymentFormState, PaymentFormValues } from "../actions";
 
 type Field = "amount" | "method" | "received_on" | "note";
 
-// Records a cash, check or other payment. request_id (fresh for each page load) makes a
-// repeated submission record the payment once.
+// Records a payment once the money has arrived (cash, check, Venmo, Zelle…). request_id
+// (fresh for each page load) makes a repeated submission record the payment once.
 export function PaymentForm({
   action,
   initialValues,
@@ -53,7 +53,7 @@ export function PaymentForm({
         <div className="field">
           <label htmlFor="payment-method">How it was paid</label>
           <select {...field("method")} defaultValue={state.values.method}>
-            {MANUAL_PAYMENT_METHODS.map((m) => (
+            {PAYMENT_METHODS.map((m) => (
               <option key={m} value={m}>
                 {PAYMENT_METHOD_LABELS[m]}
               </option>
@@ -69,7 +69,7 @@ export function PaymentForm({
       </div>
       <div className="field">
         <label htmlFor="payment-note">Note</label>
-        <input {...field("note")} defaultValue={state.values.note} maxLength={200} placeholder="e.g. Check #1042" />
+        <input {...field("note")} defaultValue={state.values.note} maxLength={200} placeholder="e.g. Check #1042, or the Venmo sender" />
         {error("note")}
       </div>
       <div className="form-actions">

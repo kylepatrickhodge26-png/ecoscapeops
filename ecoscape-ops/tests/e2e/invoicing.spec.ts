@@ -1,9 +1,8 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import Stripe from "stripe";
 
 import { formatShortDate, todayInTimeZone } from "../../src/lib/dates";
 import { formatPrice } from "../../src/lib/schedule/constants";
-import { FAKE_ENV, approveStripeAccount, randomNumber, resendStripeEvent, settleBankPayment, stripeEvents } from "./fakes";
+import { randomNumber } from "./fakes";
 import { PASSWORD, bookService, signUpBusiness, uniqueEmail } from "./helpers";
 
 const TIME_ZONE = "America/New_York";
@@ -58,7 +57,7 @@ async function markSent(page: Page) {
   await expect(status(page)).toHaveText("Sent");
 }
 
-async function recordPayment(page: Page, amount: string, method: "Cash" | "Check" | "Other", note = "") {
+async function recordPayment(page: Page, amount: string, method: "Cash" | "Check" | "Venmo" | "Zelle" | "Other", note = "") {
   await page.getByLabel("Amount ($)").fill(amount);
   await page.getByLabel("How it was paid").selectOption({ label: method });
   if (note) await page.getByLabel("Note").fill(note);
@@ -66,14 +65,11 @@ async function recordPayment(page: Page, amount: string, method: "Cash" | "Check
   await expect(page.getByText("Payment recorded.")).toBeVisible();
 }
 
-async function connectStripe(page: Page, finish: "Finish setup" | "Finish setup (card only)" = "Finish setup") {
-  await page.goto("/invoices");
-  await page.getByRole("button", { name: "Connect Stripe" }).click();
-  // Stripe's own onboarding page (the test stand-in).
-  await expect(page.getByRole("heading", { name: "Stripe onboarding (test)" })).toBeVisible();
-  await page.getByRole("button", { name: finish, exact: true }).click();
-  await expect(page).toHaveURL(/\/invoices\?notice=stripe$/);
-  await expect(page.getByTestId("stripe-status")).toContainText("Online payments are on.");
+async function setPaymentOptions(page: Page, options: Partial<Record<"Venmo username" | "Cash App $cashtag" | "PayPal.Me name" | "Zelle email or phone" | "Other payment link" | "Note for customers", string>>) {
+  await page.goto("/invoices/payment-options");
+  for (const [label, value] of Object.entries(options)) await page.getByLabel(label).fill(value);
+  await page.getByRole("button", { name: "Save payment options" }).click();
+  await expect(page.getByText("Payment options saved.")).toBeVisible();
 }
 
 async function customerPage(browser: Browser) {
@@ -137,118 +133,100 @@ test("an owner builds an invoice from a visit and extra items, sends it, and rec
   await expect(page.locator(".invoice-table tbody tr")).toContainText("Jane Adams");
 });
 
-test("a customer pays online through Stripe, and the payment is recorded exactly once", async ({ page, browser }) => {
-  await signUpBusiness(page, "Stripe Lawns");
-  await connectStripe(page);
+test("an owner adds their payment apps, and the customer's pay link offers them for what's owed", async ({ page, browser }) => {
+  await signUpBusiness(page, "Pay Lawns");
+  await page.goto("/invoices");
+  await expect(page.getByTestId("payment-options-status")).toContainText("Add the payment apps you already use");
+  await page.getByRole("link", { name: "Set up payment options" }).click();
+
+  // Mistakes are caught before saving.
+  await page.getByLabel("Venmo username").fill("ab");
+  await page.getByLabel("Other payment link").fill("javascript:alert(1)");
+  await page.getByRole("button", { name: "Save payment options" }).click();
+  await expect(page.locator("#venmo-error")).toContainText("Enter your Venmo username");
+  await expect(page.locator("#pay_link-error")).toHaveText("Enter a full link starting with https://");
+
+  await setPaymentOptions(page, {
+    "Venmo username": "@Green-Acres",
+    "Cash App $cashtag": "$GreenAcres",
+    "Other payment link": "https://square.link/u/AbC123",
+    "Zelle email or phone": "(631) 555-0100",
+    "Note for customers": "Checks payable to Pay Lawns LLC.",
+  });
+  await expect(page.getByTestId("payment-options-status")).toContainText("Customers can pay you with Venmo, Cash App, Zelle and your payment link");
+
   const customer = await addCustomer(page, { firstName: "Pat", lastName: "Payer" });
-  const invoiceUrl = await createInvoice(page, customer, { lines: [["Spring cleanup", "1", "180"]] });
+  await createInvoice(page, customer, { lines: [["Mowing", "1", "65"]] });
+  await expect(page.getByText("how to pay you (Venmo, Cash App, Zelle and your payment link)")).toBeVisible();
   await markSent(page);
-  const payUrl = await page.getByLabel("Pay link").inputValue();
+  const invoicePage = page.url();
 
-  // The customer, not signed in, opens their pay link.
   const pat = await customerPage(browser);
-  await pat.goto(payUrl);
-  await expect(pat.getByText("Stripe Lawns", { exact: true })).toBeVisible();
-  await expect(pat.getByRole("heading", { name: "Invoice #1001" })).toBeVisible();
-  await expect(pat.getByText("Spring cleanup")).toBeVisible();
-  // No card fields on our page: the card is entered on Stripe's.
-  await expect(pat.locator("input")).toHaveCount(0);
-  await pat.getByRole("button", { name: "Pay $180.00" }).click();
+  await pat.goto(await page.getByLabel("Pay link").inputValue());
+  await expect(pat.getByRole("heading", { name: "Pay $65.00" })).toBeVisible();
+  const venmo = pat.getByRole("link", { name: /Pay with Venmo/ });
+  await expect(venmo).toHaveAttribute("href", "https://venmo.com/Green-Acres?txn=pay&amount=65.00&note=Invoice+%231001");
+  await expect(venmo).toHaveAttribute("target", "_blank");
+  await expect(venmo).toHaveAttribute("rel", "noopener noreferrer");
+  await expect(pat.getByRole("link", { name: /Pay with Cash App/ })).toHaveAttribute("href", "https://cash.app/$GreenAcres/65.00");
+  await expect(pat.getByRole("link", { name: /Pay with PayPal/ })).toHaveCount(0);
+  await expect(pat.getByTestId("zelle-to")).toHaveText("(631) 555-0100");
+  const other = pat.getByRole("link", { name: /Pay online/ });
+  await expect(other).toHaveAttribute("href", "https://square.link/u/AbC123");
+  await expect(other).toContainText("square.link");
+  await expect(pat.getByText("Checks payable to Pay Lawns LLC.")).toBeVisible();
+  await expect(pat.getByText("Please include “Invoice #1001” with your payment.")).toBeVisible();
 
-  // Stripe's hosted Checkout (the test stand-in), charged to the business's own account.
-  await expect(pat).toHaveURL(/127\.0\.0\.1:4010\/checkout\/cs_test_/);
-  const sessionId = new URL(pat.url()).pathname.split("/").at(-1)!;
-  await expect(pat.getByTestId("checkout-amount")).toHaveText("USD 180.00");
-  await pat.getByRole("button", { name: "Pay with card" }).click();
-  await expect(pat).toHaveURL(/\/pay\/[0-9a-f]{64}\?paid=1$/);
-  await expect(async () => {
-    await pat.reload();
-    await expect(pat.getByText("Paid in full. Thank you!")).toBeVisible({ timeout: 500 });
-  }).toPass({ timeout: 10_000 });
-  await expect(pat.getByRole("button", { name: /^Pay/ })).toHaveCount(0);
+  // Pat pays part by Venmo; the owner records it when it arrives, and the link asks for the rest.
+  await recordPayment(page, "25", "Venmo", "From Pat");
+  await expect(page.locator(".payment-row")).toContainText("$25.00 · Venmo");
+  await pat.reload();
+  await expect(pat.getByRole("heading", { name: "Pay $40.00" })).toBeVisible();
+  await expect(pat.getByRole("link", { name: /Pay with Venmo/ })).toHaveAttribute("href", /amount=40\.00/);
+  await expect(pat.getByRole("link", { name: /Pay with Cash App/ })).toHaveAttribute("href", "https://cash.app/$GreenAcres/40.00");
 
-  await page.goto(invoiceUrl);
+  await page.goto(invoicePage);
+  await recordPayment(page, "40", "Zelle");
   await expect(status(page)).toHaveText("Paid");
-  await expect(page.locator(".payment-row")).toHaveCount(1);
-  await expect(page.locator(".payment-row")).toContainText("$180.00 · Paid online (Stripe)");
+  await pat.reload();
+  await expect(pat.getByText("Paid in full. Thank you!")).toBeVisible();
+  await expect(pat.getByRole("link", { name: /Pay with/ })).toHaveCount(0);
 
-  // Stripe delivering the same event again changes nothing.
-  const completed = (await stripeEvents()).find((e) => e.event.type === "checkout.session.completed" && e.event.data.object.id === sessionId)!;
-  expect(completed.status).toBe(200);
-  expect((await resendStripeEvent(completed.event.id)).status).toBe(200);
-  expect((await resendStripeEvent(completed.event.id)).status).toBe(200);
-  await page.reload();
-  await expect(page.locator(".payment-row")).toHaveCount(1);
-  await expect(page.getByTestId("paid")).toHaveText("$180.00");
+  // The settings page shows what's saved, the way it was typed; clearing it takes the apps away.
+  await page.goto("/invoices/payment-options");
+  await expect(page.getByLabel("Venmo username")).toHaveValue("@Green-Acres");
+  await expect(page.getByLabel("Cash App $cashtag")).toHaveValue("$GreenAcres");
+  await expect(page.getByLabel("Zelle email or phone")).toHaveValue("(631) 555-0100");
+  await setPaymentOptions(page, {
+    "Venmo username": "",
+    "Cash App $cashtag": "",
+    "Other payment link": "",
+    "Zelle email or phone": "",
+    "Note for customers": "",
+  });
+  await expect(page.getByTestId("payment-options-status")).toContainText("Add the payment apps you already use");
 });
 
-test("a bank payment shows as on its way, then paid when it clears", async ({ page, browser }) => {
-  await signUpBusiness(page, "Bank Lawns");
-  await connectStripe(page);
-  const customer = await addCustomer(page, { firstName: "Bea", lastName: "Banks" });
-  const invoiceUrl = await createInvoice(page, customer, { lines: [["Patio install", "1", "2400"]] });
-  await markSent(page);
-  const payUrl = await page.getByLabel("Pay link").inputValue();
+test("one business's payment apps never appear on another business's invoices", async ({ page, browser }) => {
+  await signUpBusiness(page, "Venmo Lawns");
+  await setPaymentOptions(page, { "Venmo username": "@Venmo-Lawns", "Zelle email or phone": "pay@venmolawns.test" });
 
-  const bea = await customerPage(browser);
-  await bea.goto(payUrl);
-  await bea.getByRole("button", { name: "Pay $2,400.00" }).click();
-  await expect(bea).toHaveURL(/\/checkout\/cs_test_/);
-  const sessionId = new URL(bea.url()).pathname.split("/").at(-1)!;
-  await bea.getByRole("button", { name: "Pay by bank" }).click();
-  await expect(async () => {
-    await bea.reload();
-    await expect(bea.getByText("Your bank payment is on its way.")).toBeVisible({ timeout: 500 });
-  }).toPass({ timeout: 10_000 });
+  const other = await (await browser.newContext({ timezoneId: TIME_ZONE })).newPage();
+  await signUpBusiness(other, "Plain Lawns");
+  // Its own settings page starts empty, not with the first business's apps.
+  await other.goto("/invoices/payment-options");
+  await expect(other.getByLabel("Venmo username")).toHaveValue("");
+  await expect(other.getByLabel("Zelle email or phone")).toHaveValue("");
+  const customer = await addCustomer(other, { firstName: "Cy", lastName: "Customer" });
+  await createInvoice(other, customer, { lines: [["Mowing", "1", "65"]] });
+  await markSent(other);
 
-  await page.goto(invoiceUrl);
-  await expect(page.getByText("A bank payment of $2,400.00 is on its way")).toBeVisible();
-  await expect(status(page)).toHaveText("Sent");
-
-  expect((await settleBankPayment(sessionId)).status).toBe(200);
-  await page.reload();
-  await expect(status(page)).toHaveText("Paid");
-  await expect(page.locator(".payment-row")).toContainText("$2,400.00 · Bank transfer (Stripe)");
-});
-
-test("a business without bank payments turned on offers card only", async ({ page, browser }) => {
-  await signUpBusiness(page, "Card Only Lawns");
-  await connectStripe(page, "Finish setup (card only)");
-  const customer = await addCustomer(page, { firstName: "Cal", lastName: "Card" });
-  await createInvoice(page, customer, { lines: [["Mowing", "1", "65"]] });
-  await markSent(page);
-  const cal = await customerPage(browser);
-  await cal.goto(await page.getByLabel("Pay link").inputValue());
-  await cal.getByRole("button", { name: "Pay $65.00" }).click();
-  await expect(cal.getByRole("button", { name: "Pay with card" })).toBeVisible();
-  await expect(cal.getByRole("button", { name: "Pay by bank" })).toHaveCount(0);
-});
-
-test("online payments switch on when Stripe finishes reviewing the account, even without a webhook", async ({ page, browser }) => {
-  await signUpBusiness(page, "Review Lawns");
-  await page.goto("/invoices");
-  await page.getByRole("button", { name: "Connect Stripe" }).click();
-  await expect(page.getByRole("heading", { name: "Stripe onboarding (test)" })).toBeVisible();
-  await expect(page.getByText("Review Lawns")).toBeVisible();
-  const accountId = new URL(page.url()).pathname.split("/").at(-1)!;
-  await page.getByRole("button", { name: "Finish setup (Stripe reviews it later)" }).click();
-  await expect(page).toHaveURL(/\/invoices\?notice=stripe$/);
-  await expect(page.getByTestId("stripe-status")).toContainText("Finish setting up Stripe to let customers pay online.");
-
-  // Until then, customers can't pay online.
-  const customer = await addCustomer(page, { firstName: "Rae", lastName: "View" });
-  await createInvoice(page, customer, { lines: [["Mowing", "1", "65"]] });
-  await markSent(page);
-  const payLink = await page.getByLabel("Pay link").inputValue();
-  const rae = await customerPage(browser);
-  await rae.goto(payLink);
-  await expect(rae.getByText("To pay this invoice, please contact Review Lawns.")).toBeVisible();
-
-  await approveStripeAccount(accountId);
-  await page.goto("/invoices");
-  await expect(page.getByTestId("stripe-status")).toContainText("Online payments are on.");
-  await rae.reload();
-  await expect(rae.getByRole("button", { name: "Pay $65.00" })).toBeVisible();
+  const cy = await customerPage(browser);
+  await cy.goto(await other.getByLabel("Pay link").inputValue());
+  await expect(cy.getByText("To pay this invoice, please contact Plain Lawns.")).toBeVisible();
+  await expect(cy.getByRole("link", { name: /Pay with/ })).toHaveCount(0);
+  await expect(cy.locator("main")).not.toContainText("Venmo-Lawns");
+  await expect(cy.locator("main")).not.toContainText("venmolawns");
 });
 
 test("with auto-invoicing on, completing a visit creates a draft invoice for it", async ({ page }) => {
@@ -322,7 +300,7 @@ test("crew members can't see invoices, and another business can't open them", as
   await maria.getByRole("button", { name: "Create login and join" }).click();
   await expect(maria).toHaveURL(/\/my-jobs$/);
   await expect(maria.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Invoices" })).toHaveCount(0);
-  for (const path of ["/invoices", invoicePath, "/invoices/new"]) {
+  for (const path of ["/invoices", invoicePath, "/invoices/new", "/invoices/payment-options"]) {
     await maria.goto(path);
     await expect(maria).toHaveURL(/\/my-jobs$/);
   }
@@ -353,7 +331,7 @@ test("a pay link works only once the invoice is sent, and stops when it's cancel
   await markSent(page);
   await lee.reload();
   await expect(lee.getByRole("heading", { name: "Invoice #1001" })).toBeVisible();
-  // Stripe isn't connected, so there's no Pay button.
+  // No payment apps set up yet, so there's nothing to pay with.
   await expect(lee.getByText("To pay this invoice, please contact Link Lawns.")).toBeVisible();
 
   await page.getByRole("button", { name: "Cancel invoice" }).click();
@@ -361,47 +339,4 @@ test("a pay link works only once the invoice is sent, and stops when it's cancel
   await expect(page.getByText("Invoice cancelled.")).toBeVisible();
   await lee.reload();
   await expect(lee.getByText("Invoice not available")).toBeVisible();
-});
-
-test("the Stripe webhook rejects forged events and ignores payments it didn't start", async ({ page, browser, request }) => {
-  await signUpBusiness(page, "Webhook Lawns");
-  await connectStripe(page);
-  const customer = await addCustomer(page, { firstName: "Wes", lastName: "Hook" });
-  const invoiceUrl = await createInvoice(page, customer, { lines: [["Mowing", "1", "65"]] });
-  await markSent(page);
-
-  // Start a real checkout (so the session exists), but don't pay.
-  const wes = await customerPage(browser);
-  await wes.goto(await page.getByLabel("Pay link").inputValue());
-  await wes.getByRole("button", { name: "Pay $65.00" }).click();
-  await expect(wes).toHaveURL(/\/checkout\/cs_test_/);
-  const sessionId = new URL(wes.url()).pathname.split("/").at(-1)!;
-  const account = (await stripeEvents()).find((e) => e.event.type === "account.updated" && e.status === 200 && e.event.account)!.event.account;
-
-  const event = (sessionIdToUse: string, accountToUse: string) =>
-    JSON.stringify({
-      id: `evt_forged_${Date.now()}`,
-      object: "event",
-      type: "checkout.session.completed",
-      account: accountToUse,
-      data: { object: { id: sessionIdToUse, object: "checkout.session", payment_status: "paid", amount_total: 6500 } },
-    });
-  const post = (payload: string, signature: string) =>
-    request.post("/api/stripe/webhook", { data: payload, headers: { "Content-Type": "application/json", "Stripe-Signature": signature } });
-  const signer = new Stripe("sk_test_signer").webhooks;
-
-  // Not signed with the webhook secret: refused.
-  const forged = event(sessionId, account);
-  expect((await post(forged, signer.generateTestHeaderString({ payload: forged, secret: "whsec_wrong" }))).status()).toBe(400);
-  expect((await post(forged, "")).status()).toBe(400);
-
-  // Properly signed, but for a checkout this app never started: accepted and ignored.
-  const unknown = event("cs_test_neverstarted", account);
-  const response = await post(unknown, signer.generateTestHeaderString({ payload: unknown, secret: FAKE_ENV.STRIPE_WEBHOOK_SECRET }));
-  expect(response.status()).toBe(200);
-  expect((await response.json()).result).toBe("unknown_checkout");
-
-  await page.goto(invoiceUrl);
-  await expect(status(page)).toHaveText("Sent");
-  await expect(page.locator(".payment-row")).toHaveCount(0);
 });

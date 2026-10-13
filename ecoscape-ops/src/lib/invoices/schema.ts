@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { isISODate } from "@/lib/dates";
 
-import { MANUAL_PAYMENT_METHODS } from "./constants";
+import { PAYMENT_METHODS } from "./constants";
 
 // Limits mirror the invoice_lines / invoices / payments constraints, so bad input gets a
 // friendly message here instead of a database error.
@@ -50,7 +50,7 @@ export type InvoiceFormValues = {
 
 export const paymentSchema = z.object({
   amount: money("an amount", 999999.99).refine((n) => n > 0, "Enter an amount more than $0"),
-  method: z.enum(MANUAL_PAYMENT_METHODS, { error: "Choose how it was paid" }),
+  method: z.enum(PAYMENT_METHODS, { error: "Choose how it was paid" }),
   received_on: z.string().refine(isISODate, "Choose the date it was received"),
   note: z.string().trim().max(200, "Notes must be 200 characters or fewer"),
   request_id: z.uuid(),
