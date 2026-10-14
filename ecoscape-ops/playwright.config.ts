@@ -28,7 +28,7 @@ export default defineConfig({
   ],
   // Needs the local Supabase stack running (`npx supabase start`) and .env.local.
   webServer: [
-    // A fake National Weather Service, so tests never touch the real one.
+    // A fake National Weather Service and Census geocoder, so tests never touch the real ones.
     {
       command: "node tests/e2e/fake-services.mjs",
       url: `http://127.0.0.1:${FAKE_SERVICES_PORT}/health`,

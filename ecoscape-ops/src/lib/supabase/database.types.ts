@@ -122,6 +122,12 @@ export type Database = {
           customer_since: string
           email: string
           first_name: string
+          geo_distance_miles: number | null
+          geo_lat: number | null
+          geo_lon: number | null
+          geo_matched_address: string | null
+          geo_status: Database["public"]["Enums"]["geo_status"]
+          geocoded_at: string | null
           id: string
           last_name: string
           notification_preference: string
@@ -142,6 +148,12 @@ export type Database = {
           customer_since?: string
           email?: string
           first_name?: string
+          geo_distance_miles?: number | null
+          geo_lat?: number | null
+          geo_lon?: number | null
+          geo_matched_address?: string | null
+          geo_status?: Database["public"]["Enums"]["geo_status"]
+          geocoded_at?: string | null
           id?: string
           last_name?: string
           notification_preference?: string
@@ -162,6 +174,12 @@ export type Database = {
           customer_since?: string
           email?: string
           first_name?: string
+          geo_distance_miles?: number | null
+          geo_lat?: number | null
+          geo_lon?: number | null
+          geo_matched_address?: string | null
+          geo_status?: Database["public"]["Enums"]["geo_status"]
+          geocoded_at?: string | null
           id?: string
           last_name?: string
           notification_preference?: string
@@ -619,6 +637,63 @@ export type Database = {
           },
         ]
       }
+      route_days: {
+        Row: {
+          business_id: string
+          crew_member_id: string | null
+          id: string
+          manual_order: string[] | null
+          route_date: string
+          start_address: string | null
+          start_lat: number | null
+          start_lon: number | null
+          start_matched_address: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          business_id: string
+          crew_member_id?: string | null
+          id?: string
+          manual_order?: string[] | null
+          route_date: string
+          start_address?: string | null
+          start_lat?: number | null
+          start_lon?: number | null
+          start_matched_address?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          business_id?: string
+          crew_member_id?: string | null
+          id?: string
+          manual_order?: string[] | null
+          route_date?: string
+          start_address?: string | null
+          start_lat?: number | null
+          start_lon?: number | null
+          start_matched_address?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_days_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_days_crew_member_id_business_id_fkey"
+            columns: ["crew_member_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "crew_members"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
       service_areas: {
         Row: {
           business_id: string
@@ -721,6 +796,50 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      shop_locations: {
+        Row: {
+          address: string
+          business_id: string
+          city: string
+          lat: number
+          lon: number
+          matched_address: string
+          postal_code: string
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          business_id: string
+          city: string
+          lat: number
+          lon: number
+          matched_address: string
+          postal_code?: string
+          state: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          business_id?: string
+          city?: string
+          lat?: number
+          lon?: number
+          matched_address?: string
+          postal_code?: string
+          state?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_locations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -844,6 +963,42 @@ export type Database = {
           status: Database["public"]["Enums"]["job_status"]
         }[]
       }
+      crew_route: {
+        Args: { route_date: string }
+        Returns: {
+          access_instructions: string
+          customer_email: string
+          customer_first_name: string
+          customer_last_name: string
+          customer_phone: string
+          geo_lat: number
+          geo_lon: number
+          geo_status: Database["public"]["Enums"]["geo_status"]
+          id: string
+          notes: string
+          property_address: string
+          scheduled_date: string
+          service_name: string
+          service_notes: string
+          status: Database["public"]["Enums"]["job_status"]
+        }[]
+      }
+      crew_route_settings: {
+        Args: { route_date: string }
+        Returns: {
+          crew_member_id: string
+          manual_order: string[]
+          shop_address: string
+          shop_city: string
+          shop_lat: number
+          shop_lon: number
+          shop_state: string
+          start_address: string
+          start_lat: number
+          start_lon: number
+          start_matched_address: string
+        }[]
+      }
       crew_set_job_status: {
         Args: {
           job_id: string
@@ -921,6 +1076,18 @@ export type Database = {
           to_phone: string
         }[]
       }
+      record_customer_geocode: {
+        Args: {
+          address: string
+          customer_id: string
+          distance_miles: number
+          lat: number
+          lon: number
+          matched_address: string
+          status: Database["public"]["Enums"]["geo_status"]
+        }
+        Returns: boolean
+      }
       record_manual_payment: {
         Args: {
           amount: number
@@ -938,6 +1105,10 @@ export type Database = {
       }
       remove_crew_member: {
         Args: { crew_member_id: string }
+        Returns: undefined
+      }
+      reset_route_order: {
+        Args: { crew_member_id: string; route_date: string }
         Returns: undefined
       }
       save_invoice: {
@@ -963,6 +1134,33 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_route_order: {
+        Args: { crew_member_id: string; job_ids: string[]; route_date: string }
+        Returns: undefined
+      }
+      set_route_start: {
+        Args: {
+          address: string
+          crew_member_id: string
+          lat: number
+          lon: number
+          matched_address: string
+          route_date: string
+        }
+        Returns: undefined
+      }
+      set_shop_location: {
+        Args: {
+          address: string
+          city: string
+          lat: number
+          lon: number
+          matched_address: string
+          postal_code: string
+          state: string
+        }
+        Returns: undefined
+      }
       stop_service_plan: { Args: { plan_id: string }; Returns: number }
     }
     Enums: {
@@ -979,6 +1177,7 @@ export type Database = {
         | "advertising"
         | "vehicle"
         | "other"
+      geo_status: "pending" | "located" | "not_found" | "flagged"
       invoice_status: "draft" | "sent" | "cancelled"
       job_status:
         | "scheduled"
@@ -1141,6 +1340,7 @@ export const Constants = {
         "vehicle",
         "other",
       ],
+      geo_status: ["pending", "located", "not_found", "flagged"],
       invoice_status: ["draft", "sent", "cancelled"],
       job_status: [
         "scheduled",

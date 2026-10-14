@@ -26,13 +26,16 @@ export type CrewJob = {
   service_notes: string;
 };
 
-export function CrewJobCard({ job, today, showDate = false }: { job: CrewJob; today: string; showDate?: boolean }) {
-  const name = customerDisplayName({
+export const crewCustomerName = (job: Pick<CrewJob, "customer_first_name" | "customer_last_name" | "customer_phone" | "customer_email">) =>
+  customerDisplayName({
     first_name: job.customer_first_name,
     last_name: job.customer_last_name,
     phone: job.customer_phone,
     email: job.customer_email,
   });
+
+export function CrewJobCard({ job, today, showDate = false }: { job: CrewJob; today: string; showDate?: boolean }) {
+  const name = crewCustomerName(job);
   const open = !isClosed(job.status);
   const latest = (a: string, b: string) => (a > b ? a : b);
 
