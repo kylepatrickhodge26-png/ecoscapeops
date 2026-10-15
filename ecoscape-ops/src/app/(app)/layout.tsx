@@ -14,6 +14,7 @@ const OWNER_LINKS: NavLink[] = [
   { href: "/quotes", label: "Quotes" },
   { href: "/invoices", label: "Invoices" },
   { href: "/expenses", label: "Expenses" },
+  { href: "/reports", label: "Reports" },
   { href: "/settings", label: "Settings" },
 ];
 const MY_JOBS: NavLink = { href: "/my-jobs", label: "My jobs" };

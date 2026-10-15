@@ -1957,3 +1957,17 @@ td:first-child {
   border-bottom: 1px solid var(--line);
   padding-bottom: 10px;
 }
+
+/* Reports */
+.range-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+.range-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}

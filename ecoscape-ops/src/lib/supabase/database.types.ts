@@ -1485,6 +1485,58 @@ export type Database = {
           total_bytes: number
         }[]
       }
+      report_expenses_by_category: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          category: Database["public"]["Enums"]["expense_category"]
+          total: number
+        }[]
+      }
+      report_jobs_by_crew: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          completed: number
+          crew_member_id: string
+          crew_name: string
+          scheduled: number
+        }[]
+      }
+      report_revenue_by_customer: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          booked: number
+          completed: number
+          customer_id: string
+          customer_name: string
+        }[]
+      }
+      report_revenue_by_month: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          booked: number
+          completed: number
+          month: string
+        }[]
+      }
+      report_revenue_by_service: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          booked: number
+          completed: number
+          service_name: string
+        }[]
+      }
+      report_summary: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          booked: number
+          collected: number
+          completed: number
+          expenses: number
+          outstanding: number
+          overdue: number
+        }[]
+      }
       save_checklist_template: {
         Args: { items: Json; service_name: string }
         Returns: string
