@@ -10,8 +10,11 @@ import { customerDisplayName } from "@/lib/customers/schema";
 import { addDays, formatLongDate, formatShortDate, monthOf, todayInTimeZone } from "@/lib/dates";
 import { INVOICE_STATUS_LABELS, invoiceNumber, isInvoiceStatus } from "@/lib/invoices/constants";
 import { FREQUENCY_LABELS, formatPrice, isClosed, isOverdue } from "@/lib/schedule/constants";
+import { createClient } from "@/lib/supabase/server";
+import { formatClock, formatDateTime, formatHours } from "@/lib/time/format";
 
 import { JobExtras } from "../../../job-extras/job-extras";
+import { TimeClock } from "../../../time-clock/time-clock";
 import { couldNotService, deleteJob, markJobCompleted } from "../../actions";
 import { getJobOr404 } from "../../get-job";
 import { CouldNotService } from "./could-not-service";
@@ -36,6 +39,14 @@ export default async function JobPage(props: PageProps<"/schedule/jobs/[id]">) {
   const name = customerDisplayName(job.customer);
   const open = !isClosed(job.status);
   const latest = (a: string, b: string) => (a > b ? a : b);
+  const supabase = await createClient();
+  const { data: timeEntries, error: timeError } = await supabase
+    .from("time_entries")
+    .select("id, crew_name, started_at, ended_at, note, edited_at")
+    .eq("job_id", job.id)
+    .order("started_at");
+  if (timeError) throw new Error(`Could not load time entries: ${timeError.message}`);
+  const loggedHours = timeEntries.reduce((sum, t) => (t.ended_at ? sum + (Date.parse(t.ended_at) - Date.parse(t.started_at)) / 3_600_000 : sum), 0);
   const invoice = job.invoice_lines.find((l) => !l.invoice_cancelled)?.invoice ?? null;
 
   return (
@@ -155,6 +166,30 @@ export default async function JobPage(props: PageProps<"/schedule/jobs/[id]">) {
               <div className="label">Notes</div>
               <p className="pre-line">{job.notes}</p>
             </div>
+          )}
+        </div>
+      </div>
+
+      <div className="panel" data-testid="job-time">
+        <div className="panel-head">
+          <h3>Time</h3>
+          {timeEntries.length > 0 && <span className="subtext">{formatHours(Math.round(loggedHours * 100) / 100)} logged</span>}
+        </div>
+        <div className="panel-body">
+          {open && <TimeClock jobId={job.id} />}
+          {timeEntries.length === 0 ? (
+            <p className="hint">No time logged yet. Crew clock in and out from their job view.</p>
+          ) : (
+            <ul className="time-list">
+              {timeEntries.map((t) => (
+                <li key={t.id}>
+                  <b>{t.crew_name}</b> · {formatDateTime(t.started_at, business.time_zone)} to{" "}
+                  {t.ended_at ? formatClock(t.ended_at, business.time_zone) : <span className="date-tag overdue">still clocked in</span>}
+                  {t.edited_at && <span className="subtext"> · edited{t.note ? `: ${t.note}` : ""}</span>}{" "}
+                  <Link href={`/time/${t.id}`}>Edit</Link>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>

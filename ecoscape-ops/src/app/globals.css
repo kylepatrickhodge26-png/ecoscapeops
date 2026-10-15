@@ -2000,3 +2000,19 @@ td:first-child {
   display: grid;
   gap: 8px;
 }
+
+/* Time tracking */
+.time-clock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+}
+.time-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}

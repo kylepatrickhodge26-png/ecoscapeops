@@ -55,7 +55,7 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
   if (invoicesError) throw new Error(`Could not load invoices: ${invoicesError.message}`);
   const { data: photos, error: photosError } = await supabase
     .from("job_photos")
-    .select("id, storage_path, kind, caption, created_at, job:jobs!inner(id, service_name, scheduled_date, customer_id)")
+    .select("id, storage_path, kind, caption, created_at, jobs!inner(id, service_name, scheduled_date, customer_id)")
     .eq("jobs.customer_id", customer.id)
     .order("created_at", { ascending: false })
     .limit(60);
@@ -215,8 +215,8 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
                     )}
                     <div className="photo-meta">
                       <span className={`pill photo-${p.kind}`}>{PHOTO_KIND_LABELS[p.kind]}</span>{" "}
-                      <Link href={`/schedule/jobs/${p.job.id}`}>
-                        {p.job.service_name}, {formatShortDate(p.job.scheduled_date)}
+                      <Link href={`/schedule/jobs/${p.jobs.id}`}>
+                        {p.jobs.service_name}, {formatShortDate(p.jobs.scheduled_date)}
                       </Link>
                       {p.caption && <div className="subtext">{p.caption}</div>}
                     </div>

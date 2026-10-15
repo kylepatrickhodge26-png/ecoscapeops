@@ -1270,6 +1270,60 @@ export type Database = {
           },
         ]
       }
+      time_entries: {
+        Row: {
+          business_id: string
+          created_at: string
+          crew_member_id: string | null
+          crew_name: string
+          edited_at: string | null
+          ended_at: string | null
+          id: string
+          job_id: string
+          note: string
+          started_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          crew_member_id?: string | null
+          crew_name: string
+          edited_at?: string | null
+          ended_at?: string | null
+          id?: string
+          job_id: string
+          note?: string
+          started_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          crew_member_id?: string | null
+          crew_name?: string
+          edited_at?: string | null
+          ended_at?: string | null
+          id?: string
+          job_id?: string
+          note?: string
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_job_id_business_id_fkey"
+            columns: ["job_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
       weather_texts: {
         Row: {
           business_id: string
@@ -1683,6 +1737,65 @@ export type Database = {
       set_customer_bill_monthly: {
         Args: { customer_id: string; enabled: boolean }
         Returns: undefined
+      }
+      clock_in: {
+        Args: { job_id: string }
+        Returns: string
+      }
+      clock_out: {
+        Args: { job_id: string }
+        Returns: undefined
+      }
+      delete_time_entry: {
+        Args: { entry_id: string }
+        Returns: undefined
+      }
+      edit_time_entry: {
+        Args: { ended_local: string; entry_id: string; note: string; started_local: string }
+        Returns: undefined
+      }
+      my_open_time_entry: {
+        Args: never
+        Returns: {
+          job_id: string
+          service_name: string
+          started_at: string
+        }[]
+      }
+      time_by_crew: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          crew_member_id: string
+          crew_name: string
+          entries: number
+          hours: number
+          open_entries: number
+        }[]
+      }
+      time_by_customer: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          customer_id: string
+          customer_name: string
+          hours: number
+          job_value: number
+          revenue_per_hour: number | null
+          visits: number
+        }[]
+      }
+      time_by_job: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          customer_id: string
+          customer_name: string
+          hours: number
+          job_id: string
+          job_value: number
+          open_entries: number
+          revenue_per_hour: number | null
+          scheduled_date: string
+          service_name: string
+        }[]
       }
       save_checklist_template: {
         Args: { items: Json; service_name: string }
