@@ -431,6 +431,182 @@ export type Database = {
           },
         ]
       }
+      checklist_template_items: {
+        Row: {
+          business_id: string
+          id: string
+          label: string
+          position: number
+          template_id: string
+        }
+        Insert: {
+          business_id: string
+          id?: string
+          label: string
+          position: number
+          template_id: string
+        }
+        Update: {
+          business_id?: string
+          id?: string
+          label?: string
+          position?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_template_items_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_template_items_template_id_business_id_fkey"
+            columns: ["template_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      checklist_templates: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          service_name: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          service_name: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          service_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_templates_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_checklist_items: {
+        Row: {
+          business_id: string
+          done: boolean
+          done_at: string | null
+          done_by: string | null
+          done_by_name: string
+          id: string
+          job_id: string
+          label: string
+          position: number
+        }
+        Insert: {
+          business_id: string
+          done?: boolean
+          done_at?: string | null
+          done_by?: string | null
+          done_by_name?: string
+          id?: string
+          job_id: string
+          label: string
+          position: number
+        }
+        Update: {
+          business_id?: string
+          done?: boolean
+          done_at?: string | null
+          done_by?: string | null
+          done_by_name?: string
+          id?: string
+          job_id?: string
+          label?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_checklist_items_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_checklist_items_job_id_business_id_fkey"
+            columns: ["job_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      job_photos: {
+        Row: {
+          business_id: string
+          caption: string
+          created_at: string
+          id: string
+          job_id: string
+          kind: Database["public"]["Enums"]["photo_kind"]
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string | null
+          uploaded_by_name: string
+        }
+        Insert: {
+          business_id: string
+          caption?: string
+          created_at?: string
+          id?: string
+          job_id: string
+          kind?: Database["public"]["Enums"]["photo_kind"]
+          size_bytes?: number
+          storage_path: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string
+        }
+        Update: {
+          business_id?: string
+          caption?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          kind?: Database["public"]["Enums"]["photo_kind"]
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_photos_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_photos_job_id_business_id_fkey"
+            columns: ["job_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           assigned_crew_member_id: string | null
@@ -1270,6 +1446,53 @@ export type Database = {
         Args: { crew_member_id: string }
         Returns: undefined
       }
+      add_job_photo: {
+        Args: {
+          caption: string
+          job_id: string
+          kind: Database["public"]["Enums"]["photo_kind"]
+          storage_path: string
+        }
+        Returns: string
+      }
+      delete_job_photo: { Args: { photo_id: string }; Returns: string }
+      job_checklist: {
+        Args: { job_id: string }
+        Returns: {
+          done: boolean
+          done_at: string
+          done_by_name: string
+          id: string
+          label: string
+          position: number
+        }[]
+      }
+      job_photos_for: {
+        Args: { job_id: string }
+        Returns: {
+          caption: string
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["photo_kind"]
+          storage_path: string
+          uploaded_by_name: string
+        }[]
+      }
+      photo_usage: {
+        Args: never
+        Returns: {
+          photo_count: number
+          total_bytes: number
+        }[]
+      }
+      save_checklist_template: {
+        Args: { items: Json; service_name: string }
+        Returns: string
+      }
+      set_checklist_item: {
+        Args: { done: boolean; item_id: string }
+        Returns: undefined
+      }
       accept_quote: {
         Args: {
           assigned_crew_member_id?: string
@@ -1390,6 +1613,7 @@ export type Database = {
         | "card"
         | "bank_transfer"
         | "other"
+      photo_kind: "before" | "after" | "other"
       quote_status: "draft" | "sent" | "accepted" | "declined"
       service_frequency: "weekly" | "biweekly" | "triweekly" | "one_time"
     }
@@ -1556,6 +1780,7 @@ export const Constants = {
         "bank_transfer",
         "other",
       ],
+      photo_kind: ["before", "after", "other"],
       quote_status: ["draft", "sent", "accepted", "declined"],
       service_frequency: ["weekly", "biweekly", "triweekly", "one_time"],
     },

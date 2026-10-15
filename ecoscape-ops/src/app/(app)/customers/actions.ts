@@ -13,6 +13,7 @@ import {
   type CustomerFormValues,
 } from "@/lib/customers/schema";
 import { locatePendingCustomers } from "@/lib/geo/customers";
+import { removePhotoFiles } from "@/lib/photos/cleanup";
 import { createClient } from "@/lib/supabase/server";
 
 export type CustomerFormState = {
@@ -99,6 +100,7 @@ export async function deleteCustomer(id: string): Promise<DeleteCustomerState> {
   if (!customerId.safeParse(id).success) return { error: "This customer no longer exists." };
 
   const supabase = await createClient();
+  await removePhotoFiles(supabase, { customerId: id });
   const { data, error } = await supabase.from("customers").delete().eq("id", id).select("id");
 
   if (error) {

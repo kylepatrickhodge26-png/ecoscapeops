@@ -11,6 +11,7 @@ import { addDays, formatLongDate, formatShortDate, monthOf, todayInTimeZone } fr
 import { INVOICE_STATUS_LABELS, invoiceNumber, isInvoiceStatus } from "@/lib/invoices/constants";
 import { FREQUENCY_LABELS, formatPrice, isClosed, isOverdue } from "@/lib/schedule/constants";
 
+import { JobExtras } from "../../../job-extras/job-extras";
 import { couldNotService, deleteJob, markJobCompleted } from "../../actions";
 import { getJobOr404 } from "../../get-job";
 import { CouldNotService } from "./could-not-service";
@@ -155,6 +156,15 @@ export default async function JobPage(props: PageProps<"/schedule/jobs/[id]">) {
               <p className="pre-line">{job.notes}</p>
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head">
+          <h3>Checklist &amp; photos</h3>
+        </div>
+        <div className="panel-body">
+          <JobExtras jobId={job.id} canDelete />
         </div>
       </div>
     </>
