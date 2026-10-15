@@ -1971,3 +1971,32 @@ td:first-child {
   gap: 8px;
   margin-top: 10px;
 }
+
+/* Requests */
+.share-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+}
+.share-link code {
+  overflow-wrap: anywhere;
+  background: var(--paper-2);
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+.request-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+.request-list li {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+  display: grid;
+  gap: 8px;
+}

@@ -1071,6 +1071,88 @@ export type Database = {
           },
         ]
       }
+      request_links: {
+        Row: {
+          business_id: string
+          enabled: boolean
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          enabled?: boolean
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          enabled?: boolean
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_links_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      requests: {
+        Row: {
+          address: string
+          business_id: string
+          created_at: string
+          customer_id: string | null
+          details: string
+          email: string
+          handled_at: string | null
+          id: string
+          ip_hash: string
+          name: string
+          phone: string
+          status: Database["public"]["Enums"]["request_status"]
+        }
+        Insert: {
+          address?: string
+          business_id: string
+          created_at?: string
+          customer_id?: string | null
+          details: string
+          email?: string
+          handled_at?: string | null
+          id?: string
+          ip_hash: string
+          name: string
+          phone?: string
+          status?: Database["public"]["Enums"]["request_status"]
+        }
+        Update: {
+          address?: string
+          business_id?: string
+          created_at?: string
+          customer_id?: string | null
+          details?: string
+          email?: string
+          handled_at?: string | null
+          id?: string
+          ip_hash?: string
+          name?: string
+          phone?: string
+          status?: Database["public"]["Enums"]["request_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requests_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_plans: {
         Row: {
           active: boolean
@@ -1537,6 +1619,51 @@ export type Database = {
           overdue: number
         }[]
       }
+      convert_request: {
+        Args: { request_id: string }
+        Returns: string
+      }
+      delete_request: {
+        Args: { request_id: string }
+        Returns: undefined
+      }
+      dismiss_request: {
+        Args: { request_id: string }
+        Returns: undefined
+      }
+      public_request_form: {
+        Args: { token: string }
+        Returns: {
+          business_name: string
+        }[]
+      }
+      regenerate_request_link: {
+        Args: never
+        Returns: string
+      }
+      request_link: {
+        Args: never
+        Returns: {
+          enabled: boolean
+          token: string
+        }[]
+      }
+      set_request_link_enabled: {
+        Args: { enabled: boolean }
+        Returns: undefined
+      }
+      submit_request: {
+        Args: {
+          address: string
+          details: string
+          email: string
+          ip_hash: string
+          name: string
+          phone: string
+          token: string
+        }
+        Returns: undefined
+      }
       save_checklist_template: {
         Args: { items: Json; service_name: string }
         Returns: string
@@ -1666,6 +1793,7 @@ export type Database = {
         | "bank_transfer"
         | "other"
       photo_kind: "before" | "after" | "other"
+      request_status: "new" | "converted" | "dismissed"
       quote_status: "draft" | "sent" | "accepted" | "declined"
       service_frequency: "weekly" | "biweekly" | "triweekly" | "one_time"
     }
@@ -1833,6 +1961,7 @@ export const Constants = {
         "other",
       ],
       photo_kind: ["before", "after", "other"],
+      request_status: ["new", "converted", "dismissed"],
       quote_status: ["draft", "sent", "accepted", "declined"],
       service_frequency: ["weekly", "biweekly", "triweekly", "one_time"],
     },
