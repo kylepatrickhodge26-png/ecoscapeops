@@ -11,11 +11,13 @@ import {
   type NotificationPreference,
 } from "@/lib/customers/schema";
 import { formatShortDate, todayInTimeZone } from "@/lib/dates";
+import { getShop } from "@/lib/geo/customers";
+import { geoProblem } from "@/lib/geo/locate";
 import { invoiceNumber } from "@/lib/invoices/constants";
 import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
-import { deleteCustomer } from "../actions";
+import { deleteCustomer, locateCustomerNow } from "../actions";
 import { getCustomerOr404 } from "../get-customer";
 import { CustomerSchedule } from "./customer-schedule";
 import { DeleteCustomerButton } from "./delete-customer-button";
@@ -25,6 +27,7 @@ export const metadata: Metadata = { title: "Customer · EcoScape Ops" };
 const NOTICES: Record<string, string> = {
   created: "Customer added.",
   updated: "Changes saved.",
+  located: "Address looked up.",
 };
 
 function formatDate(isoDate: string) {
@@ -50,6 +53,8 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
   if (invoicesError) throw new Error(`Could not load invoices: ${invoicesError.message}`);
   const name = customerDisplayName(customer);
   const contact = [customer.phone, customer.email].filter(Boolean).join(" · ");
+  const shop = customer.property_address ? await getShop(business.id) : null;
+  const problem = geoProblem(customer.geo_status, customer.geo_matched_address, customer.geo_distance_miles);
 
   return (
     <>
@@ -74,6 +79,26 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
           />
         </div>
       </div>
+
+      {customer.property_address &&
+        (!shop ? (
+          <Notice tone="warn">
+            <Link href="/settings">Set your shop address</Link> to put this customer&apos;s visits in route order.
+          </Notice>
+        ) : problem ? (
+          <Notice tone="warn">
+            <span data-testid="geo-problem">{problem}</span> <Link href={`/customers/${customer.id}/edit`}>Edit the address</Link>
+          </Notice>
+        ) : customer.geo_status === "pending" ? (
+          <Notice tone="warn">
+            This address hasn&apos;t been looked up for routes yet.{" "}
+            <form action={locateCustomerNow.bind(null, customer.id)} className="inline-form">
+              <button className="linklike" type="submit">
+                Look it up now
+              </button>
+            </form>
+          </Notice>
+        ) : null)}
 
       {typeof notice === "string" && NOTICES[notice] && (
         <Notice tone="success">

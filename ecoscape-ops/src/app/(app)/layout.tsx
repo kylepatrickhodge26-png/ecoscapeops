@@ -13,6 +13,7 @@ const OWNER_LINKS: NavLink[] = [
   { href: "/crew", label: "Crew" },
   { href: "/invoices", label: "Invoices" },
   { href: "/expenses", label: "Expenses" },
+  { href: "/settings", label: "Settings" },
 ];
 const MY_JOBS: NavLink = { href: "/my-jobs", label: "My jobs" };
 

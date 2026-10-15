@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 
 import { Notice } from "@/components/notice";
+import { RouteArrows } from "@/components/route/route-arrows";
+import { RouteHeader } from "@/components/route/route-header";
 import { requireCrewMember } from "@/lib/auth";
 import { addDays, formatLongDate, todayInTimeZone } from "@/lib/dates";
+import { buildRoute } from "@/lib/routes/build";
 import { isClosed } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
-import { CrewJobCard } from "./crew-job-card";
+import { CrewJobCard, crewCustomerName } from "./crew-job-card";
 
 export const metadata: Metadata = { title: "My jobs · EcoScape Ops" };
 
@@ -29,15 +32,29 @@ export default async function MyJobsPage(props: PageProps<"/my-jobs">) {
   const today = todayInTimeZone(business.time_zone);
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("crew_jobs", {
-    from_date: addDays(today, -DAYS_BACK),
-    to_date: addDays(today, DAYS_AHEAD),
-  });
-  if (error) throw new Error(`Could not load your jobs: ${error.message}`);
+  const [{ data, error }, { data: route, error: routeError }, { data: settings, error: settingsError }] = await Promise.all([
+    supabase.rpc("crew_jobs", { from_date: addDays(today, -DAYS_BACK), to_date: addDays(today, DAYS_AHEAD) }),
+    supabase.rpc("crew_route", { route_date: today }),
+    supabase.rpc("crew_route_settings", { route_date: today }).maybeSingle(),
+  ]);
+  if (error || routeError || settingsError) throw new Error(`Could not load your jobs: ${(error ?? routeError ?? settingsError)!.message}`);
 
   const overdue = data.filter((j) => j.scheduled_date < today && !isClosed(j.status));
-  const todays = data.filter((j) => j.scheduled_date === today);
   const upcoming = data.filter((j) => j.scheduled_date > today && !isClosed(j.status));
+  // Today's visits in route order (only this crew member's own), then any cancelled ones.
+  const shop =
+    settings?.shop_address && settings.shop_lat != null && settings.shop_lon != null
+      ? { address: settings.shop_address, lat: settings.shop_lat, lon: settings.shop_lon }
+      : null;
+  const todays = buildRoute(
+    route,
+    (j) => (j.geo_status === "located" && j.geo_lat != null && j.geo_lon != null ? { lat: j.geo_lat, lon: j.geo_lon } : null),
+    settings,
+    shop,
+  );
+  const cancelledToday = data.filter((j) => j.scheduled_date === today && j.status === "cancelled");
+  const routeRef = { date: today, crewMemberId: crewMember.id, returnTo: "/my-jobs" };
+  const order = todays.stops.map((j) => j.id);
 
   return (
     <>
@@ -51,6 +68,7 @@ export default async function MyJobsPage(props: PageProps<"/my-jobs">) {
       </div>
 
       {typeof notice === "string" && NOTICES[notice] && <Notice tone="success">{NOTICES[notice]}</Notice>}
+      {notice === "route-error" && <Notice tone="error">That route change couldn&apos;t be saved. Please try again.</Notice>}
 
       {overdue.length > 0 && (
         <section className="crew-section" aria-labelledby="overdue-heading">
@@ -63,7 +81,7 @@ export default async function MyJobsPage(props: PageProps<"/my-jobs">) {
 
       <section className="crew-section" aria-labelledby="today-heading">
         <h2 id="today-heading">Today</h2>
-        {todays.length === 0 ? (
+        {todays.stops.length === 0 && cancelledToday.length === 0 ? (
           <div className="panel">
             <div className="empty">
               <div className="big">No jobs today</div>
@@ -71,7 +89,31 @@ export default async function MyJobsPage(props: PageProps<"/my-jobs">) {
             </div>
           </div>
         ) : (
-          todays.map((job) => <CrewJobCard key={job.id} job={job} today={today} />)
+          <>
+            {todays.stops.length > 0 && (
+              <div className="panel">
+                <div className="panel-body">
+                  <RouteHeader route={routeRef} label="your route" start={todays.start} manual={todays.manual} canOrder={todays.canOrder} />
+                </div>
+              </div>
+            )}
+            <ol className="route-stops" aria-label="Today's route">
+              {todays.stops.map((job) => (
+                <li key={job.id} className="route-stop" data-stop-job={job.id}>
+                  <RouteArrows route={routeRef} order={order} jobId={job.id} label={crewCustomerName(job)} />
+                  <div className="route-stop-card">
+                    {job.geo_status !== "located" && (
+                      <div className="date-tag overdue route-unplaced">{job.geo_status === "pending" ? "Not looked up yet" : "Location not found"}</div>
+                    )}
+                    <CrewJobCard job={job} today={today} />
+                  </div>
+                </li>
+              ))}
+            </ol>
+            {cancelledToday.map((job) => (
+              <CrewJobCard key={job.id} job={job} today={today} />
+            ))}
+          </>
         )}
       </section>
 

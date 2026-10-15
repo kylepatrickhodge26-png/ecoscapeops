@@ -12,6 +12,7 @@ import {
   type CustomerField,
   type CustomerFormValues,
 } from "@/lib/customers/schema";
+import { locatePendingCustomers } from "@/lib/geo/customers";
 import { createClient } from "@/lib/supabase/server";
 
 export type CustomerFormState = {
@@ -59,6 +60,7 @@ export async function createCustomer(_prev: CustomerFormState, formData: FormDat
     return { values, error: "We couldn't save this customer. Please try again." };
   }
 
+  await locateCustomer(business.id, data.id);
   redirect(`/customers/${data.id}?notice=created`);
 }
 
@@ -67,7 +69,7 @@ export async function updateCustomer(
   _prev: CustomerFormState,
   formData: FormData,
 ): Promise<CustomerFormState> {
-  await requireOwner();
+  const { business } = await requireOwner();
   const values = customerFormValuesFromFormData(formData);
   if (!customerId.safeParse(id).success) return { values, error: "This customer no longer exists." };
 
@@ -85,6 +87,8 @@ export async function updateCustomer(
   }
   if (data.length === 0) return { values, error: "This customer no longer exists." };
 
+  // A changed address goes back to "pending" in the database; look it up again now.
+  await locateCustomer(business.id, id);
   redirect(`/customers/${id}?notice=updated`);
 }
 
@@ -104,4 +108,21 @@ export async function deleteCustomer(id: string): Promise<DeleteCustomerState> {
   if (data.length === 0) return { error: "This customer no longer exists." };
 
   redirect("/customers?notice=deleted");
+}
+
+// Looks up a customer's address if it hasn't been yet (new or changed). Never stops a
+// save: if the lookup fails, the address stays "pending" and is tried again later.
+async function locateCustomer(businessId: string, id: string) {
+  try {
+    await locatePendingCustomers(businessId, { customerIds: [id], budgetMs: 9_000 });
+  } catch (error) {
+    console.error("Looking up the customer's address failed", error);
+  }
+}
+
+export async function locateCustomerNow(id: string): Promise<void> {
+  const { business } = await requireOwner();
+  if (!customerId.safeParse(id).success) redirect("/customers");
+  await locateCustomer(business.id, id);
+  redirect(`/customers/${id}?notice=located`);
 }

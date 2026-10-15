@@ -2,7 +2,7 @@
 
 Multi-tenant operations app for landscaping businesses: Next.js (App Router) on Supabase (Postgres, Auth, row-level security).
 
-**Built so far:** the multi-tenant foundation (business signup and login, strict per-business data isolation), **Customers** (add, edit, delete, list), **Scheduling** (recurring bookings, calendar and list views, job statuses), **Crew** (crew logins, job assignment, each crew member's own job view), the **Dashboard** (the home page), **Expenses** (a categorized expense log feeding the dashboard's profit) **Weather** (a live rain forecast for the service area, moving a rainy day's visits, and a ready-to-send text for each opted-in customer) and **Invoicing** (invoices from visits and other items, a pay link offering each business's own payment apps, and payments recorded by the owner). Route ordering and the rest of the prototype come later.
+**Built so far:** the multi-tenant foundation (business signup and login, strict per-business data isolation), **Customers** (add, edit, delete, list), **Scheduling** (recurring bookings, calendar and list views, job statuses), **Crew** (crew logins, job assignment, each crew member's own job view), the **Dashboard** (the home page), **Expenses** (a categorized expense log feeding the dashboard's profit) **Weather** (a live rain forecast for the service area, moving a rainy day's visits, and a ready-to-send text for each opted-in customer) **Invoicing** (invoices from visits and other items, a pay link offering each business's own payment apps, and payments recorded by the owner) and **Route ordering** (each day's visits in driving order from the shop, per crew member, with arrows to change it). The rest of the prototype comes later.
 
 ## Product decisions in this version
 
@@ -107,6 +107,18 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 - **Dashboard revenue, without double counting:** each visit counts once, at its invoiced amount once it's on a sent invoice, otherwise at its booked price (in the month of the visit). Invoice lines that aren't visits count in the month the invoice was issued. Drafts and cancelled invoices don't change the numbers. Profit is that revenue minus expenses.
 - **Owner only.** Crew members never see invoices, payments or money, even for the visits they did.
 
+## Route ordering decisions
+
+- **Shop address** (Settings, owner only): where routes start. It has to name its own town and state. It's looked up once and must be in the US, and within 50 miles of the weather service area if one is set. Its matched address is shown so the owner can check it.
+- **Geocoder: the U.S. Census Bureau geocoder** (geocoding.geo.census.gov). Free, with no account, key or card. It has no published per-address limit (bulk files take up to 10,000 addresses; the app looks up one at a time, three at once at most). It only knows US addresses, so a match in another country can't come back from it in the first place. It's government data, so it can be stored. If it's down, addresses stay "waiting" and are tried again later; nothing breaks.
+- **Customer addresses are looked up when they're saved** and the result is cached on the customer, so they're never looked up again unless the property address (or the shop) changes. The database resets a customer to "pending" whenever that happens, so a stale location is never used. Customers still waiting are looked up when their day's routes are opened, or with *Look up waiting addresses* in Settings.
+- **Anchoring, so a bare street can't match the wrong place:** a bare street ("12 Oak St") is always looked up with the shop's town and state added. An address that names its own town or ZIP keeps it, so a customer in the next town over is still found; the shop's state is added if it has none. The country is always the US.
+- **Flagged, never quietly accepted:** a match outside the US, or more than **50 miles** (straight line) from the shop, is flagged. The customer page and Settings say what it matched and how far away, and the visit goes last on the route marked *Location not found*. The same happens for addresses that can't be found. Fixing the address looks it up again.
+- **Routes:** one per crew member per day (the owner is a crew member too), plus one for unassigned visits. The owner sees them all on the day's page (Schedule → a day); a crew member sees their own today under *My jobs*, and only their own visits. Cancelled visits aren't in routes; completed ones keep their place.
+- **Suggested order:** nearest stop first from the start, then the nearest to that, and so on (nearest neighbor), using straight-line distance. It's worked out fresh each time, so it always reflects the day's current visits.
+- **The arrows** (owner, or the crew member on their own route) override it, and the override is kept for that route and day. Visits added to the day afterwards go at the end. *Reset to suggested order* drops the override.
+- **A different start for one day** (*Start somewhere else this day*): changes only that route on that day; the shop address stays as it is. It's looked up like a customer address (anchored, US only, within 50 miles of the shop). *Start from the shop* undoes it.
+
 ## Local development
 
 Prerequisites: Node 20.9+ and Docker (for the local Supabase stack).
@@ -125,11 +137,11 @@ Local auth auto-confirms new accounts, so signup takes you straight in. After ch
 
 | Command | What it covers | Needs |
 | --- | --- | --- |
-| `npm test` | Unit tests: validation, dates and month grids, schedule filter rules, status shapes and colors, forecast parsing and rain risk, the National Weather Service client, ZIP code lookup, text links, payment app settings and pay buttons | nothing |
-| `npm run test:db` | Tenant isolation and database rules, run through the real Supabase API as real signed-in users: visit generation, keeping 6 ahead, stopping a service, invites, break-in attempts by crew members against other crew members, other businesses and owner-only functions, exact dashboard numbers per role with leak checks, expenses (owner-only, invisible to crew and other businesses), and weather: service areas per business, moving a day without touching other businesses, and texts prepared only for opted-in customers, invisible to crew and other businesses; invoicing: numbering, one live invoice per visit, live statuses (including overdue), payments never recorded twice (repeated forms, races), payment options (formats, each business's own, owner-only), auto-invoice, dashboard revenue without double counting, and break-in attempts by crew members, other businesses and signed-out visitors | `npx supabase start` |
-| `npm run test:e2e` | Browser tests (desktop and mobile): signup and login, customers, booking, calendar and filters, Could not service, crew invites and joining, assignment, crew views and actions, crew blocked from owner pages, removal, dashboards for owners and crew, expense quick-log/full form/edit/delete and profit, crew and other businesses unable to see expenses, the weather card and forecast per business, moving a rainy day and the Open text links for opted-in customers only (against a fake National Weather Service, `tests/e2e/fake-services.mjs`), invoices from visits and extra lines, sending, recording payments, setting up payment apps and the pay link's buttons for what's owed, one business's payment apps never shown on another's invoices, auto-invoice, the dashboard's invoiced revenue, crew and other businesses kept out, two businesses unable to see each other's data | `npx supabase start`, `.env.local`, `npx playwright install chromium` once |
+| `npm test` | Unit tests: validation, dates and month grids, schedule filter rules, status shapes and colors, forecast parsing and rain risk, the National Weather Service client, ZIP code lookup, text links, payment app settings and pay buttons, address anchoring (bare street vs. own town), the Census geocoder client, flagging wrong-country and far-away matches, nearest-neighbor ordering, arrow overrides | nothing |
+| `npm run test:db` | Tenant isolation and database rules, run through the real Supabase API as real signed-in users: visit generation, keeping 6 ahead, stopping a service, invites, break-in attempts by crew members against other crew members, other businesses and owner-only functions, exact dashboard numbers per role with leak checks, expenses (owner-only, invisible to crew and other businesses), and weather: service areas per business, moving a day without touching other businesses, and texts prepared only for opted-in customers, invisible to crew and other businesses; invoicing: numbering, one live invoice per visit, live statuses (including overdue), payments never recorded twice (repeated forms, races), payment options (formats, each business's own, owner-only), auto-invoice, dashboard revenue without double counting, and break-in attempts by crew members, other businesses and signed-out visitors; routes: the shop location and customer locations owner-only, a changed address or shop never leaving a stale location, crew members seeing and changing only their own route, only a route's own visits in its order, and nothing crossing businesses | `npx supabase start` |
+| `npm run test:e2e` | Browser tests (desktop and mobile): signup and login, customers, booking, calendar and filters, Could not service, crew invites and joining, assignment, crew views and actions, crew blocked from owner pages, removal, dashboards for owners and crew, expense quick-log/full form/edit/delete and profit, crew and other businesses unable to see expenses, the weather card and forecast per business, moving a rainy day and the Open text links for opted-in customers only (against a fake National Weather Service, `tests/e2e/fake-services.mjs`), invoices from visits and extra lines, sending, recording payments, setting up payment apps and the pay link's buttons for what's owed, one business's payment apps never shown on another's invoices, auto-invoice, the dashboard's invoiced revenue, crew and other businesses kept out, two businesses unable to see each other's data; routes against a fake Census geocoder (in the same file): setting the shop, nearest-first order, wrong-country and far-away matches flagged, arrow overrides kept, a one-day start, a crew member's own route on My jobs and the owner seeing it, another business seeing none of it | `npx supabase start`, `.env.local`, `npx playwright install chromium` once |
 
-`npm run test:e2e` starts its own app server (pointed at a fake National Weather Service on port 4010), so stop any dev server on port 3000 first. Also run `npm run lint` and `npm run typecheck`.
+`npm run test:e2e` starts its own app server (pointed at a fake National Weather Service and Census geocoder on port 4010), so stop any dev server on port 3000 first. Also run `npm run lint` and `npm run typecheck`.
 
 ## Deploying to a hosted Supabase project
 
@@ -159,6 +171,7 @@ The rules live in `supabase/migrations/` (foundation and scheduling):
 - Rows that point at other tenant rows use composite `(id, business_id)` foreign keys. A service plan or visit can only reference a customer or plan in the same business, even though foreign-key checks bypass RLS.
 - **Weather texts:** who can be texted is decided by the database, never by the browser, and a rain delay's texts are visible only to the owner of that business.
 - **Invoices and payments:** owners can read their business's invoices, but every change goes through database functions that enforce the rules; nobody writes invoices, lines or payments directly. A customer's pay link shows only that one invoice and that business's payment options. Payment options are owner-only too: only the owner reads and changes them (through a database function that checks their formats), and a pay link only ever shows its own business's.
+- **Routes:** the shop location and every customer's location are written only by the owner, through database functions (owners can't even set a customer's location columns directly). Owners read and change any route in their business; crew members get no table access and reach only their own route through `crew_route` / `crew_route_settings`, and can reorder or restart only that one. A route's order can only contain that route's own visits on that day.
 - The app code filters by business too, but only for clarity. The database enforces isolation even against hand-crafted API calls, and `tests/db/tenant-isolation.test.ts` checks this.
 
 **Checklist for each new tenant table** (jobs, invoices, …):
@@ -181,9 +194,12 @@ src/
   lib/expenses/               expense categories and validation
   lib/weather/                forecast parsing and rain risk, NWS client, ZIP lookup
   lib/invoices/               invoice statuses, payment methods, payment apps and pay buttons, validation
+  lib/geo/                    Census geocoder client, address anchoring, flagging, distances, route order
+  lib/routes/                 building a route (start, hand-set or suggested order)
   lib/sms.ts                  text links (sent from the owner's phone), phone numbers
   lib/dates.ts                calendar-date helpers (time-zone safe)
   components/job-status.tsx   status shapes, pills, legend
+  components/route/           route arrows, start-address box, route header
   app/(auth)/                 login, signup, auth server actions
   app/auth/confirm/           email confirmation landing route
   app/onboarding/             fallback "name your business" step
@@ -196,6 +212,8 @@ src/
   app/(app)/invoices/         invoice list, new/edit, invoice page, payments, payment options (owner)
   app/pay/[token]/            a customer's invoice and how to pay it (public, by secret link)
   app/(app)/crew/             crew list, invite links (owner)
+  app/(app)/settings/         shop address, customer addresses that need a look (owner)
+  app/(app)/routes/           route changes: arrows, reset, one-day start (owner and crew)
   app/(app)/my-jobs/          a crew member's own jobs and actions
   app/(auth)/join/[token]/    joining a crew from an invite link
 supabase/

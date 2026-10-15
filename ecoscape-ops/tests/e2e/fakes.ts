@@ -1,12 +1,15 @@
 import { randomInt } from "node:crypto";
 
-// Shared by playwright.config.ts and the tests: the fake National Weather Service
-// (tests/e2e/fake-services.mjs) and the settings the app is given to talk to it.
+// Shared by playwright.config.ts and the tests: the fake National Weather Service and
+// Census geocoder (tests/e2e/fake-services.mjs) and the settings the app is given to talk
+// to them.
 export const FAKE_SERVICES_PORT = 4010;
+const FAKE_URL = `http://127.0.0.1:${FAKE_SERVICES_PORT}`;
 
 export const FAKE_ENV = {
   FAKE_SERVICES_PORT: String(FAKE_SERVICES_PORT),
-  NWS_BASE_URL: `http://127.0.0.1:${FAKE_SERVICES_PORT}`,
+  NWS_BASE_URL: FAKE_URL,
+  CENSUS_GEOCODER_URL: FAKE_URL,
   // Always fetch, so a forecast cached on an earlier day can't leak into a test.
   WEATHER_CACHE_SECONDS: "0",
 };
@@ -22,3 +25,8 @@ export const FAKE_PLACES = {
 
 // A random US number.
 export const randomNumber = () => `+1${randomInt(200, 999)}${String(randomInt(0, 10_000_000)).padStart(7, "0")}`;
+
+// Every one-line address the app has asked the fake geocoder for.
+export async function geocodeQueries(): Promise<string[]> {
+  return (await fetch(`${FAKE_URL}/__census/queries`)).json();
+}

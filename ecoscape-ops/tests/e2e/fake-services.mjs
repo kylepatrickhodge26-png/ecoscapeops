@@ -1,7 +1,11 @@
-// A stand-in for the National Weather Service's forecast API during end-to-end tests, so
-// the tests never call the real service and always get the same forecast. Started by
-// playwright.config.ts. Serves /points/{lat},{lon} and the forecast it links to, for the
-// ZIP codes below (positions come from the same ZIP code list the app uses).
+// Stand-ins for the National Weather Service's forecast API and the U.S. Census geocoder
+// during end-to-end tests, so the tests never call the real services and always get the
+// same answers. Started by playwright.config.ts.
+//
+//   Weather:  /points/{lat},{lon} and the forecast it links to, for the ZIP codes below
+//             (positions come from the same ZIP code list the app uses).
+//   Geocoder: /geocoder/locations/onelineaddress for the addresses in ADDRESSES, answering
+//             in the Census geocoder's format. /__census/queries lists what was asked.
 import { createServer } from "node:http";
 
 import zipcodes from "zipcodes";
@@ -81,9 +85,64 @@ function json(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
+// ---------------------------------------------------------------------------
+// Census geocoder
+// ---------------------------------------------------------------------------
+// What each one-line query finds. Keep in step with ADDRESSES in tests/e2e/fakes.ts. The
+// shop is at 40.835, -73.11; the stops sit along the same latitude, east and west of it.
+const at = (lon, matchedAddress, state = "NY", lat = 40.835) => ({ lat, lon, matchedAddress, state });
+const ADDRESSES = {
+  "61 clarendon rd, lake ronkonkoma, ny": at(-73.11, "61 CLARENDON RD, LAKE RONKONKOMA, NY, 11779"),
+  "1 near st, lake ronkonkoma, ny": at(-73.1, "1 NEAR ST, LAKE RONKONKOMA, NY, 11779"),
+  "2 middle st, lake ronkonkoma, ny": at(-73.07, "2 MIDDLE ST, LAKE RONKONKOMA, NY, 11779"),
+  "3 far st, lake ronkonkoma, ny": at(-73.02, "3 FAR ST, LAKE RONKONKOMA, NY, 11779"),
+  "4 west st, lake ronkonkoma, ny": at(-73.18, "4 WEST ST, LAKE RONKONKOMA, NY, 11779"),
+  // A customer in the next town over, who names their own town.
+  "5 lake ave, lake grove, ny": at(-73.115, "5 LAKE AVE, LAKE GROVE, NY, 11755", "NY", 40.86),
+  // A one-day start, west of everything.
+  "8 home rd, lake ronkonkoma, ny": at(-73.2, "8 HOME RD, LAKE RONKONKOMA, NY, 11779"),
+  // A geocoder that goes wrong and matches a bare street in another country: the app
+  // must catch it.
+  "10 downing st, lake ronkonkoma, ny": at(-0.1276, "10 Downing St, London SW1A 2AA, United Kingdom", "", 51.5034),
+  // A real US match, but in another state, far from the shop.
+  "12 clarendon rd, dallas, tx": at(-96.797, "12 CLARENDON RD, DALLAS, TX, 75201", "TX", 32.7767),
+};
+// Addresses the "service" is down for.
+const OUTAGES = new Set(["500 outage rd, lake ronkonkoma, ny"]);
+const geocodeQueries = [];
+
+function handleCensus(url, res) {
+  if (url.pathname === "/__census/queries") return json(res, 200, geocodeQueries);
+  if (url.pathname !== "/geocoder/locations/onelineaddress") return json(res, 404, { errors: ["Not found"] });
+  const address = url.searchParams.get("address") ?? "";
+  if (url.searchParams.get("benchmark") !== "Public_AR_Current" || url.searchParams.get("format") !== "json") {
+    return json(res, 400, { errors: ["Benchmark and format are required"], status: "400" });
+  }
+  geocodeQueries.push(address);
+  const key = address.toLowerCase().replace(/\s+/g, " ").trim();
+  if (OUTAGES.has(key)) return json(res, 503, { errors: ["Service unavailable"] });
+  const found = ADDRESSES[key];
+  return json(res, 200, {
+    result: {
+      input: { address: { address }, benchmark: { benchmarkName: "Public_AR_Current" } },
+      addressMatches: found
+        ? [
+            {
+              tigerLine: { side: "L", tigerLineId: "1" },
+              coordinates: { x: found.lon, y: found.lat },
+              addressComponents: { city: found.matchedAddress.split(", ")[1], state: found.state, zip: found.matchedAddress.split(", ")[3] ?? "" },
+              matchedAddress: found.matchedAddress,
+            },
+          ]
+        : [],
+    },
+  });
+}
+
 const server = createServer((req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
   if (url.pathname === "/health") return json(res, 200, { ok: true });
+  if (url.pathname.startsWith("/geocoder/") || url.pathname.startsWith("/__census/")) return handleCensus(url, res);
 
   // The real service refuses requests that don't say who's asking.
   if (!req.headers["user-agent"]?.startsWith("EcoScape Ops")) {
@@ -109,4 +168,4 @@ const server = createServer((req, res) => {
   json(res, 404, { title: "Not Found", status: 404 });
 });
 
-server.listen(PORT, "127.0.0.1", () => console.log(`Fake National Weather Service listening on ${PORT}`));
+server.listen(PORT, "127.0.0.1", () => console.log(`Fake National Weather Service and Census geocoder listening on ${PORT}`));
