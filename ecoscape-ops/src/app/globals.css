@@ -1462,6 +1462,62 @@ td:first-child {
   color: var(--ink-soft);
   text-decoration: line-through;
 }
+.pill.quote-draft {
+  background: var(--paper-2);
+  color: var(--ink-soft);
+  border: 1px dashed var(--line);
+}
+.pill.quote-sent {
+  background: var(--sky-soft);
+  color: var(--sky);
+}
+.pill.quote-accepted {
+  background: var(--success-soft);
+  color: var(--success-ink);
+}
+.pill.quote-declined {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.pill.quote-expired {
+  background: var(--sun-soft);
+  color: #7a5a14;
+}
+.send-invoice textarea {
+  width: 100%;
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  resize: vertical;
+}
+.prospect-fields {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+.accept-form {
+  display: grid;
+  gap: 12px;
+}
+@media print {
+  .sidebar,
+  .no-print,
+  .tabbar {
+    display: none !important;
+  }
+  #app {
+    display: block;
+  }
+  #main {
+    padding: 0;
+    margin: 0;
+  }
+  body {
+    background: #fff;
+  }
+}
 .invoice-settings {
   display: grid;
   gap: 14px;

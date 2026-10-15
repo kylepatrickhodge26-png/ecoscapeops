@@ -562,6 +562,169 @@ export type Database = {
           },
         ]
       }
+      quote_counters: {
+        Row: {
+          business_id: string
+          next_number: number
+        }
+        Insert: {
+          business_id: string
+          next_number?: number
+        }
+        Update: {
+          business_id?: string
+          next_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_counters_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_lines: {
+        Row: {
+          amount: number | null
+          business_id: string
+          description: string
+          id: string
+          position: number
+          quantity: number
+          quote_id: string
+          unit_price: number
+        }
+        Insert: {
+          amount?: number | null
+          business_id: string
+          description: string
+          id?: string
+          position?: number
+          quantity?: number
+          quote_id: string
+          unit_price: number
+        }
+        Update: {
+          amount?: number | null
+          business_id?: string
+          description?: string
+          id?: string
+          position?: number
+          quantity?: number
+          quote_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_lines_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_lines_quote_id_business_id_fkey"
+            columns: ["quote_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          accepted_service_plan_id: string | null
+          business_id: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          decided_at: string | null
+          expires_on: string
+          id: string
+          issue_date: string
+          notes: string
+          number: number
+          prospect_address: string
+          prospect_email: string
+          prospect_name: string
+          prospect_phone: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["quote_status"]
+          title: string
+          total: number
+          updated_at: string
+          quote_status_shown: string | null
+        }
+        Insert: {
+          accepted_service_plan_id?: string | null
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          decided_at?: string | null
+          expires_on: string
+          id?: string
+          issue_date: string
+          notes?: string
+          number: number
+          prospect_address?: string
+          prospect_email?: string
+          prospect_name?: string
+          prospect_phone?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["quote_status"]
+          title?: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          accepted_service_plan_id?: string | null
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          decided_at?: string | null
+          expires_on?: string
+          id?: string
+          issue_date?: string
+          notes?: string
+          number?: number
+          prospect_address?: string
+          prospect_email?: string
+          prospect_name?: string
+          prospect_phone?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["quote_status"]
+          title?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_customer_id_business_id_fkey"
+            columns: ["customer_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id", "business_id"]
+          },
+          {
+            foreignKeyName: "quotes_accepted_service_plan_id_business_id_fkey"
+            columns: ["accepted_service_plan_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "service_plans"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
       rain_delay_visits: {
         Row: {
           business_id: string
@@ -1107,6 +1270,35 @@ export type Database = {
         Args: { crew_member_id: string }
         Returns: undefined
       }
+      accept_quote: {
+        Args: {
+          assigned_crew_member_id?: string
+          first_visit: string
+          frequency: Database["public"]["Enums"]["service_frequency"]
+          quote_id: string
+          service_name: string
+        }
+        Returns: string
+      }
+      decline_quote: { Args: { quote_id: string }; Returns: undefined }
+      delete_draft_quote: { Args: { quote_id: string }; Returns: undefined }
+      duplicate_quote: { Args: { quote_id: string }; Returns: string }
+      save_quote: {
+        Args: {
+          customer_id: string
+          expires_on: string
+          lines: Json
+          notes: string
+          prospect_address: string
+          prospect_email: string
+          prospect_name: string
+          prospect_phone: string
+          quote_id: string
+          title: string
+        }
+        Returns: string
+      }
+      send_quote: { Args: { quote_id: string }; Returns: undefined }
       reset_route_order: {
         Args: { crew_member_id: string; route_date: string }
         Returns: undefined
@@ -1198,6 +1390,7 @@ export type Database = {
         | "card"
         | "bank_transfer"
         | "other"
+      quote_status: "draft" | "sent" | "accepted" | "declined"
       service_frequency: "weekly" | "biweekly" | "triweekly" | "one_time"
     }
     CompositeTypes: {
@@ -1363,6 +1556,7 @@ export const Constants = {
         "bank_transfer",
         "other",
       ],
+      quote_status: ["draft", "sent", "accepted", "declined"],
       service_frequency: ["weekly", "biweekly", "triweekly", "one_time"],
     },
   },
