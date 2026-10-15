@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireOwner } from "@/lib/auth";
+import { todayInTimeZone } from "@/lib/dates";
+import { parseBillingMonth } from "@/lib/invoices/monthly";
 import { paymentOptionsSchema, type PaymentOptionField } from "@/lib/invoices/payment-options";
 import { invoiceSchema, paymentSchema, type InvoiceFormValues } from "@/lib/invoices/schema";
 import { createClient } from "@/lib/supabase/server";
@@ -244,4 +246,23 @@ export async function savePaymentOptions(_prev: PaymentOptionsFormState, formDat
     return { values, error: "We couldn't save your payment options. Please try again." };
   }
   redirect("/invoices?notice=payment-options");
+}
+
+// One draft invoice per monthly customer for the chosen month. Safe to run again: a visit can
+// only ever be on one invoice, so a second run only picks up visits completed since.
+export async function generateMonthlyInvoices(formData: FormData): Promise<void> {
+  const { business } = await requireOwner();
+  const month = parseBillingMonth(formData.get("month"), todayInTimeZone(business.time_zone));
+  if (!month) redirect("/invoices?notice=monthly-failed");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("generate_monthly_invoices", { for_month: month });
+  if (error) {
+    console.error("Generating monthly invoices failed", error);
+    redirect("/invoices?notice=monthly-failed");
+  }
+  const created = data.filter((r) => !r.added_to_existing).length;
+  const added = data.filter((r) => r.added_to_existing).length;
+  const visits = data.reduce((sum, r) => sum + r.visits, 0);
+  redirect(`/invoices?notice=monthly&created=${created}&added=${added}&visits=${visits}`);
 }

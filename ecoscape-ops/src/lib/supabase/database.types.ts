@@ -117,6 +117,7 @@ export type Database = {
         Row: {
           access_instructions: string
           billing_address: string
+          bill_monthly: boolean
           business_id: string
           created_at: string
           customer_since: string
@@ -143,6 +144,7 @@ export type Database = {
         Insert: {
           access_instructions?: string
           billing_address?: string
+          bill_monthly?: boolean
           business_id: string
           created_at?: string
           customer_since?: string
@@ -169,6 +171,7 @@ export type Database = {
         Update: {
           access_instructions?: string
           billing_address?: string
+          bill_monthly?: boolean
           business_id?: string
           created_at?: string
           customer_since?: string
@@ -360,6 +363,7 @@ export type Database = {
       invoices: {
         Row: {
           amount_paid: number
+          billing_month: string | null
           business_id: string
           cancelled_at: string | null
           created_at: string
@@ -380,6 +384,7 @@ export type Database = {
         }
         Insert: {
           amount_paid?: number
+          billing_month?: string | null
           business_id: string
           cancelled_at?: string | null
           created_at?: string
@@ -398,6 +403,7 @@ export type Database = {
         }
         Update: {
           amount_paid?: number
+          billing_month?: string | null
           business_id?: string
           cancelled_at?: string | null
           created_at?: string
@@ -1662,6 +1668,20 @@ export type Database = {
           phone: string
           token: string
         }
+        Returns: undefined
+      }
+      generate_monthly_invoices: {
+        Args: { for_month: string }
+        Returns: {
+          added_to_existing: boolean
+          amount: number
+          customer_id: string
+          invoice_id: string
+          visits: number
+        }[]
+      }
+      set_customer_bill_monthly: {
+        Args: { customer_id: string; enabled: boolean }
         Returns: undefined
       }
       save_checklist_template: {

@@ -18,8 +18,9 @@ import { PHOTO_BUCKET, PHOTO_KIND_LABELS } from "@/lib/photos/constants";
 import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
-import { deleteCustomer, locateCustomerNow } from "../actions";
+import { deleteCustomer, locateCustomerNow, setBillMonthly } from "../actions";
 import { getCustomerOr404 } from "../get-customer";
+import { BillMonthlyToggle } from "./bill-monthly-toggle";
 import { CustomerSchedule } from "./customer-schedule";
 import { DeleteCustomerButton } from "./delete-customer-button";
 
@@ -233,6 +234,9 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
           <Link className="btn secondary small" href={`/invoices/new?customer=${customer.id}`}>
             + New invoice
           </Link>
+        </div>
+        <div className="panel-body">
+          <BillMonthlyToggle enabled={customer.bill_monthly} save={setBillMonthly.bind(null, customer.id)} />
         </div>
         <div className="panel-body flush">
           {invoices.length === 0 ? (
