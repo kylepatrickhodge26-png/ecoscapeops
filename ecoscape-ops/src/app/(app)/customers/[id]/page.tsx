@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { ConfirmButton } from "@/components/confirm-button";
 import { InvoiceStatusPill } from "@/components/invoice-status";
 import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
@@ -18,9 +19,10 @@ import { PHOTO_BUCKET, PHOTO_KIND_LABELS } from "@/lib/photos/constants";
 import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
-import { deleteCustomer, locateCustomerNow, setBillMonthly } from "../actions";
+import { deleteCustomer, inviteCustomer, locateCustomerNow, removeCustomerAccess, setBillMonthly } from "../actions";
 import { getCustomerOr404 } from "../get-customer";
 import { BillMonthlyToggle } from "./bill-monthly-toggle";
+import { CustomerInviteButton } from "./customer-account";
 import { CustomerSchedule } from "./customer-schedule";
 import { DeleteCustomerButton } from "./delete-customer-button";
 
@@ -30,6 +32,7 @@ const NOTICES: Record<string, string> = {
   created: "Customer added.",
   updated: "Changes saved.",
   located: "Address looked up.",
+  "access-removed": "Their account access was removed. Their login now shows nothing.",
 };
 
 function formatDate(isoDate: string) {
@@ -68,6 +71,12 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
     );
     for (const sgn of signed ?? []) if (sgn.path && sgn.signedUrl) photoUrls.set(sgn.path, sgn.signedUrl);
   }
+  const { data: account, error: accountError } = await supabase
+    .from("customer_accounts")
+    .select("email, joined_at, invite_expires_at, user_id")
+    .eq("customer_id", customer.id)
+    .maybeSingle();
+  if (accountError) throw new Error(`Could not load the customer's account: ${accountError.message}`);
   const name = customerDisplayName(customer);
   const contact = [customer.phone, customer.email].filter(Boolean).join(" · ");
   const shop = customer.property_address ? await getShop(business.id) : null;
@@ -193,6 +202,44 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
         </div>
       </div>
       <CustomerSchedule customerId={customer.id} customerName={name} today={todayInTimeZone(business.time_zone)} />
+
+      <div className="panel" aria-labelledby="customer-account" data-testid="customer-account">
+        <div className="panel-head">
+          <h3 id="customer-account">Customer account</h3>
+          {account && <span className={`pill ${account.user_id ? "completed" : "cancelled"}`}>{account.user_id ? "Active" : "Invited"}</span>}
+        </div>
+        <div className="panel-body">
+          {account?.user_id ? (
+            <p>
+              {name} signs in as <b>{account.email}</b> to see their visits, sent quotes and sent invoices, answer quotes and ask for more
+              work. They never see your notes, crew, other customers or anything else.
+            </p>
+          ) : account ? (
+            <p className="hint">
+              Invite sent{account.invite_expires_at ? `, link expires ${formatShortDate(account.invite_expires_at.slice(0, 10))}` : ""}. Lost
+              it? Make a new one (the old link stops working).
+            </p>
+          ) : (
+            <p className="hint">
+              Give {name} their own login to see upcoming visits, quotes and invoices, accept quotes, pay and ask for more work.
+            </p>
+          )}
+          <div className="head-actions">
+            {!account?.user_id && (
+              <CustomerInviteButton invite={inviteCustomer.bind(null, customer.id)} name={name} label={account ? "New invite link" : "Invite to their account"} />
+            )}
+            {account && (
+              <ConfirmButton
+                action={removeCustomerAccess.bind(null, customer.id)}
+                label={account.user_id ? "Remove access" : "Cancel invite"}
+                confirmLabel="Yes, remove"
+                pendingLabel="Removing…"
+                confirmText={<>Remove {name}&apos;s account access? Their login will show nothing. You can invite them again later.</>}
+              />
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="panel" aria-labelledby="customer-photos">
         <div className="panel-head">

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { getUser } from "@/lib/auth";
+import { getCustomerAccount, getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 import { signOut } from "../(auth)/actions";
@@ -22,6 +22,7 @@ export default async function OnboardingPage() {
     .eq("user_id", user.id)
     .maybeSingle();
   if (membership) redirect("/dashboard");
+  if (await getCustomerAccount()) redirect("/portal");
 
   return (
     <div className="auth-shell">

@@ -37,7 +37,11 @@ export const requireMembership = cache(async (): Promise<Membership> => {
     .maybeSingle();
 
   if (error) throw new Error(`Could not load your business: ${error.message}`);
-  if (!data?.business) redirect("/onboarding");
+  if (!data?.business) {
+    // A customer's login belongs to no business: their place is their own account page.
+    if (await getCustomerAccount()) redirect("/portal");
+    redirect("/onboarding");
+  }
 
   return { user, role: data.role, business: data.business };
 });
@@ -65,3 +69,27 @@ export const requireCrewMember = cache(async () => {
   return { ...membership, crewMember: data };
 });
 
+
+// The signed-in customer's own account (their name and business), or null for anyone else.
+// Customers are never business members; everything they see comes through portal_* functions.
+export const getCustomerAccount = cache(async () => {
+  const user = await getUser();
+  if (!user) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("portal_summary");
+  if (error) throw new Error(`Could not load your account: ${error.message}`);
+  return data[0] ? { user, ...data[0] } : null;
+});
+
+// Customer pages. Owners and crew go to their own pages; a login with no account is shown
+// a short explanation by the page itself (getCustomerAccount() returns null).
+export async function requireCustomer() {
+  const user = await getUser();
+  if (!user) redirect("/login?next=/portal");
+  const account = await getCustomerAccount();
+  if (account) return account;
+  const supabase = await createClient();
+  const { data: member } = await supabase.from("business_members").select("business_id").eq("user_id", user.id).maybeSingle();
+  if (member) redirect("/dashboard");
+  return null;
+}

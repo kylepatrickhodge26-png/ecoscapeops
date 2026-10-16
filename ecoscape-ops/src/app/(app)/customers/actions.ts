@@ -15,6 +15,7 @@ import {
 } from "@/lib/customers/schema";
 import { locatePendingCustomers } from "@/lib/geo/customers";
 import { removePhotoFiles } from "@/lib/photos/cleanup";
+import { siteOrigin } from "@/lib/site-origin";
 import { createClient } from "@/lib/supabase/server";
 
 export type CustomerFormState = {
@@ -144,4 +145,34 @@ export async function setBillMonthly(id: string, enabled: boolean): Promise<{ er
   }
   refresh();
   return {};
+}
+
+// Customer accounts: an invite link the customer uses to create their own login.
+export type CustomerInviteState = { error?: string; inviteUrl?: string };
+
+export async function inviteCustomer(id: string): Promise<CustomerInviteState> {
+  await requireOwner();
+  if (!customerId.safeParse(id).success) return { error: "This customer no longer exists." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("invite_customer", { customer_id: id });
+  if (error || !data) {
+    if (error?.code === "23505") return { error: "This customer already has an account." };
+    if (error?.code === "P0002") return { error: "This customer no longer exists." };
+    console.error("Inviting customer failed", error);
+    return { error: "We couldn't make an invite link. Please try again." };
+  }
+  refresh();
+  return { inviteUrl: `${await siteOrigin()}/join/customer/${data}` };
+}
+
+export async function removeCustomerAccess(id: string): Promise<{ error?: string }> {
+  await requireOwner();
+  if (!customerId.safeParse(id).success) return { error: "This customer no longer exists." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("remove_customer_access", { customer_id: id });
+  if (error && error.code !== "P0002") {
+    console.error("Removing customer access failed", error);
+    return { error: "We couldn't remove access. Please try again." };
+  }
+  redirect(`/customers/${id}?notice=access-removed`);
 }
