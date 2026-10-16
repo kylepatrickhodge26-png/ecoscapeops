@@ -13,7 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ScheduleCalendar } from "./schedule-calendar";
 import { ScheduleList } from "./schedule-list";
 
-export const metadata: Metadata = { title: "Schedule · EcoScape Ops" };
+export const metadata: Metadata = { title: "Schedule" };
 
 export default async function SchedulePage(props: PageProps<"/schedule">) {
   const { business, user } = await requireOwner();

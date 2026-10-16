@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { CrewJobCard, crewCustomerName } from "./crew-job-card";
 
-export const metadata: Metadata = { title: "My jobs · EcoScape Ops" };
+export const metadata: Metadata = { title: "My jobs" };
 
 const NOTICES: Record<string, string> = {
   started: "Job started.",

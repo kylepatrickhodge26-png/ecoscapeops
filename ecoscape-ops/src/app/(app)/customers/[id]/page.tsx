@@ -26,7 +26,7 @@ import { CustomerInviteButton } from "./customer-account";
 import { CustomerSchedule } from "./customer-schedule";
 import { DeleteCustomerButton } from "./delete-customer-button";
 
-export const metadata: Metadata = { title: "Customer · EcoScape Ops" };
+export const metadata: Metadata = { title: "Customer" };
 
 const NOTICES: Record<string, string> = {
   created: "Customer added.",

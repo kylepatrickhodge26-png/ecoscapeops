@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { APP_NAME } from "@/lib/brand";
 
 // A one-time invite link, with copy and (on phones) share buttons.
 export function InviteLink({
@@ -47,7 +48,7 @@ export function InviteLink({
           <button
             type="button"
             className="btn secondary small"
-            onClick={() => navigator.share({ title: "Your invite", text: shareText ? `${shareText} ${url}` : `Join the crew on EcoScape Ops: ${url}` }).catch(() => {})}
+            onClick={() => navigator.share({ title: "Your invite", text: shareText ? `${shareText} ${url}` : `Join the crew on ${APP_NAME}: ${url}` }).catch(() => {})}
           >
             Share
           </button>

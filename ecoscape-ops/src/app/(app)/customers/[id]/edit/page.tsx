@@ -8,7 +8,7 @@ import { updateCustomer } from "../../actions";
 import { CustomerForm } from "../../customer-form";
 import { getCustomerOr404 } from "../../get-customer";
 
-export const metadata: Metadata = { title: "Edit customer · EcoScape Ops" };
+export const metadata: Metadata = { title: "Edit customer" };
 
 export default async function EditCustomerPage(props: PageProps<"/customers/[id]/edit">) {
   await requireOwner();

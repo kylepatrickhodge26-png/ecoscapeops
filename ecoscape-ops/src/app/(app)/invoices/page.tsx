@@ -16,7 +16,7 @@ import { generateMonthlyInvoices, setAutoInvoice } from "./actions";
 import { invoiceSettings, listInvoices } from "./queries";
 import { AutoInvoiceToggle } from "./settings-controls";
 
-export const metadata: Metadata = { title: "Invoices · EcoScape Ops" };
+export const metadata: Metadata = { title: "Invoices" };
 
 const NOTICES: Record<string, { tone: "success" | "error"; text: string }> = {
   deleted: { tone: "success", text: "Draft deleted." },

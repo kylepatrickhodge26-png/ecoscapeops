@@ -10,7 +10,7 @@ import { saveQuote } from "../../actions";
 import { getQuoteOr404, quoteCustomers } from "../../queries";
 import { QuoteForm } from "../../quote-form";
 
-export const metadata: Metadata = { title: "Edit quote · EcoScape Ops" };
+export const metadata: Metadata = { title: "Edit quote" };
 
 export default async function EditQuotePage(props: PageProps<"/quotes/[id]/edit">) {
   const { business } = await requireOwner();

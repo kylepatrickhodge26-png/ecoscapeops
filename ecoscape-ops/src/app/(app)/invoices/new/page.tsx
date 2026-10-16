@@ -12,7 +12,7 @@ import { saveInvoice } from "../actions";
 import { InvoiceForm } from "../invoice-form";
 import { billableVisits } from "../queries";
 
-export const metadata: Metadata = { title: "New invoice · EcoScape Ops" };
+export const metadata: Metadata = { title: "New invoice" };
 
 export default async function NewInvoicePage(props: PageProps<"/invoices/new">) {
   const { business } = await requireOwner();

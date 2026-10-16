@@ -7,7 +7,7 @@ import { emptyCustomerFormValues } from "@/lib/customers/schema";
 import { createCustomer } from "../actions";
 import { CustomerForm } from "../customer-form";
 
-export const metadata: Metadata = { title: "Add customer · EcoScape Ops" };
+export const metadata: Metadata = { title: "Add customer" };
 
 export default async function NewCustomerPage() {
   await requireOwner();

@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signOut } from "../../actions";
 import { AcceptInviteButton, JoinForm } from "./join-forms";
 
-export const metadata: Metadata = { title: "Join the crew · EcoScape Ops" };
+export const metadata: Metadata = { title: "Join the crew" };
 
 export default async function JoinPage(props: PageProps<"/join/[token]">) {
   const { token } = await props.params;

@@ -8,7 +8,7 @@ import { parseRange, presets } from "@/lib/reports/range";
 import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Reports · EcoScape Ops" };
+export const metadata: Metadata = { title: "Reports" };
 
 function monthLabel(isoDate: string) {
   const [y, m] = isoDate.split("-").map(Number);

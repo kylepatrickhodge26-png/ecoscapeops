@@ -11,7 +11,7 @@ import { saveQuote } from "../actions";
 import { quoteCustomers } from "../queries";
 import { QuoteForm } from "../quote-form";
 
-export const metadata: Metadata = { title: "New quote · EcoScape Ops" };
+export const metadata: Metadata = { title: "New quote" };
 
 export default async function NewQuotePage(props: PageProps<"/quotes/new">) {
   const { business } = await requireOwner();

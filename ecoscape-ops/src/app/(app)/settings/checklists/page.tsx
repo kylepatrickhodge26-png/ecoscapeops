@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { removeChecklist } from "./actions";
 import { ChecklistForm } from "./checklist-form";
 
-export const metadata: Metadata = { title: "Checklists & photos · EcoScape Ops" };
+export const metadata: Metadata = { title: "Checklists & photos" };
 
 const NOTICES: Record<string, string> = {
   saved: "Checklist saved. New visits of this service get it, and so do upcoming visits that didn't have one.",

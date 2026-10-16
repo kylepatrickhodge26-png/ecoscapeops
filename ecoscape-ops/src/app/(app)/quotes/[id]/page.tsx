@@ -19,7 +19,7 @@ import { AcceptForm } from "./accept-form";
 import { PrintButton } from "./print-button";
 import { SendQuote } from "./send-quote";
 
-export const metadata: Metadata = { title: "Quote · EcoScape Ops" };
+export const metadata: Metadata = { title: "Quote" };
 
 const NOTICES: Record<string, string> = {
   created: "Quote saved as a draft. Send it when you're ready.",

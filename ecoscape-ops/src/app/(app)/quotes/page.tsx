@@ -11,7 +11,7 @@ import { formatPrice } from "@/lib/schedule/constants";
 
 import { listQuotes } from "./queries";
 
-export const metadata: Metadata = { title: "Quotes · EcoScape Ops" };
+export const metadata: Metadata = { title: "Quotes" };
 
 const NOTICES: Record<string, string> = { deleted: "Draft deleted." };
 

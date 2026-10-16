@@ -13,7 +13,7 @@ import { toLocalInput } from "@/lib/time/format";
 import { deleteTimeEntry } from "../actions";
 import { EditTimeForm } from "./edit-form";
 
-export const metadata: Metadata = { title: "Edit time · EcoScape Ops" };
+export const metadata: Metadata = { title: "Edit time" };
 
 export default async function EditTimePage(props: PageProps<"/time/[id]">) {
   const { business } = await requireOwner();

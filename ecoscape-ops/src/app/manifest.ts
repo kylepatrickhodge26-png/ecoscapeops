@@ -1,10 +1,12 @@
 import type { MetadataRoute } from "next";
 
+import { APP_NAME, APP_SHORT_NAME, APP_TAGLINE } from "@/lib/brand";
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "EcoScape Ops",
-    short_name: "EcoScape",
-    description: "Operations for landscaping businesses",
+    name: APP_NAME,
+    short_name: APP_SHORT_NAME,
+    description: APP_TAGLINE,
     start_url: "/",
     scope: "/",
     display: "standalone",

@@ -14,7 +14,7 @@ import { formatPhone, smsLink } from "@/lib/sms";
 import { markWeatherTextOpened } from "../../actions";
 import { TextActions } from "./text-actions";
 
-export const metadata: Metadata = { title: "Rain delay · EcoScape Ops" };
+export const metadata: Metadata = { title: "Rain delay" };
 
 const REASONS: Record<string, string> = {
   not_opted_in: "Not opted in to texts",

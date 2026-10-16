@@ -9,7 +9,7 @@ import { signOut } from "../../../actions";
 import { AcceptCustomerInviteButton, CustomerJoinForm } from "./forms";
 
 export const metadata: Metadata = {
-  title: "Your account · EcoScape Ops",
+  title: "Your account",
   robots: { index: false, follow: false },
   referrer: "no-referrer",
 };

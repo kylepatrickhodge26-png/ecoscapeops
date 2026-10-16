@@ -194,6 +194,12 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 - **Asking for more work.** The customer's *Ask for more work* box drops a request into your Requests inbox, linked to that customer (up to 5 a day).
 - Crew and owner logins are unchanged.
 
+## Menu and name decisions
+
+- **Five sections instead of a long list.** Owners see *Home*, *Customers*, *Schedule*, *Money* and *More*. Each section owns its pages, so the right one stays highlighted anywhere in the app, and its pages show as a short row of buttons at the top (Customers: All customers, Requests; Schedule: Calendar, My jobs, Weather; Money: Quotes, Invoices, Expenses, Reports; More: Crew, Time, Settings). *Money* and *More* open a page of big, described buttons for new users. Crew still see only *Home* and *My jobs*.
+- **Phone tab bar.** On phones the five sections sit in a tab bar along the bottom (thumb reach, with icons); the new-request count shows on *Customers*.
+- **The app's name lives in one file**, `src/lib/brand.ts` (`APP_NAME`, `APP_SHORT_NAME` for under the phone icon, `APP_TAGLINE`). Page titles, sign-in screens, the installed-app name and invite messages all use it.
+
 ## Local development
 
 Prerequisites: Node 20.9+ and Docker (for the local Supabase stack).
@@ -233,6 +239,16 @@ Local auth auto-confirms new accounts, so signup takes you straight in. After ch
    The default template also works, but only if the link is opened in the same browser that signed up. The token-hash link works on any device.
 4. Optionally, under **Authentication → Providers → Email** (password settings), set the minimum password length to 8 to match the app.
 5. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` on your host, e.g. Vercel. Both come from **Project Settings → API**.
+
+## Hosting on Netlify (free, business use allowed)
+
+The repo has a `netlify.toml` (app in `ecoscape-ops/`, Node 22). Netlify's Next.js adapter is automatic.
+
+1. Sign up at netlify.com with your GitHub account (free plan). *Add new project → Import an existing project → GitHub →* pick this repo. The settings come from `netlify.toml`.
+2. Before the first deploy, add environment variables `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (same values as on Vercel), then deploy.
+3. In Supabase, *Authentication → URL Configuration*: set **Site URL** to the Netlify address (or your own domain) and add `https://<that address>/**` to **Redirect URLs**. Sign-up confirmation and invite emails link there.
+4. **Email for a public app:** Supabase's built-in email sends only a few emails an hour, which isn't enough once strangers sign up. Under *Project Settings → Authentication → SMTP*, connect a free email sender (for example Resend or Brevo) using your own domain.
+5. Once Netlify works, delete the Vercel project (or leave it) and point your domain at Netlify.
 
 ## How tenant isolation works
 

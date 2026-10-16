@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import { JobTable } from "../../job-table";
 import { jobsBetween, type JobListItem } from "../../queries";
 
-export const metadata: Metadata = { title: "Day · EcoScape Ops" };
+export const metadata: Metadata = { title: "Day" };
 
 const pointOf = (job: JobListItem) =>
   job.customer.geo_status === "located" && job.customer.geo_lat != null && job.customer.geo_lon != null

@@ -3,8 +3,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getUser, requireMembership } from "@/lib/auth";
+import { APP_NAME } from "@/lib/brand";
 
-export const metadata: Metadata = { title: "Welcome · EcoScape Ops" };
+export const metadata: Metadata = { title: "Welcome" };
 
 // Signed in: everyone goes to their own place (owners and crew to the dashboard, customers to
 // their account). Signed out: a welcome screen that asks who you are.
@@ -17,7 +18,7 @@ export default async function Home() {
   return (
     <div className="auth-shell">
       <div className="auth-brand">
-        <div className="name">EcoScape Ops</div>
+        <div className="name">{APP_NAME}</div>
         <div className="sub">Who are you?</div>
       </div>
       <div className="welcome-choices">
