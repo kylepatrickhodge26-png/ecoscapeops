@@ -42,7 +42,8 @@ export async function updateSession(request: NextRequest) {
   const signedIn = Boolean(data?.claims?.sub);
   const { pathname } = request.nextUrl;
 
-  if (!signedIn && !matches(pathname, PUBLIC_PATHS)) {
+  // "/" is the welcome screen for people who aren't signed in.
+  if (!signedIn && pathname !== "/" && !matches(pathname, PUBLIC_PATHS)) {
     return redirectPreservingSession(request, response, authHeaders, "/login", pathname === "/" ? null : pathname);
   }
   if (signedIn && matches(pathname, SIGNED_OUT_ONLY_PATHS)) {

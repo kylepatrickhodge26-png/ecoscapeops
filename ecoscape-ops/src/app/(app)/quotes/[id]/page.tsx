@@ -66,6 +66,12 @@ export default async function QuotePage(props: PageProps<"/quotes/[id]">) {
           </div>
           <div className="job-status-row">
             <QuoteStatusPill status={shown} />
+            {quote.customer_response && (
+              <span className={`pill ${quote.customer_response === "accepted" ? "completed" : "cancelled"}`} data-testid="customer-response">
+                Customer {quote.customer_response === "accepted" ? "said yes" : "said no"}
+                {quote.customer_responded_at && ` · ${formatShortDate(quote.customer_responded_at.slice(0, 10))}`}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -108,6 +114,9 @@ export default async function QuotePage(props: PageProps<"/quotes/[id]">) {
       {typeof notice === "string" && NOTICES[notice] && <Notice tone="success">{NOTICES[notice]}</Notice>}
       {shown === "expired" && (
         <Notice tone="warn">This quote is past its &ldquo;good through&rdquo; date. You can still accept it, or copy it to a new draft with fresh dates.</Notice>
+      )}
+      {quote.customer_response === "accepted" && quote.status === "sent" && (
+        <Notice tone="success">{name} accepted this quote from their account. Book the work below to confirm the dates.</Notice>
       )}
       {quote.status === "accepted" && (
         <Notice tone="success">

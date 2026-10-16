@@ -2016,3 +2016,53 @@ td:first-child {
   display: grid;
   gap: 8px;
 }
+
+/* Welcome screen */
+.welcome-choices {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  max-width: 420px;
+}
+.welcome-card h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+.welcome-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+/* Customer account (portal) */
+.portal-shell {
+  min-height: 100vh;
+  background: var(--paper);
+}
+.portal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+}
+.portal-head .name {
+  font-weight: 700;
+}
+.portal-main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+}
+.quote-answer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.quote-lines-plain {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 14px;
+}
+.welcome-actions .btn { text-align: center; }

@@ -113,6 +113,50 @@ export type Database = {
           },
         ]
       }
+      customer_accounts: {
+        Row: {
+          business_id: string
+          created_at: string
+          customer_id: string
+          email: string | null
+          id: string
+          invite_expires_at: string | null
+          invite_token_hash: string | null
+          joined_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          customer_id: string
+          email?: string | null
+          id?: string
+          invite_expires_at?: string | null
+          invite_token_hash?: string | null
+          joined_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          customer_id?: string
+          email?: string | null
+          id?: string
+          invite_expires_at?: string | null
+          invite_token_hash?: string | null
+          joined_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_accounts_customer_id_business_id_fkey"
+            columns: ["customer_id", "business_id"]
+            isOneToOne: true
+            referencedRelation: "customers"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           access_instructions: string
@@ -822,6 +866,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           customer_id: string | null
+          customer_responded_at: string | null
+          customer_response: string | null
           decided_at: string | null
           expires_on: string
           id: string
@@ -845,6 +891,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
+          customer_responded_at?: string | null
+          customer_response?: string | null
           decided_at?: string | null
           expires_on: string
           id?: string
@@ -867,6 +915,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
+          customer_responded_at?: string | null
+          customer_response?: string | null
           decided_at?: string | null
           expires_on?: string
           id?: string
@@ -1796,6 +1846,86 @@ export type Database = {
           scheduled_date: string
           service_name: string
         }[]
+      }
+      accept_customer_invite: {
+        Args: { token: string }
+        Returns: string
+      }
+      customer_invite_details: {
+        Args: { token: string }
+        Returns: {
+          business_name: string
+          customer_name: string
+        }[]
+      }
+      invite_customer: {
+        Args: { customer_id: string }
+        Returns: string
+      }
+      portal_invoices: {
+        Args: never
+        Returns: {
+          amount_paid: number
+          balance: number
+          due_date: string
+          id: string
+          issue_date: string
+          number: number
+          pay_token: string
+          status: string
+          total: number
+        }[]
+      }
+      portal_quotes: {
+        Args: never
+        Returns: {
+          customer_response: string | null
+          expires_on: string
+          id: string
+          issue_date: string
+          lines: Json
+          notes: string
+          number: number
+          status: string
+          title: string
+          total: number
+        }[]
+      }
+      portal_request_service: {
+        Args: { details: string }
+        Returns: undefined
+      }
+      portal_respond_to_quote: {
+        Args: { accept: boolean; quote_id: string }
+        Returns: undefined
+      }
+      portal_summary: {
+        Args: never
+        Returns: {
+          amount_owed: number
+          business_name: string
+          email: string
+          first_name: string
+          last_name: string
+          open_quotes: number
+          phone: string
+          property_address: string
+        }[]
+      }
+      portal_visits: {
+        Args: never
+        Returns: {
+          id: string
+          price: number
+          scheduled_date: string
+          service_name: string
+          status: Database["public"]["Enums"]["job_status"]
+          upcoming: boolean
+        }[]
+      }
+      remove_customer_access: {
+        Args: { customer_id: string }
+        Returns: undefined
       }
       save_checklist_template: {
         Args: { items: Json; service_name: string }
