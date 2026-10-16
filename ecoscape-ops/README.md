@@ -2,7 +2,7 @@
 
 Multi-tenant operations app for landscaping businesses: Next.js (App Router) on Supabase (Postgres, Auth, row-level security).
 
-**Built so far:** the multi-tenant foundation (business signup and login, strict per-business data isolation), **Customers** (add, edit, delete, list), **Scheduling** (recurring bookings, calendar and list views, job statuses), **Crew** (crew logins, job assignment, each crew member's own job view), the **Dashboard** (the home page), **Expenses** (a categorized expense log feeding the dashboard's profit) **Weather** (a live rain forecast for the service area, moving a rainy day's visits, and a ready-to-send text for each opted-in customer) **Invoicing** (invoices from visits and other items, a pay link offering each business's own payment apps, and payments recorded by the owner) and **Route ordering** (each day's visits in driving order from the shop, per crew member, with arrows to change it) and **Quotes** (price a job for a customer or a prospect, send it, and book it when they say yes). The rest of the prototype comes later.
+**Built so far:** the multi-tenant foundation (business signup and login, strict per-business data isolation), **Customers** (add, edit, delete, list), **Scheduling** (recurring bookings, calendar and list views, job statuses), **Crew** (crew logins, job assignment, each crew member's own job view), the **Dashboard** (the home page), **Expenses** (a categorized expense log feeding the dashboard's profit), **Weather** (a live rain forecast for the service area, moving a rainy day's visits, and a ready-to-send text for each opted-in customer), **Invoicing** (invoices from visits and other items, a pay link offering each business's own payment apps, and payments recorded by the owner), **Route ordering** (each day's visits in driving order from the shop, per crew member, with arrows to change it), **Phone install** (add it to a phone's home screen like an app), **Quotes**, **Job photos and checklists**, **Reports and CSV export**, a public **Request form**, **Monthly invoices** and **Time tracking**.
 
 ## Product decisions in this version
 
@@ -118,6 +118,15 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 - **Suggested order:** nearest stop first from the start, then the nearest to that, and so on (nearest neighbor), using straight-line distance. It's worked out fresh each time, so it always reflects the day's current visits.
 - **The arrows** (owner, or the crew member on their own route) override it, and the override is kept for that route and day. Visits added to the day afterwards go at the end. *Reset to suggested order* drops the override.
 - **A different start for one day** (*Start somewhere else this day*): changes only that route on that day; the shop address stays as it is. It's looked up like a customer address (anchored, US only, within 50 miles of the shop). *Start from the shop* undoes it.
+
+## Phone install decisions
+
+- **Installable app (PWA).** The app has a web app manifest, icons and a small service worker, so it can be added to a phone's home screen and opens full screen like an app. No account, store or fee is involved.
+  - **iPhone:** open the site in Safari, tap Share, then *Add to Home Screen*.
+  - **Android:** open the site in Chrome, tap the menu, then *Install app* (or *Add to Home screen*).
+- **Nothing private is stored on the phone by the worker.** `public/sw.js` caches exactly one thing, a fixed "You're offline" page (`public/offline.html`), and only shows it when a page can't load. It never caches pages, API calls, photos or customer data, so one person's data can't be served to another from a shared cache, and a signed-out phone shows nothing from before. Everything else always comes from the network, so the app needs a connection to show jobs.
+- The worker, manifest and offline page are served without signing in (they hold no data). The worker is only registered in production builds, and `/sw.js` is never cached.
+- Tests (`src/lib/pwa.test.ts`) fail if the worker ever starts caching anything beyond the offline page.
 
 ## Quotes decisions
 
