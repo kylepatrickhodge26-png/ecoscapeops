@@ -5,13 +5,14 @@ import { InvoiceStatusPill } from "@/components/invoice-status";
 import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
 import { customerDisplayName } from "@/lib/customers/schema";
-import { formatShortDate } from "@/lib/dates";
+import { formatMonth, formatShortDate, monthOf, todayInTimeZone } from "@/lib/dates";
 import { INVOICE_STATUSES, INVOICE_STATUS_LABELS, invoiceNumber, isInvoiceStatus } from "@/lib/invoices/constants";
+import { describeRun, monthlyOptions } from "@/lib/invoices/monthly";
 import { paymentOptionsSummary } from "@/lib/invoices/payment-options";
 import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
-import { setAutoInvoice } from "./actions";
+import { generateMonthlyInvoices, setAutoInvoice } from "./actions";
 import { invoiceSettings, listInvoices } from "./queries";
 import { AutoInvoiceToggle } from "./settings-controls";
 
@@ -35,6 +36,19 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
   const ways = paymentOptionsSummary(settings.paymentOptions);
   const totals = summary?.[0];
   const notice = typeof params.notice === "string" ? NOTICES[params.notice] : undefined;
+  const today = todayInTimeZone(business.time_zone);
+  const count = (v: unknown) => (typeof v === "string" && /^\d{1,5}$/.test(v) ? Number(v) : 0);
+  const monthlyNotice =
+    params.notice === "monthly"
+      ? { tone: "success" as const, text: describeRun(count(params.created), count(params.added), count(params.visits)) }
+      : params.notice === "monthly-failed"
+        ? { tone: "error" as const, text: "We couldn't make the monthly invoices. Please try again." }
+        : undefined;
+  const { count: monthlyCustomers } = await supabase
+    .from("customers")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", business.id)
+    .eq("bill_monthly", true);
 
   return (
     <>
@@ -49,6 +63,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
       </div>
 
       {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
+      {monthlyNotice && <Notice tone={monthlyNotice.tone}>{monthlyNotice.text}</Notice>}
 
       <div className="grid" aria-label="Invoice totals">
         <div className="card accent-sun" data-card="outstanding">
@@ -90,6 +105,35 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
               {ways ? "Edit payment options" : "Set up payment options"}
             </Link>
           </div>
+        </div>
+      </div>
+
+      <div className="panel" data-testid="monthly-invoices">
+        <div className="panel-head">
+          <h3>Monthly invoices</h3>
+        </div>
+        <div className="panel-body">
+          <p className="hint">
+            {monthlyCustomers
+              ? `${monthlyCustomers} ${monthlyCustomers === 1 ? "customer is" : "customers are"} billed monthly: one invoice covers all their completed visits for the month. `
+              : "Turn on Bill monthly on a customer's page to give them one invoice a month instead of one per visit. "}
+            Running it again never bills a visit twice; it only picks up visits completed since.
+          </p>
+          <form action={generateMonthlyInvoices} className="range-form">
+            <div className="field">
+              <label htmlFor="month">Month</label>
+              <select id="month" name="month" defaultValue={`${monthOf(today)}-01`}>
+                {monthlyOptions(today).map((m) => (
+                  <option key={m} value={m}>
+                    {formatMonth(m.slice(0, 7))}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button className="btn" type="submit" disabled={!monthlyCustomers}>
+              Generate invoices
+            </button>
+          </form>
         </div>
       </div>
 

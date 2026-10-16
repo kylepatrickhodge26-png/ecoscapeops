@@ -3,6 +3,8 @@ import { customerDisplayName } from "@/lib/customers/schema";
 import { addDays, formatShortDate } from "@/lib/dates";
 import { isClosed, type JobStatus } from "@/lib/schedule/constants";
 
+import { JobExtras } from "../job-extras/job-extras";
+import { TimeClock } from "../time-clock/time-clock";
 import { CouldNotService } from "../schedule/jobs/[id]/could-not-service";
 import { addMyJobNote, crewCouldNotService, setMyJobStatus } from "./actions";
 import { AddNote, CrewStatusButton } from "./crew-job-actions";
@@ -61,6 +63,8 @@ export function CrewJobCard({ job, today, showDate = false }: { job: CrewJob; to
       {job.access_instructions && <div className="notice compact">Access: {job.access_instructions}</div>}
       {job.service_notes && <div className="notice compact pre-line">Customer notes: {job.service_notes}</div>}
       {job.notes && <div className="job-notes-inline pre-line">{job.notes}</div>}
+      {open && <TimeClock jobId={job.id} />}
+      <JobExtras jobId={job.id} />
       <div className="actions">
         {open && STARTABLE.includes(job.status) && (
           <CrewStatusButton action={setMyJobStatus.bind(null, job.id, "in_progress")} label="Start job" pendingLabel="Starting…" />

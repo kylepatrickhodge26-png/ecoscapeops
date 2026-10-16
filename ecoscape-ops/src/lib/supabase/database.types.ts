@@ -117,6 +117,7 @@ export type Database = {
         Row: {
           access_instructions: string
           billing_address: string
+          bill_monthly: boolean
           business_id: string
           created_at: string
           customer_since: string
@@ -143,6 +144,7 @@ export type Database = {
         Insert: {
           access_instructions?: string
           billing_address?: string
+          bill_monthly?: boolean
           business_id: string
           created_at?: string
           customer_since?: string
@@ -169,6 +171,7 @@ export type Database = {
         Update: {
           access_instructions?: string
           billing_address?: string
+          bill_monthly?: boolean
           business_id?: string
           created_at?: string
           customer_since?: string
@@ -360,6 +363,7 @@ export type Database = {
       invoices: {
         Row: {
           amount_paid: number
+          billing_month: string | null
           business_id: string
           cancelled_at: string | null
           created_at: string
@@ -380,6 +384,7 @@ export type Database = {
         }
         Insert: {
           amount_paid?: number
+          billing_month?: string | null
           business_id: string
           cancelled_at?: string | null
           created_at?: string
@@ -398,6 +403,7 @@ export type Database = {
         }
         Update: {
           amount_paid?: number
+          billing_month?: string | null
           business_id?: string
           cancelled_at?: string | null
           created_at?: string
@@ -427,6 +433,182 @@ export type Database = {
             columns: ["customer_id", "business_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      checklist_template_items: {
+        Row: {
+          business_id: string
+          id: string
+          label: string
+          position: number
+          template_id: string
+        }
+        Insert: {
+          business_id: string
+          id?: string
+          label: string
+          position: number
+          template_id: string
+        }
+        Update: {
+          business_id?: string
+          id?: string
+          label?: string
+          position?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_template_items_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_template_items_template_id_business_id_fkey"
+            columns: ["template_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      checklist_templates: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          service_name: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          service_name: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          service_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_templates_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_checklist_items: {
+        Row: {
+          business_id: string
+          done: boolean
+          done_at: string | null
+          done_by: string | null
+          done_by_name: string
+          id: string
+          job_id: string
+          label: string
+          position: number
+        }
+        Insert: {
+          business_id: string
+          done?: boolean
+          done_at?: string | null
+          done_by?: string | null
+          done_by_name?: string
+          id?: string
+          job_id: string
+          label: string
+          position: number
+        }
+        Update: {
+          business_id?: string
+          done?: boolean
+          done_at?: string | null
+          done_by?: string | null
+          done_by_name?: string
+          id?: string
+          job_id?: string
+          label?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_checklist_items_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_checklist_items_job_id_business_id_fkey"
+            columns: ["job_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      job_photos: {
+        Row: {
+          business_id: string
+          caption: string
+          created_at: string
+          id: string
+          job_id: string
+          kind: Database["public"]["Enums"]["photo_kind"]
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string | null
+          uploaded_by_name: string
+        }
+        Insert: {
+          business_id: string
+          caption?: string
+          created_at?: string
+          id?: string
+          job_id: string
+          kind?: Database["public"]["Enums"]["photo_kind"]
+          size_bytes?: number
+          storage_path: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string
+        }
+        Update: {
+          business_id?: string
+          caption?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          kind?: Database["public"]["Enums"]["photo_kind"]
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_photos_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_photos_job_id_business_id_fkey"
+            columns: ["job_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
             referencedColumns: ["id", "business_id"]
           },
         ]
@@ -558,6 +740,169 @@ export type Database = {
             columns: ["invoice_id", "business_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      quote_counters: {
+        Row: {
+          business_id: string
+          next_number: number
+        }
+        Insert: {
+          business_id: string
+          next_number?: number
+        }
+        Update: {
+          business_id?: string
+          next_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_counters_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_lines: {
+        Row: {
+          amount: number | null
+          business_id: string
+          description: string
+          id: string
+          position: number
+          quantity: number
+          quote_id: string
+          unit_price: number
+        }
+        Insert: {
+          amount?: number | null
+          business_id: string
+          description: string
+          id?: string
+          position?: number
+          quantity?: number
+          quote_id: string
+          unit_price: number
+        }
+        Update: {
+          amount?: number | null
+          business_id?: string
+          description?: string
+          id?: string
+          position?: number
+          quantity?: number
+          quote_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_lines_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_lines_quote_id_business_id_fkey"
+            columns: ["quote_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          accepted_service_plan_id: string | null
+          business_id: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          decided_at: string | null
+          expires_on: string
+          id: string
+          issue_date: string
+          notes: string
+          number: number
+          prospect_address: string
+          prospect_email: string
+          prospect_name: string
+          prospect_phone: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["quote_status"]
+          title: string
+          total: number
+          updated_at: string
+          quote_status_shown: string | null
+        }
+        Insert: {
+          accepted_service_plan_id?: string | null
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          decided_at?: string | null
+          expires_on: string
+          id?: string
+          issue_date: string
+          notes?: string
+          number: number
+          prospect_address?: string
+          prospect_email?: string
+          prospect_name?: string
+          prospect_phone?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["quote_status"]
+          title?: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          accepted_service_plan_id?: string | null
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          decided_at?: string | null
+          expires_on?: string
+          id?: string
+          issue_date?: string
+          notes?: string
+          number?: number
+          prospect_address?: string
+          prospect_email?: string
+          prospect_name?: string
+          prospect_phone?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["quote_status"]
+          title?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_customer_id_business_id_fkey"
+            columns: ["customer_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id", "business_id"]
+          },
+          {
+            foreignKeyName: "quotes_accepted_service_plan_id_business_id_fkey"
+            columns: ["accepted_service_plan_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "service_plans"
             referencedColumns: ["id", "business_id"]
           },
         ]
@@ -732,6 +1077,88 @@ export type Database = {
           },
         ]
       }
+      request_links: {
+        Row: {
+          business_id: string
+          enabled: boolean
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          enabled?: boolean
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          enabled?: boolean
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_links_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      requests: {
+        Row: {
+          address: string
+          business_id: string
+          created_at: string
+          customer_id: string | null
+          details: string
+          email: string
+          handled_at: string | null
+          id: string
+          ip_hash: string
+          name: string
+          phone: string
+          status: Database["public"]["Enums"]["request_status"]
+        }
+        Insert: {
+          address?: string
+          business_id: string
+          created_at?: string
+          customer_id?: string | null
+          details: string
+          email?: string
+          handled_at?: string | null
+          id?: string
+          ip_hash: string
+          name: string
+          phone?: string
+          status?: Database["public"]["Enums"]["request_status"]
+        }
+        Update: {
+          address?: string
+          business_id?: string
+          created_at?: string
+          customer_id?: string | null
+          details?: string
+          email?: string
+          handled_at?: string | null
+          id?: string
+          ip_hash?: string
+          name?: string
+          phone?: string
+          status?: Database["public"]["Enums"]["request_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requests_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_plans: {
         Row: {
           active: boolean
@@ -840,6 +1267,60 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "businesses"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_entries: {
+        Row: {
+          business_id: string
+          created_at: string
+          crew_member_id: string | null
+          crew_name: string
+          edited_at: string | null
+          ended_at: string | null
+          id: string
+          job_id: string
+          note: string
+          started_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          crew_member_id?: string | null
+          crew_name: string
+          edited_at?: string | null
+          ended_at?: string | null
+          id?: string
+          job_id: string
+          note?: string
+          started_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          crew_member_id?: string | null
+          crew_name?: string
+          edited_at?: string | null
+          ended_at?: string | null
+          id?: string
+          job_id?: string
+          note?: string
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_job_id_business_id_fkey"
+            columns: ["job_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id", "business_id"]
           },
         ]
       }
@@ -1107,6 +1588,252 @@ export type Database = {
         Args: { crew_member_id: string }
         Returns: undefined
       }
+      add_job_photo: {
+        Args: {
+          caption: string
+          job_id: string
+          kind: Database["public"]["Enums"]["photo_kind"]
+          storage_path: string
+        }
+        Returns: string
+      }
+      delete_job_photo: { Args: { photo_id: string }; Returns: string }
+      job_checklist: {
+        Args: { job_id: string }
+        Returns: {
+          done: boolean
+          done_at: string
+          done_by_name: string
+          id: string
+          label: string
+          position: number
+        }[]
+      }
+      job_photos_for: {
+        Args: { job_id: string }
+        Returns: {
+          caption: string
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["photo_kind"]
+          storage_path: string
+          uploaded_by_name: string
+        }[]
+      }
+      photo_usage: {
+        Args: never
+        Returns: {
+          photo_count: number
+          total_bytes: number
+        }[]
+      }
+      report_expenses_by_category: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          category: Database["public"]["Enums"]["expense_category"]
+          total: number
+        }[]
+      }
+      report_jobs_by_crew: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          completed: number
+          crew_member_id: string
+          crew_name: string
+          scheduled: number
+        }[]
+      }
+      report_revenue_by_customer: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          booked: number
+          completed: number
+          customer_id: string
+          customer_name: string
+        }[]
+      }
+      report_revenue_by_month: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          booked: number
+          completed: number
+          month: string
+        }[]
+      }
+      report_revenue_by_service: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          booked: number
+          completed: number
+          service_name: string
+        }[]
+      }
+      report_summary: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          booked: number
+          collected: number
+          completed: number
+          expenses: number
+          outstanding: number
+          overdue: number
+        }[]
+      }
+      convert_request: {
+        Args: { request_id: string }
+        Returns: string
+      }
+      delete_request: {
+        Args: { request_id: string }
+        Returns: undefined
+      }
+      dismiss_request: {
+        Args: { request_id: string }
+        Returns: undefined
+      }
+      public_request_form: {
+        Args: { token: string }
+        Returns: {
+          business_name: string
+        }[]
+      }
+      regenerate_request_link: {
+        Args: never
+        Returns: string
+      }
+      request_link: {
+        Args: never
+        Returns: {
+          enabled: boolean
+          token: string
+        }[]
+      }
+      set_request_link_enabled: {
+        Args: { enabled: boolean }
+        Returns: undefined
+      }
+      submit_request: {
+        Args: {
+          address: string
+          details: string
+          email: string
+          ip_hash: string
+          name: string
+          phone: string
+          token: string
+        }
+        Returns: undefined
+      }
+      generate_monthly_invoices: {
+        Args: { for_month: string }
+        Returns: {
+          added_to_existing: boolean
+          amount: number
+          customer_id: string
+          invoice_id: string
+          visits: number
+        }[]
+      }
+      set_customer_bill_monthly: {
+        Args: { customer_id: string; enabled: boolean }
+        Returns: undefined
+      }
+      clock_in: {
+        Args: { job_id: string }
+        Returns: string
+      }
+      clock_out: {
+        Args: { job_id: string }
+        Returns: undefined
+      }
+      delete_time_entry: {
+        Args: { entry_id: string }
+        Returns: undefined
+      }
+      edit_time_entry: {
+        Args: { ended_local: string; entry_id: string; note: string; started_local: string }
+        Returns: undefined
+      }
+      my_open_time_entry: {
+        Args: never
+        Returns: {
+          job_id: string
+          service_name: string
+          started_at: string
+        }[]
+      }
+      time_by_crew: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          crew_member_id: string
+          crew_name: string
+          entries: number
+          hours: number
+          open_entries: number
+        }[]
+      }
+      time_by_customer: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          customer_id: string
+          customer_name: string
+          hours: number
+          job_value: number
+          revenue_per_hour: number | null
+          visits: number
+        }[]
+      }
+      time_by_job: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          customer_id: string
+          customer_name: string
+          hours: number
+          job_id: string
+          job_value: number
+          open_entries: number
+          revenue_per_hour: number | null
+          scheduled_date: string
+          service_name: string
+        }[]
+      }
+      save_checklist_template: {
+        Args: { items: Json; service_name: string }
+        Returns: string
+      }
+      set_checklist_item: {
+        Args: { done: boolean; item_id: string }
+        Returns: undefined
+      }
+      accept_quote: {
+        Args: {
+          assigned_crew_member_id?: string
+          first_visit: string
+          frequency: Database["public"]["Enums"]["service_frequency"]
+          quote_id: string
+          service_name: string
+        }
+        Returns: string
+      }
+      decline_quote: { Args: { quote_id: string }; Returns: undefined }
+      delete_draft_quote: { Args: { quote_id: string }; Returns: undefined }
+      duplicate_quote: { Args: { quote_id: string }; Returns: string }
+      save_quote: {
+        Args: {
+          customer_id: string
+          expires_on: string
+          lines: Json
+          notes: string
+          prospect_address: string
+          prospect_email: string
+          prospect_name: string
+          prospect_phone: string
+          quote_id: string
+          title: string
+        }
+        Returns: string
+      }
+      send_quote: { Args: { quote_id: string }; Returns: undefined }
       reset_route_order: {
         Args: { crew_member_id: string; route_date: string }
         Returns: undefined
@@ -1198,6 +1925,9 @@ export type Database = {
         | "card"
         | "bank_transfer"
         | "other"
+      photo_kind: "before" | "after" | "other"
+      request_status: "new" | "converted" | "dismissed"
+      quote_status: "draft" | "sent" | "accepted" | "declined"
       service_frequency: "weekly" | "biweekly" | "triweekly" | "one_time"
     }
     CompositeTypes: {
@@ -1363,6 +2093,9 @@ export const Constants = {
         "bank_transfer",
         "other",
       ],
+      photo_kind: ["before", "after", "other"],
+      request_status: ["new", "converted", "dismissed"],
+      quote_status: ["draft", "sent", "accepted", "declined"],
       service_frequency: ["weekly", "biweekly", "triweekly", "one_time"],
     },
   },

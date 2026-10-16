@@ -46,6 +46,18 @@ export default async function SettingsPage(props: PageProps<"/settings">) {
 
       <div className="panel">
         <div className="panel-head">
+          <h3>Checklists &amp; photos</h3>
+          <Link className="btn secondary small" href="/settings/checklists">
+            Manage
+          </Link>
+        </div>
+        <div className="panel-body">
+          <p className="hint">Give each service a checklist for crew to tick off, and see how much photo storage you&apos;re using.</p>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head">
           <h3>Shop address</h3>
         </div>
         <div className="panel-body">

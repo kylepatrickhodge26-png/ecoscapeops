@@ -1,5 +1,6 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -13,6 +14,7 @@ import {
   type CustomerFormValues,
 } from "@/lib/customers/schema";
 import { locatePendingCustomers } from "@/lib/geo/customers";
+import { removePhotoFiles } from "@/lib/photos/cleanup";
 import { createClient } from "@/lib/supabase/server";
 
 export type CustomerFormState = {
@@ -99,6 +101,7 @@ export async function deleteCustomer(id: string): Promise<DeleteCustomerState> {
   if (!customerId.safeParse(id).success) return { error: "This customer no longer exists." };
 
   const supabase = await createClient();
+  await removePhotoFiles(supabase, { customerId: id });
   const { data, error } = await supabase.from("customers").delete().eq("id", id).select("id");
 
   if (error) {
@@ -125,4 +128,20 @@ export async function locateCustomerNow(id: string): Promise<void> {
   if (!customerId.safeParse(id).success) redirect("/customers");
   await locateCustomer(business.id, id);
   redirect(`/customers/${id}?notice=located`);
+}
+
+// Monthly billing: one invoice a month for this customer's completed visits, made from the
+// Invoices page, instead of an invoice per visit.
+export async function setBillMonthly(id: string, enabled: boolean): Promise<{ error?: string }> {
+  await requireOwner();
+  if (!customerId.safeParse(id).success) return { error: "This customer no longer exists." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_customer_bill_monthly", { customer_id: id, enabled });
+  if (error) {
+    if (error.code === "P0002") return { error: "This customer no longer exists." };
+    console.error("Saving monthly billing failed", error);
+    return { error: "We couldn't save that. Please try again." };
+  }
+  refresh();
+  return {};
 }

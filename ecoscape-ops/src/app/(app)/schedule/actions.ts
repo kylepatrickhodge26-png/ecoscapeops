@@ -22,6 +22,7 @@ import {
   type JobField,
   type JobFormValues,
 } from "@/lib/schedule/schema";
+import { removePhotoFiles } from "@/lib/photos/cleanup";
 import { createClient } from "@/lib/supabase/server";
 
 const uuid = z.uuid();
@@ -167,6 +168,7 @@ export async function deleteJob(id: string): Promise<ActionResult> {
   if (!uuid.safeParse(id).success) return { error: "This visit no longer exists." };
 
   const supabase = await createClient();
+  await removePhotoFiles(supabase, { jobId: id });
   const { data, error } = await supabase
     .from("jobs")
     .delete()
