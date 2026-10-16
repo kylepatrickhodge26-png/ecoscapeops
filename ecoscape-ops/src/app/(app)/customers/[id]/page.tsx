@@ -14,11 +14,13 @@ import { formatShortDate, todayInTimeZone } from "@/lib/dates";
 import { getShop } from "@/lib/geo/customers";
 import { geoProblem } from "@/lib/geo/locate";
 import { invoiceNumber } from "@/lib/invoices/constants";
+import { PHOTO_BUCKET, PHOTO_KIND_LABELS } from "@/lib/photos/constants";
 import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
-import { deleteCustomer, locateCustomerNow } from "../actions";
+import { deleteCustomer, locateCustomerNow, setBillMonthly } from "../actions";
 import { getCustomerOr404 } from "../get-customer";
+import { BillMonthlyToggle } from "./bill-monthly-toggle";
 import { CustomerSchedule } from "./customer-schedule";
 import { DeleteCustomerButton } from "./delete-customer-button";
 
@@ -51,6 +53,21 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
     .eq("customer_id", customer.id)
     .order("number", { ascending: false });
   if (invoicesError) throw new Error(`Could not load invoices: ${invoicesError.message}`);
+  const { data: photos, error: photosError } = await supabase
+    .from("job_photos")
+    .select("id, storage_path, kind, caption, created_at, jobs!inner(id, service_name, scheduled_date, customer_id)")
+    .eq("jobs.customer_id", customer.id)
+    .order("created_at", { ascending: false })
+    .limit(60);
+  if (photosError) throw new Error(`Could not load photos: ${photosError.message}`);
+  const photoUrls = new Map<string, string>();
+  if (photos.length > 0) {
+    const { data: signed } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrls(
+      photos.map((p) => p.storage_path),
+      3600,
+    );
+    for (const sgn of signed ?? []) if (sgn.path && sgn.signedUrl) photoUrls.set(sgn.path, sgn.signedUrl);
+  }
   const name = customerDisplayName(customer);
   const contact = [customer.phone, customer.email].filter(Boolean).join(" · ");
   const shop = customer.property_address ? await getShop(business.id) : null;
@@ -177,12 +194,49 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
       </div>
       <CustomerSchedule customerId={customer.id} customerName={name} today={todayInTimeZone(business.time_zone)} />
 
+      <div className="panel" aria-labelledby="customer-photos">
+        <div className="panel-head">
+          <h3 id="customer-photos">Photos</h3>
+        </div>
+        <div className="panel-body">
+          {photos.length === 0 ? (
+            <div className="empty">No photos yet. Crew can add before and after photos on each visit.</div>
+          ) : (
+            <ul className="photo-grid">
+              {photos.map((p) => {
+                const url = photoUrls.get(p.storage_path);
+                return (
+                  <li key={p.id}>
+                    {url && (
+                      <a href={url} target="_blank" rel="noreferrer">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt={p.caption || `${PHOTO_KIND_LABELS[p.kind]} photo`} loading="lazy" />
+                      </a>
+                    )}
+                    <div className="photo-meta">
+                      <span className={`pill photo-${p.kind}`}>{PHOTO_KIND_LABELS[p.kind]}</span>{" "}
+                      <Link href={`/schedule/jobs/${p.jobs.id}`}>
+                        {p.jobs.service_name}, {formatShortDate(p.jobs.scheduled_date)}
+                      </Link>
+                      {p.caption && <div className="subtext">{p.caption}</div>}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
+
       <div className="panel" aria-labelledby="customer-invoices">
         <div className="panel-head">
           <h3 id="customer-invoices">Invoices</h3>
           <Link className="btn secondary small" href={`/invoices/new?customer=${customer.id}`}>
             + New invoice
           </Link>
+        </div>
+        <div className="panel-body">
+          <BillMonthlyToggle enabled={customer.bill_monthly} save={setBillMonthly.bind(null, customer.id)} />
         </div>
         <div className="panel-body flush">
           {invoices.length === 0 ? (
