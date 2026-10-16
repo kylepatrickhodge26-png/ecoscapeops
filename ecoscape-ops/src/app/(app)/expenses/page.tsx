@@ -8,7 +8,7 @@ import { EXPENSE_CATEGORY_LABELS, type ExpenseCategory } from "@/lib/expenses/sc
 import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Expenses · EcoScape Ops" };
+export const metadata: Metadata = { title: "Expenses" };
 
 const NOTICES: Record<string, string> = {
   added: "Expense added.",

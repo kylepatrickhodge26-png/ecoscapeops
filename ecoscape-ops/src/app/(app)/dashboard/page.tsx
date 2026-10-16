@@ -17,7 +17,7 @@ import { jobsBetween } from "../schedule/queries";
 import { QuickLog } from "./quick-log";
 import { WeatherCard } from "./weather-card";
 
-export const metadata: Metadata = { title: "Home · EcoScape Ops" };
+export const metadata: Metadata = { title: "Home" };
 
 // From dashboard_summary(): the money fields are null for crew members.
 type Summary = {

@@ -8,7 +8,7 @@ import { isExpenseCategory } from "@/lib/expenses/schema";
 import { createExpense } from "../actions";
 import { ExpenseForm } from "../expense-form";
 
-export const metadata: Metadata = { title: "Add expense · EcoScape Ops" };
+export const metadata: Metadata = { title: "Add expense" };
 
 export default async function NewExpensePage(props: PageProps<"/expenses/new">) {
   const { business } = await requireOwner();

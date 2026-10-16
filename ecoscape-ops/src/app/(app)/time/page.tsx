@@ -10,7 +10,7 @@ import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 import { formatClock, formatDateTime, formatHours } from "@/lib/time/format";
 
-export const metadata: Metadata = { title: "Time · EcoScape Ops" };
+export const metadata: Metadata = { title: "Time" };
 
 const NOTICES: Record<string, string> = { saved: "Time entry saved.", deleted: "Time entry deleted." };
 

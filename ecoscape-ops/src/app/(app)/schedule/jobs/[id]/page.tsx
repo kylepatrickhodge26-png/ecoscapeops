@@ -20,7 +20,7 @@ import { getJobOr404 } from "../../get-job";
 import { CouldNotService } from "./could-not-service";
 import { MarkCompleted } from "./mark-completed";
 
-export const metadata: Metadata = { title: "Visit · EcoScape Ops" };
+export const metadata: Metadata = { title: "Visit" };
 
 const NOTICES: Record<string, string> = {
   updated: "Changes saved.",

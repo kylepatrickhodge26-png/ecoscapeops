@@ -7,7 +7,7 @@ import { getBusinessForecast } from "@/lib/weather/queries";
 
 import { MoveDayForm } from "../move-form";
 
-export const metadata: Metadata = { title: "Move a day's jobs · EcoScape Ops" };
+export const metadata: Metadata = { title: "Move a day's jobs" };
 
 export default async function MoveDayPage(props: PageProps<"/weather/move">) {
   const { business } = await requireOwner();

@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { removeCrewMember, renameCrewMember } from "./actions";
 import { AddCrewForm, NewInviteLinkButton, RenameCrewMember } from "./crew-forms";
 
-export const metadata: Metadata = { title: "Crew · EcoScape Ops" };
+export const metadata: Metadata = { title: "Crew" };
 
 const NOTICES: Record<string, string> = {
   removed: "Crew member removed. Their login no longer has access, and their jobs are now unassigned.",

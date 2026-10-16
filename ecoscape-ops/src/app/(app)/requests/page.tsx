@@ -11,7 +11,7 @@ import { CopyButton } from "../../pay/[token]/copy-button";
 import { convertRequest, deleteRequest, dismissRequest, setRequestLink } from "./actions";
 import { RegenerateButton } from "./regenerate-button";
 
-export const metadata: Metadata = { title: "Requests · EcoScape Ops" };
+export const metadata: Metadata = { title: "Requests" };
 
 const NOTICES: Record<string, { tone: "success" | "error" | "warn"; text: string }> = {
   on: { tone: "success", text: "Your request form is on. Anyone with the link can send you a request." },

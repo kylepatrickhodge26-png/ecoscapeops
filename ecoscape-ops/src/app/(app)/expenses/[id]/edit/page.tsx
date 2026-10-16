@@ -13,7 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { deleteExpense, updateExpense } from "../../actions";
 import { ExpenseForm } from "../../expense-form";
 
-export const metadata: Metadata = { title: "Edit expense · EcoScape Ops" };
+export const metadata: Metadata = { title: "Edit expense" };
 
 export default async function EditExpensePage(props: PageProps<"/expenses/[id]/edit">) {
   await requireOwner();

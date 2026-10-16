@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { SignupForm } from "./signup-form";
 
-export const metadata: Metadata = { title: "Create your account · EcoScape Ops" };
+export const metadata: Metadata = { title: "Create your account" };
 
 export default function SignupPage() {
   return (

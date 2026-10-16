@@ -6,8 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 
 import { signOut } from "../(auth)/actions";
 import { OnboardingForm } from "./onboarding-form";
+import { APP_NAME } from "@/lib/brand";
 
-export const metadata: Metadata = { title: "Set up your business · EcoScape Ops" };
+export const metadata: Metadata = { title: "Set up your business" };
 
 // Only reached by a signed-in user who has no business yet (normally the business is
 // created at signup).
@@ -27,7 +28,7 @@ export default async function OnboardingPage() {
   return (
     <div className="auth-shell">
       <div className="auth-brand">
-        <div className="name">EcoScape Ops</div>
+        <div className="name">{APP_NAME}</div>
       </div>
       <div className="auth-card">
         <h1>Set up your business</h1>

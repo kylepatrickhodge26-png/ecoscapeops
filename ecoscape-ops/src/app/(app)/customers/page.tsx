@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { Notice } from "@/components/notice";
 
-export const metadata: Metadata = { title: "Customers · EcoScape Ops" };
+export const metadata: Metadata = { title: "Customers" };
 
 type ListCustomer = Pick<
   Customer,

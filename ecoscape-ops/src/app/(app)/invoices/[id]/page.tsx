@@ -21,7 +21,7 @@ import { DueDateForm } from "./due-date-form";
 import { PaymentForm } from "./payment-form";
 import { SendInvoice } from "./send-invoice";
 
-export const metadata: Metadata = { title: "Invoice · EcoScape Ops" };
+export const metadata: Metadata = { title: "Invoice" };
 
 const NOTICES: Record<string, string> = {
   created: "Invoice saved as a draft. Send it when you're ready.",

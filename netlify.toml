@@ -1,0 +1,8 @@
+# Netlify settings for the app in ecoscape-ops/. Netlify's Next.js adapter is picked up
+# automatically; nothing else is needed. Environment variables are set in the Netlify UI.
+[build]
+  base = "ecoscape-ops"
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "22"

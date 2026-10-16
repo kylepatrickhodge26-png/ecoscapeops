@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { QuoteAnswer, RequestServiceForm } from "./portal-forms";
 
-export const metadata: Metadata = { title: "Your account · EcoScape Ops", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Your account", robots: { index: false, follow: false } };
 
 type Line = { description: string; quantity: number; unit_price: number; amount: number };
 

@@ -6,7 +6,7 @@ import { getServiceArea } from "@/lib/weather/queries";
 
 import { AreaForm } from "../area-form";
 
-export const metadata: Metadata = { title: "Service area · EcoScape Ops" };
+export const metadata: Metadata = { title: "Service area" };
 
 export default async function ServiceAreaPage() {
   await requireOwner();

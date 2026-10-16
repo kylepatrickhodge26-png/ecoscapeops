@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { locateRemainingCustomers } from "./actions";
 import { ShopForm } from "./shop-form";
 
-export const metadata: Metadata = { title: "Settings · EcoScape Ops" };
+export const metadata: Metadata = { title: "Settings" };
 
 const NOTICES: Record<string, string> = {
   shop: "Shop address saved.",

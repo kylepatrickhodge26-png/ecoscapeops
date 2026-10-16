@@ -11,7 +11,7 @@ import { saveInvoice } from "../../actions";
 import { InvoiceForm } from "../../invoice-form";
 import { billableVisits, getInvoiceOr404 } from "../../queries";
 
-export const metadata: Metadata = { title: "Edit invoice · EcoScape Ops" };
+export const metadata: Metadata = { title: "Edit invoice" };
 
 export default async function EditInvoicePage(props: PageProps<"/invoices/[id]/edit">) {
   const { business } = await requireOwner();

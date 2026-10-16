@@ -10,7 +10,7 @@ import { getBusinessForecast } from "@/lib/weather/queries";
 
 import { AreaForm } from "./area-form";
 
-export const metadata: Metadata = { title: "Weather · EcoScape Ops" };
+export const metadata: Metadata = { title: "Weather" };
 
 const NOTICES: Record<string, string> = {
   area: "Service area saved.",

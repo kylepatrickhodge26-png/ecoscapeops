@@ -10,7 +10,7 @@ import { updateJob } from "../../../actions";
 import { getJobOr404 } from "../../../get-job";
 import { JobForm } from "./job-form";
 
-export const metadata: Metadata = { title: "Edit visit · EcoScape Ops" };
+export const metadata: Metadata = { title: "Edit visit" };
 
 export default async function EditJobPage(props: PageProps<"/schedule/jobs/[id]/edit">) {
   const { business, user } = await requireOwner();

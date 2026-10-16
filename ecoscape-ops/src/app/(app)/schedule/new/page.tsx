@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { BookingForm, type BookingCustomer } from "./booking-form";
 
-export const metadata: Metadata = { title: "Book a job · EcoScape Ops" };
+export const metadata: Metadata = { title: "Book a job" };
 
 export default async function NewBookingPage(props: PageProps<"/schedule/new">) {
   const { business, user } = await requireOwner();
