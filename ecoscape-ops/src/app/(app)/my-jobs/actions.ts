@@ -18,7 +18,6 @@ import type { CouldNotServiceState } from "../schedule/actions";
 // jobs assigned to the signed-in person.
 
 const uuid = z.uuid();
-const CREW_STATUSES = ["en_route", "in_progress", "completed"] as const;
 
 export type CrewActionState = { error?: string };
 
@@ -26,19 +25,6 @@ function crewError(code: string | undefined, fallback: string) {
   if (code === "P0002") return "This job is no longer assigned to you.";
   if (code === "22023") return "This job is already completed or cancelled.";
   return fallback;
-}
-
-export async function setMyJobStatus(jobId: string, status: (typeof CREW_STATUSES)[number]): Promise<CrewActionState> {
-  await requireCrewMember();
-  if (!uuid.safeParse(jobId).success || !CREW_STATUSES.includes(status)) return { error: "That isn't allowed." };
-
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("crew_set_job_status", { job_id: jobId, new_status: status });
-  if (error) {
-    if (error.code !== "P0002" && error.code !== "22023") console.error("Crew status change failed", error);
-    return { error: crewError(error.code, "We couldn't update this job. Please try again.") };
-  }
-  redirect(`/my-jobs?notice=${status === "completed" ? "completed" : "started"}`);
 }
 
 export type NoteState = { error?: string; value?: string };

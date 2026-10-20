@@ -4,6 +4,22 @@ export function formatHours(hours: number): string {
   return `${hours.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} h`;
 }
 
+// A clock left running longer than this counts as forgotten (matches the database).
+export const FORGOTTEN_AFTER_HOURS = 16;
+
+// The moment `hours` ago, as an ISO string (for "still running" queries).
+export function hoursAgo(hours: number): string {
+  return new Date(Date.now() - hours * 3_600_000).toISOString();
+}
+
+// How long a clock has been running: "12m", "3h 05m".
+export function formatElapsed(ms: number): string {
+  const minutes = Math.max(0, Math.floor(ms / 60_000));
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h === 0 ? `${m}m` : `${h}h ${String(m).padStart(2, "0")}m`;
+}
+
 export function formatClock(iso: string, timeZone: string): string {
   return new Date(iso).toLocaleTimeString("en-US", { timeZone, hour: "numeric", minute: "2-digit" });
 }

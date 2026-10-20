@@ -136,25 +136,22 @@ test("a crew member's dashboard counts only their own jobs and shows no money", 
   await book(page, customer, { service: "Edging", price: "10", date: t, assignee: "Unassigned" });
 
   const maria = await joinCrew(browser, mariaLink);
-  await expect(card(maria, "today").locator(".big")).toHaveText("1");
-  await expect(card(maria, "tomorrow").locator(".big")).toHaveText("0");
-  await expect(card(maria, "week").locator(".big")).toHaveText("1");
+  await maria.goto("/dashboard");
   await expect(card(maria, "revenue")).toHaveCount(0);
   await expect(card(maria, "profit")).toHaveCount(0);
   await expect(maria.locator("main")).not.toContainText("$");
   await expect(maria.getByRole("link", { name: "+ Add customer" })).toHaveCount(0);
   await expect(maria.getByRole("link", { name: "+ Book a job" })).toHaveCount(0);
-  const mariaJobs = maria.locator("article.jobitem");
+  // Today is her own route: one stop.
+  const mariaJobs = maria.locator("[data-today-stop]");
   await expect(mariaJobs).toHaveCount(1);
   await expect(mariaJobs.first()).toContainText("Mowing");
   for (const other of ["Hedge trimming", "Leaf cleanup", "Edging"]) await expect(maria.getByText(other)).toHaveCount(0);
 
   const luis = await joinCrew(browser, luisLink);
-  await expect(card(luis, "today").locator(".big")).toHaveText("1");
-  await expect(card(luis, "tomorrow").locator(".big")).toHaveText("1");
-  await expect(card(luis, "week").locator(".big")).toHaveText("2");
-  await expect(luis.locator("article.jobitem")).toHaveCount(1);
-  await expect(luis.locator("article.jobitem").first()).toContainText("Hedge trimming");
+  await luis.goto("/dashboard");
+  await expect(luis.locator("[data-today-stop]")).toHaveCount(1);
+  await expect(luis.locator("[data-today-stop]").first()).toContainText("Hedge trimming");
   await expect(luis.getByText("Mowing")).toHaveCount(0);
   await expect(luis.locator("main")).not.toContainText("$");
 
@@ -171,10 +168,11 @@ test("a crew member acting on a job from their dashboard updates their numbers",
   await book(page, customer, { price: "65", date: today(), assignee: "Maria" });
 
   const maria = await joinCrew(browser, link);
-  await maria.locator("article.jobitem").first().getByRole("button", { name: "Mark completed" }).click();
-  await expect(maria.getByText("Job marked completed.")).toBeVisible();
   await maria.goto("/dashboard");
-  await expect(card(maria, "today")).toContainText("1 completed · 0 remaining");
+  await maria.getByRole("button", { name: "Clock in" }).click();
+  await maria.getByRole("button", { name: "Clock out & finish" }).click();
+  await expect(maria.getByText("All done for today")).toBeVisible();
+  await expect(maria.getByText("Done today (1)")).toBeVisible();
 
   await page.goto("/dashboard");
   await expect(card(page, "revenue")).toContainText(`${formatPrice(65)} completed so far`);
@@ -191,7 +189,8 @@ test("another business's crew member sees none of this business's numbers", asyn
   const zoe = await joinCrew(browser, await addCrewMember(birchOwner, "Zoe"));
 
   await expect(zoe.getByTestId("business-name")).toHaveText("Birch Tree Services");
-  for (const name of ["today", "tomorrow", "week"] as const) await expect(card(zoe, name).locator(".big")).toHaveText("0");
+  await zoe.goto("/dashboard");
+  await expect(zoe.getByText("Nothing on your route today")).toBeVisible();
   await expect(zoe.getByText("Secret Client")).toHaveCount(0);
 
   await birchOwner.goto("/dashboard");
@@ -203,9 +202,9 @@ test("everyone's home is their dashboard", async ({ page, browser }) => {
   await signUpBusiness(page, "Home Lawns");
   await page.goto("/");
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("link", { name: "Today" })).toHaveAttribute("aria-current", "page");
 
   const crew = await joinCrew(browser, await addCrewMember(page, "Maria"));
   const nav = crew.getByRole("navigation", { name: "Main" });
-  await expect(nav.getByRole("link")).toHaveText(["Home", "My jobs"]);
+  await expect(nav.getByRole("link")).toHaveText(["Today", "My jobs"]);
 });

@@ -4,20 +4,30 @@ import Link from "next/link";
 import { Notice } from "@/components/notice";
 import { requireMembership, type Membership } from "@/lib/auth";
 import { getCrew, showAssignment } from "@/lib/crew";
+import { customerDisplayName } from "@/lib/customers/schema";
 import { formatLongDate, formatMonth, formatShortDate, monthOf } from "@/lib/dates";
 import { EXPENSE_CATEGORY_LABELS } from "@/lib/expenses/schema";
 import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
+import { getShop } from "@/lib/geo/customers";
+import { buildRoute } from "@/lib/routes/build";
 import { getServiceArea, type ServiceArea } from "@/lib/weather/queries";
 
 import { quickLogExpense } from "../expenses/actions";
-import { CrewJobCard } from "../my-jobs/crew-job-card";
+import { crewCustomerName } from "../my-jobs/crew-job-card";
 import { JobTable } from "../schedule/job-table";
-import { jobsBetween } from "../schedule/queries";
+import { jobsBetween, type JobListItem } from "../schedule/queries";
+import { getMyClock } from "../time-clock/clock-state";
+import { WorkdayCard } from "../time-clock/workday-card";
+import { CrewNow } from "./crew-now";
 import { QuickLog } from "./quick-log";
+import { TodayRoute, type TodayStop } from "./today-route";
 import { WeatherCard } from "./weather-card";
 
-export const metadata: Metadata = { title: "Home" };
+export const metadata: Metadata = { title: "Today" };
+
+const located = (geo: { geo_status: string; geo_lat: number | null; geo_lon: number | null }) =>
+  geo.geo_status === "located" && geo.geo_lat != null && geo.geo_lon != null ? { lat: geo.geo_lat, lon: geo.geo_lon } : null;
 
 // From dashboard_summary(): the money fields are null for crew members.
 type Summary = {
@@ -102,52 +112,63 @@ async function OwnerDashboard({
   const expenses = summary.month_expenses ?? 0;
   const outstanding = summary.outstanding ?? 0;
   const overdue = summary.overdue ?? 0;
-  const [todaysJobs, crew] = await Promise.all([
+  const supabase = await createClient();
+  const [todaysJobs, crew, shop, clock, { data: routeDays }] = await Promise.all([
     jobsBetween(business.id, summary.today, summary.today),
     getCrew(business.id, user.id),
+    getShop(business.id),
+    getMyClock(),
+    supabase.from("route_days").select("crew_member_id, start_address, start_lat, start_lon, manual_order").eq("business_id", business.id).eq("route_date", summary.today),
   ]);
+  const hasCrew = showAssignment(crew);
+  // The owner's own route: visits assigned to them (and, working solo, every visit).
+  const me = crew.find((c) => c.user_id === user.id);
+  const mine = todaysJobs.filter(
+    (j) => j.status !== "cancelled" && (j.assigned_crew_member_id === me?.id || (!hasCrew && j.assigned_crew_member_id === null)),
+  );
+  const myRouteKey = hasCrew ? (me?.id ?? null) : null;
+  const ownRoute = buildRoute(
+    mine,
+    (j: JobListItem) => located(j.customer),
+    routeDays?.find((d) => d.crew_member_id === myRouteKey),
+    shop,
+  );
+  const ownStops: TodayStop[] = ownRoute.stops.map((j) => ({
+    id: j.id,
+    status: j.status,
+    service: j.service_name,
+    customerName: customerDisplayName(j.customer),
+    phone: j.customer.phone,
+    address: j.customer.property_address,
+    access: j.customer.access_instructions,
+    customerNotes: j.customer.service_notes,
+    href: `/schedule/jobs/${j.id}`,
+  }));
 
   return (
     <>
       <div className="pagehead">
         <div>
-          <h1>Home</h1>
+          <h1>Today</h1>
           <div className="meta">{formatLongDate(summary.today)}</div>
         </div>
       </div>
 
       <LoggedNotice expenseId={loggedExpenseId} />
+      <WorkdayCard />
+      {ownStops.length > 0 && (
+        <section aria-label="Your route">
+          {hasCrew && <h2 className="today-section-heading">Your route</h2>}
+          <TodayRoute stops={ownStops} clock={clock} emptyText="" />
+        </section>
+      )}
+      {hasCrew && <CrewNow businessId={business.id} crew={crew} ownerUserId={user.id} timeZone={business.time_zone} />}
 
       <CountCards
         summary={summary}
         whose="Business"
         weather={<WeatherCard area={area} today={summary.today} isOwner />}
       />
-
-      <div className="grid money">
-        <div className="card accent-sage" data-card="revenue">
-          <div className="label">REVENUE · {month.toUpperCase()}</div>
-          <div className="big">{formatPrice(booked)}</div>
-          <div className="sub">booked this month, completed or not (invoiced visits at their invoiced amount)</div>
-          <div className="sub strong">{formatPrice(completed)} completed so far</div>
-          <div className="sub">{formatPrice(summary.month_collected ?? 0)} collected this month</div>
-        </div>
-        <div className="card" data-card="profit">
-          <div className="label">EST. PROFIT · {month.toUpperCase()}</div>
-          <div className="big">{formatPrice(booked - expenses)}</div>
-          <div className="sub">
-            revenue minus <Link href="/expenses">{formatPrice(expenses)} in expenses</Link> this month
-          </div>
-        </div>
-        <div className="card accent-sun" data-card="outstanding">
-          <div className="label">OUTSTANDING</div>
-          <div className="big">{formatPrice(outstanding)}</div>
-          <div className="sub">owed on sent invoices</div>
-          <div className={overdue > 0 ? "sub strong overdue-text" : "sub"}>
-            {overdue > 0 ? <Link href="/invoices?status=overdue">{formatPrice(overdue)} overdue</Link> : "nothing overdue"}
-          </div>
-        </div>
-      </div>
 
       <div className="panel">
         <div className="panel-head">
@@ -204,53 +225,80 @@ async function OwnerDashboard({
             today={summary.today}
             emptyTitle="Nothing scheduled today"
             emptyText="No jobs are booked for today."
-            showCrew={showAssignment(crew)}
+            showCrew={hasCrew}
           />
+        </div>
+      </div>
+
+      <div className="grid money">
+        <div className="card accent-sage" data-card="revenue">
+          <div className="label">REVENUE · {month.toUpperCase()}</div>
+          <div className="big">{formatPrice(booked)}</div>
+          <div className="sub">booked this month, completed or not (invoiced visits at their invoiced amount)</div>
+          <div className="sub strong">{formatPrice(completed)} completed so far</div>
+          <div className="sub">{formatPrice(summary.month_collected ?? 0)} collected this month</div>
+        </div>
+        <div className="card" data-card="profit">
+          <div className="label">EST. PROFIT · {month.toUpperCase()}</div>
+          <div className="big">{formatPrice(booked - expenses)}</div>
+          <div className="sub">
+            revenue minus <Link href="/expenses">{formatPrice(expenses)} in expenses</Link> this month
+          </div>
+        </div>
+        <div className="card accent-sun" data-card="outstanding">
+          <div className="label">OUTSTANDING</div>
+          <div className="big">{formatPrice(outstanding)}</div>
+          <div className="sub">owed on sent invoices</div>
+          <div className={overdue > 0 ? "sub strong overdue-text" : "sub"}>
+            {overdue > 0 ? <Link href="/invoices?status=overdue">{formatPrice(overdue)} overdue</Link> : "nothing overdue"}
+          </div>
         </div>
       </div>
     </>
   );
 }
 
+// A crew member's Today: their workday clock, the visit they're on (or the next one) with one
+// big button, then the rest of their route. Only their own visits, never prices.
 async function CrewDashboard({ summary, area }: { summary: Summary; area: ServiceArea | null }) {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("crew_jobs", { from_date: summary.today, to_date: summary.today });
-  if (error) throw new Error(`Could not load your jobs: ${error.message}`);
+  const [{ data: route, error }, { data: settings, error: settingsError }, clock] = await Promise.all([
+    supabase.rpc("crew_route", { route_date: summary.today }),
+    supabase.rpc("crew_route_settings", { route_date: summary.today }).maybeSingle(),
+    getMyClock(),
+  ]);
+  if (error || settingsError) throw new Error(`Could not load your jobs: ${(error ?? settingsError)!.message}`);
+  const shop =
+    settings?.shop_address && settings.shop_lat != null && settings.shop_lon != null
+      ? { address: settings.shop_address, lat: settings.shop_lat, lon: settings.shop_lon }
+      : null;
+  const stops: TodayStop[] = buildRoute(route, located, settings, shop).stops.map((j) => ({
+    id: j.id,
+    status: j.status,
+    service: j.service_name,
+    customerName: crewCustomerName(j),
+    phone: j.customer_phone,
+    address: j.property_address,
+    access: j.access_instructions,
+    customerNotes: j.service_notes,
+    href: `/my-jobs#job-${j.id}`,
+  }));
 
   return (
     <>
       <div className="pagehead">
         <div>
-          <h1>Home</h1>
+          <h1>Today</h1>
           <div className="meta">{formatLongDate(summary.today)}</div>
         </div>
-        <Link className="btn secondary small" href="/my-jobs">
-          All my jobs
-        </Link>
       </div>
-
-      <CountCards
-        summary={summary}
-        whose="Your"
-        weather={
-          // Crew members see the forecast once the owner has set a service area.
-          area && <WeatherCard area={area} today={summary.today} isOwner={false} />
-        }
-      />
-
-      <section className="crew-section" aria-labelledby="today-heading">
-        <h2 id="today-heading">Your jobs today</h2>
-        {data.length === 0 ? (
-          <div className="panel">
-            <div className="empty">
-              <div className="big">No jobs today</div>
-              Nothing is assigned to you today.
-            </div>
-          </div>
-        ) : (
-          data.map((job) => <CrewJobCard key={job.id} job={job} today={summary.today} />)
-        )}
-      </section>
+      <WorkdayCard />
+      <TodayRoute stops={stops} clock={clock} emptyText="Nothing is assigned to you today." />
+      {area && (
+        <div className="grid today-weather">
+          <WeatherCard area={area} today={summary.today} isOwner={false} />
+        </div>
+      )}
     </>
   );
 }

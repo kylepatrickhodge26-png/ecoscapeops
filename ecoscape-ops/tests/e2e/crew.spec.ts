@@ -136,8 +136,8 @@ test("a crew member can start, note, complete, and reschedule their jobs", async
   const maria = await joinCrew(browser, mariaLink);
   const card = jobCards(maria).first();
 
-  await card.getByRole("button", { name: "Start job" }).click();
-  await expect(maria.getByText("Job started.")).toBeVisible();
+  // Clocking in starts the job.
+  await card.getByRole("button", { name: "Clock in" }).click();
   await expect(jobCards(maria).first().locator(".status-pill")).toHaveText("In progress");
 
   await jobCards(maria).first().getByRole("button", { name: "Add note" }).click();
@@ -146,8 +146,8 @@ test("a crew member can start, note, complete, and reschedule their jobs", async
   await expect(maria.getByText("Note added.")).toBeVisible();
   await expect(jobCards(maria).first()).toContainText("Maria: Dog in yard");
 
-  await jobCards(maria).first().getByRole("button", { name: "Mark completed" }).click();
-  await expect(maria.getByText("Job marked completed.")).toBeVisible();
+  // Clocking out and finishing completes it.
+  await jobCards(maria).first().getByRole("button", { name: "Clock out & finish" }).click();
   await expect(jobCards(maria).first().locator(".status-pill")).toHaveText("Completed");
   await expect(jobCards(maria).first().getByRole("button", { name: "Could not service" })).toHaveCount(0);
 

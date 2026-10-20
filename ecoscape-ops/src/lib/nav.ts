@@ -1,6 +1,6 @@
-// The app's menu: five sections instead of a long list. Each section owns the pages under it,
-// so the right tab stays highlighted wherever you are, and its pages show as a short row of
-// links at the top of the page.
+// The app's menu: five sections instead of a long list, most-used first, with Today (the clock
+// and the day's route) always the first tab. Each section owns the pages under it, so the right
+// tab stays highlighted wherever you are, and its pages show as a short row of links at the top.
 
 export type SubLink = { href: string; label: string; badge?: number };
 export type NavSection = {
@@ -17,18 +17,7 @@ const owns = (pathname: string, prefix: string) => pathname === prefix || pathna
 
 export function ownerSections(opts: { newRequests: number; hasCrew: boolean }): NavSection[] {
   return [
-    { key: "home", href: "/dashboard", label: "Home", owns: ["/dashboard"], links: [] },
-    {
-      key: "customers",
-      href: "/customers",
-      label: "Customers",
-      owns: ["/customers", "/requests"],
-      badge: opts.newRequests,
-      links: [
-        { href: "/customers", label: "All customers" },
-        { href: "/requests", label: "Requests", badge: opts.newRequests },
-      ],
-    },
+    { key: "home", href: "/dashboard", label: "Today", owns: ["/dashboard"], links: [] },
     {
       key: "schedule",
       href: "/schedule",
@@ -38,6 +27,17 @@ export function ownerSections(opts: { newRequests: number; hasCrew: boolean }): 
         { href: "/schedule", label: "Calendar" },
         ...(opts.hasCrew ? [{ href: "/my-jobs", label: "My jobs" }] : []),
         { href: "/weather", label: "Weather" },
+      ],
+    },
+    {
+      key: "customers",
+      href: "/customers",
+      label: "Customers",
+      owns: ["/customers", "/requests"],
+      badge: opts.newRequests,
+      links: [
+        { href: "/customers", label: "All customers" },
+        { href: "/requests", label: "Requests", badge: opts.newRequests },
       ],
     },
     {
@@ -66,10 +66,10 @@ export function ownerSections(opts: { newRequests: number; hasCrew: boolean }): 
   ];
 }
 
-// Crew members only ever get their own jobs.
+// Crew members only ever get their own jobs: Today (clock and route) and all their jobs.
 export function crewSections(): NavSection[] {
   return [
-    { key: "home", href: "/dashboard", label: "Home", owns: ["/dashboard"], links: [] },
+    { key: "home", href: "/dashboard", label: "Today", owns: ["/dashboard"], links: [] },
     { key: "my-jobs", href: "/my-jobs", label: "My jobs", owns: ["/my-jobs"], links: [] },
   ];
 }

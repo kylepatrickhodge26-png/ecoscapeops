@@ -62,6 +62,77 @@ export type Database = {
         }
         Relationships: []
       }
+      checklist_template_items: {
+        Row: {
+          business_id: string
+          id: string
+          label: string
+          position: number
+          template_id: string
+        }
+        Insert: {
+          business_id: string
+          id?: string
+          label: string
+          position: number
+          template_id: string
+        }
+        Update: {
+          business_id?: string
+          id?: string
+          label?: string
+          position?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_template_items_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_template_items_template_id_business_id_fkey"
+            columns: ["template_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      checklist_templates: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          service_name: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          service_name: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          service_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_templates_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crew_members: {
         Row: {
           business_id: string
@@ -149,9 +220,16 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "customer_accounts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "customer_accounts_customer_id_business_id_fkey"
             columns: ["customer_id", "business_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id", "business_id"]
           },
@@ -160,8 +238,8 @@ export type Database = {
       customers: {
         Row: {
           access_instructions: string
-          billing_address: string
           bill_monthly: boolean
+          billing_address: string
           business_id: string
           created_at: string
           customer_since: string
@@ -187,8 +265,8 @@ export type Database = {
         }
         Insert: {
           access_instructions?: string
-          billing_address?: string
           bill_monthly?: boolean
+          billing_address?: string
           business_id: string
           created_at?: string
           customer_since?: string
@@ -214,8 +292,8 @@ export type Database = {
         }
         Update: {
           access_instructions?: string
-          billing_address?: string
           bill_monthly?: boolean
+          billing_address?: string
           business_id?: string
           created_at?: string
           customer_since?: string
@@ -478,77 +556,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id", "business_id"]
-          },
-        ]
-      }
-      checklist_template_items: {
-        Row: {
-          business_id: string
-          id: string
-          label: string
-          position: number
-          template_id: string
-        }
-        Insert: {
-          business_id: string
-          id?: string
-          label: string
-          position: number
-          template_id: string
-        }
-        Update: {
-          business_id?: string
-          id?: string
-          label?: string
-          position?: number
-          template_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "checklist_template_items_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "checklist_template_items_template_id_business_id_fkey"
-            columns: ["template_id", "business_id"]
-            isOneToOne: false
-            referencedRelation: "checklist_templates"
-            referencedColumns: ["id", "business_id"]
-          },
-        ]
-      }
-      checklist_templates: {
-        Row: {
-          business_id: string
-          created_at: string
-          id: string
-          service_name: string
-          updated_at: string
-        }
-        Insert: {
-          business_id: string
-          created_at?: string
-          id?: string
-          service_name: string
-          updated_at?: string
-        }
-        Update: {
-          business_id?: string
-          created_at?: string
-          id?: string
-          service_name?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "checklist_templates_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
           },
         ]
       }
@@ -935,6 +942,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "quotes_accepted_service_plan_id_business_id_fkey"
+            columns: ["accepted_service_plan_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "service_plans"
+            referencedColumns: ["id", "business_id"]
+          },
+          {
             foreignKeyName: "quotes_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: false
@@ -946,13 +960,6 @@ export type Database = {
             columns: ["customer_id", "business_id"]
             isOneToOne: false
             referencedRelation: "customers"
-            referencedColumns: ["id", "business_id"]
-          },
-          {
-            foreignKeyName: "quotes_accepted_service_plan_id_business_id_fkey"
-            columns: ["accepted_service_plan_id", "business_id"]
-            isOneToOne: false
-            referencedRelation: "service_plans"
             referencedColumns: ["id", "business_id"]
           },
         ]
@@ -1029,6 +1036,95 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      request_links: {
+        Row: {
+          business_id: string
+          enabled: boolean
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          enabled?: boolean
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          enabled?: boolean
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_links_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      requests: {
+        Row: {
+          address: string
+          business_id: string
+          created_at: string
+          customer_id: string | null
+          details: string
+          email: string
+          handled_at: string | null
+          id: string
+          ip_hash: string
+          name: string
+          phone: string
+          status: Database["public"]["Enums"]["request_status"]
+        }
+        Insert: {
+          address?: string
+          business_id: string
+          created_at?: string
+          customer_id?: string | null
+          details: string
+          email?: string
+          handled_at?: string | null
+          id?: string
+          ip_hash: string
+          name: string
+          phone?: string
+          status?: Database["public"]["Enums"]["request_status"]
+        }
+        Update: {
+          address?: string
+          business_id?: string
+          created_at?: string
+          customer_id?: string | null
+          details?: string
+          email?: string
+          handled_at?: string | null
+          id?: string
+          ip_hash?: string
+          name?: string
+          phone?: string
+          status?: Database["public"]["Enums"]["request_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requests_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requests_customer_id_business_id_fkey"
+            columns: ["customer_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id", "business_id"]
           },
         ]
       }
@@ -1122,88 +1218,6 @@ export type Database = {
             foreignKeyName: "service_areas_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: true
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      request_links: {
-        Row: {
-          business_id: string
-          enabled: boolean
-          token: string
-          updated_at: string
-        }
-        Insert: {
-          business_id: string
-          enabled?: boolean
-          token?: string
-          updated_at?: string
-        }
-        Update: {
-          business_id?: string
-          enabled?: boolean
-          token?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "request_links_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: true
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      requests: {
-        Row: {
-          address: string
-          business_id: string
-          created_at: string
-          customer_id: string | null
-          details: string
-          email: string
-          handled_at: string | null
-          id: string
-          ip_hash: string
-          name: string
-          phone: string
-          status: Database["public"]["Enums"]["request_status"]
-        }
-        Insert: {
-          address?: string
-          business_id: string
-          created_at?: string
-          customer_id?: string | null
-          details: string
-          email?: string
-          handled_at?: string | null
-          id?: string
-          ip_hash: string
-          name: string
-          phone?: string
-          status?: Database["public"]["Enums"]["request_status"]
-        }
-        Update: {
-          address?: string
-          business_id?: string
-          created_at?: string
-          customer_id?: string | null
-          details?: string
-          email?: string
-          handled_at?: string | null
-          id?: string
-          ip_hash?: string
-          name?: string
-          phone?: string
-          status?: Database["public"]["Enums"]["request_status"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "requests_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
@@ -1366,6 +1380,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "time_entries_crew_member_id_business_id_fkey"
+            columns: ["crew_member_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "crew_members"
+            referencedColumns: ["id", "business_id"]
+          },
+          {
             foreignKeyName: "time_entries_job_id_business_id_fkey"
             columns: ["job_id", "business_id"]
             isOneToOne: false
@@ -1420,18 +1441,92 @@ export type Database = {
           },
         ]
       }
+      work_shifts: {
+        Row: {
+          auto_closed: boolean
+          business_id: string
+          created_at: string
+          crew_member_id: string | null
+          crew_name: string
+          edited_at: string | null
+          ended_at: string | null
+          id: string
+          note: string
+          started_at: string
+        }
+        Insert: {
+          auto_closed?: boolean
+          business_id: string
+          created_at?: string
+          crew_member_id?: string | null
+          crew_name: string
+          edited_at?: string | null
+          ended_at?: string | null
+          id?: string
+          note?: string
+          started_at?: string
+        }
+        Update: {
+          auto_closed?: boolean
+          business_id?: string
+          created_at?: string
+          crew_member_id?: string | null
+          crew_name?: string
+          edited_at?: string | null
+          ended_at?: string | null
+          id?: string
+          note?: string
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_shifts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_shifts_crew_member_id_business_id_fkey"
+            columns: ["crew_member_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "crew_members"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       accept_crew_invite: { Args: { token: string }; Returns: string }
+      accept_customer_invite: { Args: { token: string }; Returns: string }
+      accept_quote: {
+        Args: {
+          assigned_crew_member_id?: string
+          first_visit: string
+          frequency: Database["public"]["Enums"]["service_frequency"]
+          quote_id: string
+          service_name: string
+        }
+        Returns: string
+      }
       add_crew_member: {
         Args: { member_name: string }
         Returns: {
           crew_member_id: string
           invite_token: string
         }[]
+      }
+      add_job_photo: {
+        Args: {
+          caption: string
+          job_id: string
+          kind: Database["public"]["Enums"]["photo_kind"]
+          storage_path: string
+        }
+        Returns: string
       }
       balance: {
         Args: { "": Database["public"]["Tables"]["invoices"]["Row"] }
@@ -1453,6 +1548,9 @@ export type Database = {
         Args: { due_date: string; invoice_id: string }
         Returns: undefined
       }
+      clock_in: { Args: { job_id: string }; Returns: string }
+      clock_out: { Args: { job_id: string }; Returns: undefined }
+      convert_request: { Args: { request_id: string }; Returns: string }
       create_business: {
         Args: { business_name: string; time_zone?: string }
         Returns: string
@@ -1537,6 +1635,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      customer_invite_details: {
+        Args: { token: string }
+        Returns: {
+          business_name: string
+          customer_name: string
+        }[]
+      }
       dashboard_summary: {
         Args: never
         Returns: {
@@ -1553,16 +1658,80 @@ export type Database = {
           week_total: number
         }[]
       }
+      decline_quote: { Args: { quote_id: string }; Returns: undefined }
       delete_draft_invoice: { Args: { invoice_id: string }; Returns: undefined }
+      delete_draft_quote: { Args: { quote_id: string }; Returns: undefined }
+      delete_job_photo: { Args: { photo_id: string }; Returns: string }
       delete_manual_payment: {
         Args: { payment_id: string }
         Returns: undefined
       }
+      delete_request: { Args: { request_id: string }; Returns: undefined }
+      delete_time_entry: { Args: { entry_id: string }; Returns: undefined }
+      delete_work_shift: { Args: { shift_id: string }; Returns: undefined }
+      dismiss_request: { Args: { request_id: string }; Returns: undefined }
       display_status: {
         Args: { "": Database["public"]["Tables"]["invoices"]["Row"] }
         Returns: {
           error: true
         } & "the function public.display_status with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache"
+      }
+      duplicate_quote: { Args: { quote_id: string }; Returns: string }
+      edit_time_entry: {
+        Args: {
+          ended_local: string
+          entry_id: string
+          note: string
+          started_local: string
+        }
+        Returns: undefined
+      }
+      edit_work_shift: {
+        Args: {
+          ended_local: string
+          note: string
+          shift_id: string
+          started_local: string
+        }
+        Returns: undefined
+      }
+      end_workday: { Args: never; Returns: undefined }
+      finish_job: {
+        Args: { complete: boolean; job_id: string }
+        Returns: undefined
+      }
+      generate_monthly_invoices: {
+        Args: { for_month: string }
+        Returns: {
+          added_to_existing: boolean
+          amount: number
+          customer_id: string
+          invoice_id: string
+          visits: number
+        }[]
+      }
+      invite_customer: { Args: { customer_id: string }; Returns: string }
+      job_checklist: {
+        Args: { job_id: string }
+        Returns: {
+          done: boolean
+          done_at: string
+          done_by_name: string
+          id: string
+          label: string
+          position: number
+        }[]
+      }
+      job_photos_for: {
+        Args: { job_id: string }
+        Returns: {
+          caption: string
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["photo_kind"]
+          storage_path: string
+          uploaded_by_name: string
+        }[]
       }
       mark_weather_text_opened: {
         Args: { customer_id: string; rain_delay_id: string }
@@ -1571,6 +1740,89 @@ export type Database = {
       move_day_visits: {
         Args: { from_date: string; to_date: string }
         Returns: string
+      }
+      my_clock: {
+        Args: never
+        Returns: {
+          customer_name: string
+          job_id: string
+          job_started_at: string
+          service_name: string
+          workday_started_at: string
+        }[]
+      }
+      my_open_time_entry: {
+        Args: never
+        Returns: {
+          job_id: string
+          service_name: string
+          started_at: string
+        }[]
+      }
+      photo_usage: {
+        Args: never
+        Returns: {
+          photo_count: number
+          total_bytes: number
+        }[]
+      }
+      portal_invoices: {
+        Args: never
+        Returns: {
+          amount_paid: number
+          balance: number
+          due_date: string
+          id: string
+          issue_date: string
+          number: number
+          pay_token: string
+          status: string
+          total: number
+        }[]
+      }
+      portal_quotes: {
+        Args: never
+        Returns: {
+          customer_response: string
+          expires_on: string
+          id: string
+          issue_date: string
+          lines: Json
+          notes: string
+          number: number
+          status: string
+          title: string
+          total: number
+        }[]
+      }
+      portal_request_service: { Args: { details: string }; Returns: undefined }
+      portal_respond_to_quote: {
+        Args: { accept: boolean; quote_id: string }
+        Returns: undefined
+      }
+      portal_summary: {
+        Args: never
+        Returns: {
+          amount_owed: number
+          business_name: string
+          email: string
+          first_name: string
+          last_name: string
+          open_quotes: number
+          phone: string
+          property_address: string
+        }[]
+      }
+      portal_visits: {
+        Args: never
+        Returns: {
+          id: string
+          price: number
+          scheduled_date: string
+          service_name: string
+          status: Database["public"]["Enums"]["job_status"]
+          upcoming: boolean
+        }[]
       }
       public_invoice: {
         Args: { token: string }
@@ -1592,6 +1844,18 @@ export type Database = {
           venmo: string
           zelle: string
         }[]
+      }
+      public_request_form: {
+        Args: { token: string }
+        Returns: {
+          business_name: string
+        }[]
+      }
+      quote_status_shown: {
+        Args: { "": Database["public"]["Tables"]["quotes"]["Row"] }
+        Returns: {
+          error: true
+        } & "the function public.quote_status_shown with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache"
       }
       rain_delay_texts: {
         Args: { rain_delay_id: string }
@@ -1634,48 +1898,14 @@ export type Database = {
         Args: { crew_member_id: string }
         Returns: string
       }
+      regenerate_request_link: { Args: never; Returns: string }
       remove_crew_member: {
         Args: { crew_member_id: string }
         Returns: undefined
       }
-      add_job_photo: {
-        Args: {
-          caption: string
-          job_id: string
-          kind: Database["public"]["Enums"]["photo_kind"]
-          storage_path: string
-        }
-        Returns: string
-      }
-      delete_job_photo: { Args: { photo_id: string }; Returns: string }
-      job_checklist: {
-        Args: { job_id: string }
-        Returns: {
-          done: boolean
-          done_at: string
-          done_by_name: string
-          id: string
-          label: string
-          position: number
-        }[]
-      }
-      job_photos_for: {
-        Args: { job_id: string }
-        Returns: {
-          caption: string
-          created_at: string
-          id: string
-          kind: Database["public"]["Enums"]["photo_kind"]
-          storage_path: string
-          uploaded_by_name: string
-        }[]
-      }
-      photo_usage: {
-        Args: never
-        Returns: {
-          photo_count: number
-          total_bytes: number
-        }[]
+      remove_customer_access: {
+        Args: { customer_id: string }
+        Returns: undefined
       }
       report_expenses_by_category: {
         Args: { from_date: string; to_date: string }
@@ -1729,28 +1959,6 @@ export type Database = {
           overdue: number
         }[]
       }
-      convert_request: {
-        Args: { request_id: string }
-        Returns: string
-      }
-      delete_request: {
-        Args: { request_id: string }
-        Returns: undefined
-      }
-      dismiss_request: {
-        Args: { request_id: string }
-        Returns: undefined
-      }
-      public_request_form: {
-        Args: { token: string }
-        Returns: {
-          business_name: string
-        }[]
-      }
-      regenerate_request_link: {
-        Args: never
-        Returns: string
-      }
       request_link: {
         Args: never
         Returns: {
@@ -1758,196 +1966,24 @@ export type Database = {
           token: string
         }[]
       }
-      set_request_link_enabled: {
-        Args: { enabled: boolean }
-        Returns: undefined
-      }
-      submit_request: {
-        Args: {
-          address: string
-          details: string
-          email: string
-          ip_hash: string
-          name: string
-          phone: string
-          token: string
-        }
-        Returns: undefined
-      }
-      generate_monthly_invoices: {
-        Args: { for_month: string }
-        Returns: {
-          added_to_existing: boolean
-          amount: number
-          customer_id: string
-          invoice_id: string
-          visits: number
-        }[]
-      }
-      set_customer_bill_monthly: {
-        Args: { customer_id: string; enabled: boolean }
-        Returns: undefined
-      }
-      clock_in: {
-        Args: { job_id: string }
-        Returns: string
-      }
-      clock_out: {
-        Args: { job_id: string }
-        Returns: undefined
-      }
-      delete_time_entry: {
-        Args: { entry_id: string }
-        Returns: undefined
-      }
-      edit_time_entry: {
-        Args: { ended_local: string; entry_id: string; note: string; started_local: string }
-        Returns: undefined
-      }
-      my_open_time_entry: {
-        Args: never
-        Returns: {
-          job_id: string
-          service_name: string
-          started_at: string
-        }[]
-      }
-      time_by_crew: {
-        Args: { from_date: string; to_date: string }
-        Returns: {
-          crew_member_id: string
-          crew_name: string
-          entries: number
-          hours: number
-          open_entries: number
-        }[]
-      }
-      time_by_customer: {
-        Args: { from_date: string; to_date: string }
-        Returns: {
-          customer_id: string
-          customer_name: string
-          hours: number
-          job_value: number
-          revenue_per_hour: number | null
-          visits: number
-        }[]
-      }
-      time_by_job: {
-        Args: { from_date: string; to_date: string }
-        Returns: {
-          customer_id: string
-          customer_name: string
-          hours: number
-          job_id: string
-          job_value: number
-          open_entries: number
-          revenue_per_hour: number | null
-          scheduled_date: string
-          service_name: string
-        }[]
-      }
-      accept_customer_invite: {
-        Args: { token: string }
-        Returns: string
-      }
-      customer_invite_details: {
-        Args: { token: string }
-        Returns: {
-          business_name: string
-          customer_name: string
-        }[]
-      }
-      invite_customer: {
-        Args: { customer_id: string }
-        Returns: string
-      }
-      portal_invoices: {
-        Args: never
-        Returns: {
-          amount_paid: number
-          balance: number
-          due_date: string
-          id: string
-          issue_date: string
-          number: number
-          pay_token: string
-          status: string
-          total: number
-        }[]
-      }
-      portal_quotes: {
-        Args: never
-        Returns: {
-          customer_response: string | null
-          expires_on: string
-          id: string
-          issue_date: string
-          lines: Json
-          notes: string
-          number: number
-          status: string
-          title: string
-          total: number
-        }[]
-      }
-      portal_request_service: {
-        Args: { details: string }
-        Returns: undefined
-      }
-      portal_respond_to_quote: {
-        Args: { accept: boolean; quote_id: string }
-        Returns: undefined
-      }
-      portal_summary: {
-        Args: never
-        Returns: {
-          amount_owed: number
-          business_name: string
-          email: string
-          first_name: string
-          last_name: string
-          open_quotes: number
-          phone: string
-          property_address: string
-        }[]
-      }
-      portal_visits: {
-        Args: never
-        Returns: {
-          id: string
-          price: number
-          scheduled_date: string
-          service_name: string
-          status: Database["public"]["Enums"]["job_status"]
-          upcoming: boolean
-        }[]
-      }
-      remove_customer_access: {
-        Args: { customer_id: string }
+      reset_route_order: {
+        Args: { crew_member_id: string; route_date: string }
         Returns: undefined
       }
       save_checklist_template: {
         Args: { items: Json; service_name: string }
         Returns: string
       }
-      set_checklist_item: {
-        Args: { done: boolean; item_id: string }
-        Returns: undefined
-      }
-      accept_quote: {
+      save_invoice: {
         Args: {
-          assigned_crew_member_id?: string
-          first_visit: string
-          frequency: Database["public"]["Enums"]["service_frequency"]
-          quote_id: string
-          service_name: string
+          customer_id: string
+          due_date: string
+          invoice_id: string
+          lines: Json
+          notes: string
         }
         Returns: string
       }
-      decline_quote: { Args: { quote_id: string }; Returns: undefined }
-      delete_draft_quote: { Args: { quote_id: string }; Returns: undefined }
-      duplicate_quote: { Args: { quote_id: string }; Returns: string }
       save_quote: {
         Args: {
           customer_id: string
@@ -1963,23 +1999,17 @@ export type Database = {
         }
         Returns: string
       }
+      send_invoice: { Args: { invoice_id: string }; Returns: undefined }
       send_quote: { Args: { quote_id: string }; Returns: undefined }
-      reset_route_order: {
-        Args: { crew_member_id: string; route_date: string }
+      set_auto_invoice: { Args: { enabled: boolean }; Returns: undefined }
+      set_checklist_item: {
+        Args: { done: boolean; item_id: string }
         Returns: undefined
       }
-      save_invoice: {
-        Args: {
-          customer_id: string
-          due_date: string
-          invoice_id: string
-          lines: Json
-          notes: string
-        }
-        Returns: string
+      set_customer_bill_monthly: {
+        Args: { customer_id: string; enabled: boolean }
+        Returns: undefined
       }
-      send_invoice: { Args: { invoice_id: string }; Returns: undefined }
-      set_auto_invoice: { Args: { enabled: boolean }; Returns: undefined }
       set_payment_options: {
         Args: {
           cash_app: string
@@ -1989,6 +2019,10 @@ export type Database = {
           venmo: string
           zelle: string
         }
+        Returns: undefined
+      }
+      set_request_link_enabled: {
+        Args: { enabled: boolean }
         Returns: undefined
       }
       set_route_order: {
@@ -2018,7 +2052,67 @@ export type Database = {
         }
         Returns: undefined
       }
+      start_job: { Args: { job_id: string }; Returns: string }
+      start_workday: { Args: never; Returns: string }
       stop_service_plan: { Args: { plan_id: string }; Returns: number }
+      submit_request: {
+        Args: {
+          address: string
+          details: string
+          email: string
+          ip_hash: string
+          name: string
+          phone: string
+          token: string
+        }
+        Returns: undefined
+      }
+      time_by_crew: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          crew_member_id: string
+          crew_name: string
+          entries: number
+          hours: number
+          open_entries: number
+        }[]
+      }
+      time_by_customer: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          customer_id: string
+          customer_name: string
+          hours: number
+          job_value: number
+          revenue_per_hour: number
+          visits: number
+        }[]
+      }
+      time_by_job: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          customer_id: string
+          customer_name: string
+          hours: number
+          job_id: string
+          job_value: number
+          open_entries: number
+          revenue_per_hour: number
+          scheduled_date: string
+          service_name: string
+        }[]
+      }
+      workday_by_crew: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          crew_member_id: string
+          crew_name: string
+          days: number
+          hours: number
+          needs_look: number
+          open_workdays: number
+        }[]
+      }
     }
     Enums: {
       business_role: "owner" | "crew"
@@ -2056,8 +2150,8 @@ export type Database = {
         | "bank_transfer"
         | "other"
       photo_kind: "before" | "after" | "other"
-      request_status: "new" | "converted" | "dismissed"
       quote_status: "draft" | "sent" | "accepted" | "declined"
+      request_status: "new" | "converted" | "dismissed"
       service_frequency: "weekly" | "biweekly" | "triweekly" | "one_time"
     }
     CompositeTypes: {
@@ -2224,8 +2318,8 @@ export const Constants = {
         "other",
       ],
       photo_kind: ["before", "after", "other"],
-      request_status: ["new", "converted", "dismissed"],
       quote_status: ["draft", "sent", "accepted", "declined"],
+      request_status: ["new", "converted", "dismissed"],
       service_frequency: ["weekly", "biweekly", "triweekly", "one_time"],
     },
   },
