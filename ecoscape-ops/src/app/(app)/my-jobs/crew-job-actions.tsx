@@ -2,33 +2,7 @@
 
 import { useActionState, useState } from "react";
 
-import type { CrewActionState, NoteState } from "./actions";
-
-export function CrewStatusButton({
-  action,
-  label,
-  pendingLabel,
-  primary = true,
-}: {
-  action: (state: CrewActionState) => Promise<CrewActionState>;
-  label: string;
-  pendingLabel: string;
-  primary?: boolean;
-}) {
-  const [state, formAction, pending] = useActionState(action, {});
-  return (
-    <form action={formAction}>
-      <button type="submit" className={`btn small${primary ? "" : " secondary"}`} disabled={pending}>
-        {pending ? pendingLabel : label}
-      </button>
-      {state.error && (
-        <p className="field-error" role="alert">
-          {state.error}
-        </p>
-      )}
-    </form>
-  );
-}
+import type { NoteState } from "./actions";
 
 export function AddNote({ action }: { action: (state: NoteState, formData: FormData) => Promise<NoteState> }) {
   const [open, setOpen] = useState(false);

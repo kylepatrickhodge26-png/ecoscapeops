@@ -12,7 +12,12 @@ import { formatClock, formatDateTime, formatHours } from "@/lib/time/format";
 
 export const metadata: Metadata = { title: "Time" };
 
-const NOTICES: Record<string, string> = { saved: "Time entry saved.", deleted: "Time entry deleted." };
+const NOTICES: Record<string, string> = {
+  saved: "Time entry saved.",
+  deleted: "Time entry deleted.",
+  "workday-saved": "Workday saved.",
+  "workday-deleted": "Workday deleted.",
+};
 
 export default async function TimePage(props: PageProps<"/time">) {
   const { business } = await requireOwner();
@@ -22,7 +27,14 @@ export default async function TimePage(props: PageProps<"/time">) {
   const args = { from_date: range.from, to_date: range.to };
 
   const supabase = await createClient();
-  const [byJob, byCrew, byCustomer, entries] = await Promise.all([
+  const [workdays, shifts, byJob, byCrew, byCustomer, entries] = await Promise.all([
+    supabase.rpc("workday_by_crew", args),
+    supabase
+      .from("work_shifts")
+      .select("id, crew_name, started_at, ended_at, note, auto_closed, edited_at")
+      .gte("started_at", `${range.from}T00:00:00`)
+      .order("started_at", { ascending: false })
+      .limit(200),
     supabase.rpc("time_by_job", args),
     supabase.rpc("time_by_crew", args),
     supabase.rpc("time_by_customer", args),
@@ -34,11 +46,16 @@ export default async function TimePage(props: PageProps<"/time">) {
       .order("started_at", { ascending: false })
       .limit(200),
   ]);
-  const failed = [byJob, byCrew, byCustomer, entries].find((r) => r.error);
+  const failed = [workdays, shifts, byJob, byCrew, byCustomer, entries].find((r) => r.error);
   if (failed?.error) throw new Error(`Could not load time: ${failed.error.message}`);
 
   const perHour = (v: number | null) => (v === null ? "—" : `${formatPrice(v)}/h`);
   const openCount = entries.data!.filter((e) => !e.ended_at).length;
+  // Workdays by the day they started on the business's clock, like the hours above.
+  const localDay = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: business.time_zone }).format(new Date(iso));
+  const shiftList = shifts.data!.filter((w) => localDay(w.started_at) >= range.from && localDay(w.started_at) <= range.to);
+  const hoursOf = (w: { started_at: string; ended_at: string | null }) =>
+    w.ended_at ? Math.round(((Date.parse(w.ended_at) - Date.parse(w.started_at)) / 3_600_000) * 100) / 100 : null;
 
   return (
     <>
@@ -83,6 +100,40 @@ export default async function TimePage(props: PageProps<"/time">) {
             Hours are by the visit&apos;s date. Revenue per hour is per labor hour (two people working an hour each is two hours), using the
             visit&apos;s price, or its invoiced amount once invoiced. Entries still clocked in aren&apos;t counted yet.
           </p>
+        </div>
+      </div>
+
+      <Table
+        title="Workday hours (for payroll)"
+        testId="workday-by-crew"
+        head={["Crew member", "Hours", "Days"]}
+        rows={workdays.data!.map((r) => [
+          r.crew_name + (r.needs_look > 0 ? ` · ${r.needs_look} to check` : ""),
+          formatHours(r.hours) + (r.open_workdays > 0 ? " + on the clock" : ""),
+          String(r.days),
+        ])}
+      />
+      <div className="panel" data-testid="workdays">
+        <div className="panel-head">
+          <h3>Workdays</h3>
+        </div>
+        <div className="panel-body">
+          {shiftList.length === 0 ? (
+            <div className="empty">No workdays in this date range.</div>
+          ) : (
+            <ul className="time-list">
+              {shiftList.map((w) => (
+                <li key={w.id}>
+                  <b>{w.crew_name}</b> · {formatDateTime(w.started_at, business.time_zone)} to{" "}
+                  {w.ended_at ? formatClock(w.ended_at, business.time_zone) : <span className="date-tag">on the clock</span>}
+                  {hoursOf(w) !== null && <span className="subtext"> · {formatHours(hoursOf(w)!)}</span>}
+                  {w.auto_closed && <span className="date-tag overdue">never ended: check it</span>}
+                  {w.edited_at && <span className="subtext"> · edited{w.note ? `: ${w.note}` : ""}</span>}{" "}
+                  <Link href={`/time/workdays/${w.id}`}>Edit</Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 

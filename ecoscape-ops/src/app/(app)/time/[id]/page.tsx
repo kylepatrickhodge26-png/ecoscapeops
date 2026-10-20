@@ -10,7 +10,7 @@ import { formatShortDate } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
 import { toLocalInput } from "@/lib/time/format";
 
-import { deleteTimeEntry } from "../actions";
+import { deleteTimeEntry, editTimeEntry } from "../actions";
 import { EditTimeForm } from "./edit-form";
 
 export const metadata: Metadata = { title: "Edit time" };
@@ -55,7 +55,7 @@ export default async function EditTimePage(props: PageProps<"/time/[id]">) {
       <div className="panel">
         <div className="panel-body">
           <EditTimeForm
-            id={entry.id}
+            action={editTimeEntry.bind(null, entry.id)}
             initial={{
               started: toLocalInput(entry.started_at, business.time_zone),
               ended: entry.ended_at ? toLocalInput(entry.ended_at, business.time_zone) : "",

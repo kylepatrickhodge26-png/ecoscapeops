@@ -148,7 +148,7 @@ test("a crew member sees the rain risk, but can't move jobs or text customers", 
   await maria.goto("/dashboard");
   await expect(weatherCard(maria).locator(".big")).toHaveText("80%");
   await expect(weatherCard(maria).getByRole("link")).toHaveCount(0);
-  await expect(maria.getByRole("navigation", { name: "Main" }).getByRole("link")).toHaveText(["Home", "My jobs"]);
+  await expect(maria.getByRole("navigation", { name: "Main" }).getByRole("link")).toHaveText(["Today", "My jobs"]);
 
   for (const path of ["/weather", "/weather/move", "/weather/area"]) {
     await maria.goto(path);

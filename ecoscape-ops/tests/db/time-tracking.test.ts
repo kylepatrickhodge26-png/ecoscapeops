@@ -105,14 +105,15 @@ describe("time tracking", () => {
   it("lets the owner fix a forgotten clock-out with a note, and nobody else", async () => {
     const { data: entry } = await alpha.client.from("time_entries").select("id").eq("job_id", samsJob).single();
     const id = entry!.id;
-    const start = "2030-01-01 08:00:00";
-    expect((await sam.client.rpc("edit_time_entry", { entry_id: id, started_local: start, ended_local: "2030-01-01 10:00:00", note: "x" })).error?.code).toBe(DENIED);
-    expect((await bravo.client.rpc("edit_time_entry", { entry_id: id, started_local: start, ended_local: "2030-01-01 10:00:00", note: "x" })).error?.code).toBe(NOT_FOUND);
-    expect((await alpha.client.rpc("edit_time_entry", { entry_id: id, started_local: start, ended_local: "2030-01-01 10:00:00", note: " " })).error?.code).toBe(INVALID);
-    expect((await alpha.client.rpc("edit_time_entry", { entry_id: id, started_local: "2030-01-01 10:00:00", ended_local: start, note: "oops" })).error?.code).toBe(INVALID);
+    // A day in the past (edits can't be in the future).
+    const start = "2026-01-05 08:00:00";
+    expect((await sam.client.rpc("edit_time_entry", { entry_id: id, started_local: start, ended_local: "2026-01-05 10:00:00", note: "x" })).error?.code).toBe(DENIED);
+    expect((await bravo.client.rpc("edit_time_entry", { entry_id: id, started_local: start, ended_local: "2026-01-05 10:00:00", note: "x" })).error?.code).toBe(NOT_FOUND);
+    expect((await alpha.client.rpc("edit_time_entry", { entry_id: id, started_local: start, ended_local: "2026-01-05 10:00:00", note: " " })).error?.code).toBe(INVALID);
+    expect((await alpha.client.rpc("edit_time_entry", { entry_id: id, started_local: "2026-01-05 10:00:00", ended_local: start, note: "oops" })).error?.code).toBe(INVALID);
     expect((await alpha.client.rpc("edit_time_entry", { entry_id: id, started_local: start, ended_local: "2099-01-01 10:00:00", note: "oops" })).error?.code).toBe(INVALID);
-    expect((await alpha.client.rpc("edit_time_entry", { entry_id: id, started_local: start, ended_local: "2030-01-03 10:00:00", note: "oops" })).error?.code).toBe(INVALID);
-    expect((await alpha.client.rpc("edit_time_entry", { entry_id: id, started_local: start, ended_local: "2030-01-01 10:00:00", note: "Forgot to clock out" })).error).toBeNull();
+    expect((await alpha.client.rpc("edit_time_entry", { entry_id: id, started_local: start, ended_local: "2026-01-07 10:00:00", note: "oops" })).error?.code).toBe(INVALID);
+    expect((await alpha.client.rpc("edit_time_entry", { entry_id: id, started_local: start, ended_local: "2026-01-05 10:00:00", note: "Forgot to clock out" })).error).toBeNull();
     const { data } = await alpha.client.from("time_entries").select("started_at, ended_at, note, edited_at").eq("id", id).single();
     expect(Date.parse(data!.ended_at!) - Date.parse(data!.started_at)).toBe(2 * 3_600_000);
     expect(data).toMatchObject({ note: "Forgot to clock out" });

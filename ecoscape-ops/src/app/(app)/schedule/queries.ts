@@ -18,7 +18,7 @@ function jobsWithCustomer(supabase: Client) {
   return supabase
     .from("jobs")
     .select(
-      "id, scheduled_date, status, service_name, price, assigned_crew_member_id, customer:customers(id, first_name, last_name, phone, email, property_address, geo_status, geo_lat, geo_lon), assignee:crew_members(name)",
+      "id, scheduled_date, status, service_name, price, assigned_crew_member_id, customer:customers(id, first_name, last_name, phone, email, property_address, access_instructions, service_notes, geo_status, geo_lat, geo_lon), assignee:crew_members(name)",
     );
 }
 

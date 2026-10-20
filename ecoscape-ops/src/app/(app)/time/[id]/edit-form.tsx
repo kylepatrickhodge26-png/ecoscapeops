@@ -3,10 +3,17 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
-import { editTimeEntry, type EditTimeState } from "../actions";
+import type { EditTimeState } from "../actions";
 
-export function EditTimeForm({ id, initial }: { id: string; initial: EditTimeState["values"] }) {
-  const [state, formAction, pending] = useActionState(editTimeEntry.bind(null, id), { values: initial } as EditTimeState);
+// Start, end and a required note: for a time entry or a workday.
+export function EditTimeForm({
+  action,
+  initial,
+}: {
+  action: (state: EditTimeState, formData: FormData) => Promise<EditTimeState>;
+  initial: EditTimeState["values"];
+}) {
+  const [state, formAction, pending] = useActionState(action, { values: initial } as EditTimeState);
   return (
     <form key={JSON.stringify(state.values)} action={formAction} noValidate className="customer-form">
       {state.error && (

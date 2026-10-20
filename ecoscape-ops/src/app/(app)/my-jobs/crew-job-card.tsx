@@ -4,13 +4,11 @@ import { addDays, formatShortDate } from "@/lib/dates";
 import { isClosed, type JobStatus } from "@/lib/schedule/constants";
 
 import { JobExtras } from "../job-extras/job-extras";
-import { TimeClock } from "../time-clock/time-clock";
+import { JobClock } from "../time-clock/job-clock";
 import { CouldNotService } from "../schedule/jobs/[id]/could-not-service";
-import { addMyJobNote, crewCouldNotService, setMyJobStatus } from "./actions";
-import { AddNote, CrewStatusButton } from "./crew-job-actions";
+import { addMyJobNote, crewCouldNotService } from "./actions";
+import { AddNote } from "./crew-job-actions";
 
-// Like the prototype's crew buttons: start a job that hasn't started, finish one that has.
-const STARTABLE: readonly JobStatus[] = ["scheduled", "assigned", "en_route", "weather_delay", "unable_to_complete"];
 
 // One job as a crew member sees it (from crew_jobs(): no price).
 export type CrewJob = {
@@ -42,7 +40,7 @@ export function CrewJobCard({ job, today, showDate = false }: { job: CrewJob; to
   const latest = (a: string, b: string) => (a > b ? a : b);
 
   return (
-    <article className="jobitem" data-job-id={job.id} aria-label={`${job.service_name} for ${name}`}>
+    <article className="jobitem" id={`job-${job.id}`} data-job-id={job.id} aria-label={`${job.service_name} for ${name}`}>
       <div className="top">
         <div>
           <div className="cust">{name}</div>
@@ -63,20 +61,10 @@ export function CrewJobCard({ job, today, showDate = false }: { job: CrewJob; to
       {job.access_instructions && <div className="notice compact">Access: {job.access_instructions}</div>}
       {job.service_notes && <div className="notice compact pre-line">Customer notes: {job.service_notes}</div>}
       {job.notes && <div className="job-notes-inline pre-line">{job.notes}</div>}
-      {open && <TimeClock jobId={job.id} />}
+      {/* Clock in starts the job; Clock out & finish completes it. */}
+      <JobClock jobId={job.id} status={job.status} compact />
       <JobExtras jobId={job.id} />
       <div className="actions">
-        {open && STARTABLE.includes(job.status) && (
-          <CrewStatusButton action={setMyJobStatus.bind(null, job.id, "in_progress")} label="Start job" pendingLabel="Starting…" />
-        )}
-        {open && (
-          <CrewStatusButton
-            action={setMyJobStatus.bind(null, job.id, "completed")}
-            label="Mark completed"
-            pendingLabel="Saving…"
-            primary={job.status === "in_progress"}
-          />
-        )}
         {open && (
           <CouldNotService
             action={crewCouldNotService.bind(null, job.id, job.scheduled_date)}

@@ -4,7 +4,7 @@ import { PASSWORD, signUpBusiness, uniqueEmail } from "./helpers";
 
 test("a new business signs up and lands on its dashboard", async ({ page }) => {
   await signUpBusiness(page, "Green Acres Landscaping");
-  await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Today", level: 1 })).toBeVisible();
   await expect(page.getByText("Nothing scheduled today")).toBeVisible();
   await page.getByRole("link", { name: "Customers" }).click();
   await expect(page.getByText("No customers yet")).toBeVisible();

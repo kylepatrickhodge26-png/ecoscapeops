@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatClock, formatDateTime, formatHours } from "@/lib/time/format";
 
 import { JobExtras } from "../../../job-extras/job-extras";
-import { TimeClock } from "../../../time-clock/time-clock";
+import { JobClock } from "../../../time-clock/job-clock";
 import { couldNotService, deleteJob, markJobCompleted } from "../../actions";
 import { getJobOr404 } from "../../get-job";
 import { CouldNotService } from "./could-not-service";
@@ -176,7 +176,7 @@ export default async function JobPage(props: PageProps<"/schedule/jobs/[id]">) {
           {timeEntries.length > 0 && <span className="subtext">{formatHours(Math.round(loggedHours * 100) / 100)} logged</span>}
         </div>
         <div className="panel-body">
-          {open && <TimeClock jobId={job.id} />}
+          <JobClock jobId={job.id} status={job.status} />
           {timeEntries.length === 0 ? (
             <p className="hint">No time logged yet. Crew clock in and out from their job view.</p>
           ) : (

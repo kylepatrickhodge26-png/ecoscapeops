@@ -2223,3 +2223,233 @@ td:first-child {
     display: none !important;
   }
 }
+
+/* Today: the clock and the day's route, made for a thumb */
+.btn.big {
+  min-height: 52px;
+  padding: 13px 18px;
+  font-size: 16.5px;
+  text-align: center;
+}
+.clock-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #2f8a4c;
+  box-shadow: 0 0 0 3px rgba(47, 138, 76, 0.18);
+  flex: none;
+}
+.clock-dot.off {
+  background: var(--line);
+  box-shadow: none;
+}
+.clock-elapsed {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.workday-panel .panel-body {
+  padding: 14px 16px;
+}
+.workday.on {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  flex-wrap: wrap;
+}
+.workday-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+.workday .hint {
+  margin: 8px 0 0;
+  text-align: center;
+}
+.workday .confirm-box {
+  margin: 0;
+  flex-basis: 100%;
+}
+.job-clock {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+.job-clock .clock-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.job-clock .clock-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.job-clock .btn.clock-in,
+.job-clock .btn.clock-out {
+  min-width: 140px;
+}
+.job-clock.big .btn.clock-in,
+.job-clock.big .btn.clock-out {
+  width: 100%;
+}
+.job-clock.big .clock-actions {
+  display: grid;
+}
+.job-clock .hint {
+  margin: 0;
+}
+.today-section-heading {
+  font-size: 15px;
+  margin: 18px 0 8px;
+}
+.now-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--moss-600);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.now-card.on {
+  border-left-color: #2f8a4c;
+}
+.now-card.done {
+  border-left-color: var(--line);
+}
+.now-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.now-customer {
+  font-size: 22px;
+  margin: 4px 0 6px;
+}
+.now-address {
+  display: block;
+  font-size: 15px;
+  color: var(--ink);
+  text-decoration: none;
+  margin-bottom: 4px;
+}
+.now-directions {
+  color: var(--moss-600);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.now-service {
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+.now-more {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13.5px;
+}
+.today-heading {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  margin: 6px 0 8px;
+}
+.today-list {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.today-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.today-number {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--paper-2);
+  display: grid;
+  place-items: center;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.today-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  color: var(--ink);
+  text-decoration: none;
+}
+.today-main .subtext {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.today-action {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.today-action .job-clock {
+  margin: 0;
+}
+.today-action .job-clock .btn.clock-in {
+  min-width: 0;
+}
+.today-done {
+  margin-bottom: 14px;
+}
+.today-done summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 6px 0 10px;
+}
+.today-weather {
+  margin-top: 6px;
+}
+.crew-now {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.crew-now li {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(150px, 1.2fr) 2fr;
+  gap: 4px 14px;
+  align-items: center;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  font-size: 13.5px;
+}
+.crew-now li:first-child {
+  border-top: 0;
+}
+.crew-now-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .crew-now li {
+    grid-template-columns: 1fr;
+  }
+  .today-action .job-clock .btn.clock-in {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+}

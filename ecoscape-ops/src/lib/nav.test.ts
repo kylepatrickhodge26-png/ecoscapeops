@@ -5,8 +5,8 @@ import { activeSection, crewSections, isCurrent, ownerSections } from "./nav";
 const owner = ownerSections({ newRequests: 2, hasCrew: true });
 
 describe("menu sections", () => {
-  it("has five short sections for owners", () => {
-    expect(owner.map((s) => s.label)).toEqual(["Home", "Customers", "Schedule", "Money", "More"]);
+  it("has five short sections for owners, Today first", () => {
+    expect(owner.map((s) => s.label)).toEqual(["Today", "Schedule", "Customers", "Money", "More"]);
   });
   it("keeps the right section highlighted on every page", () => {
     const cases: Record<string, string> = {
@@ -38,9 +38,9 @@ describe("menu sections", () => {
   it("carries the new-request count to the Customers tab", () => {
     expect(owner.find((s) => s.key === "customers")!.badge).toBe(2);
   });
-  it("gives crew only Home and My jobs, with no money pages", () => {
+  it("gives crew only Today and My jobs, with no money pages", () => {
     const crew = crewSections();
-    expect(crew.map((s) => s.label)).toEqual(["Home", "My jobs"]);
+    expect(crew.map((s) => s.label)).toEqual(["Today", "My jobs"]);
     expect(activeSection(crew, "/invoices")).toBeUndefined();
   });
 });

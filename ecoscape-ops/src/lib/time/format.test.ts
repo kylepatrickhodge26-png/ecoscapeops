@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatClock, formatHours, localInputToTimestamp, toLocalInput } from "./format";
+import { formatClock, formatElapsed, formatHours, localInputToTimestamp, toLocalInput } from "./format";
 
 describe("time formatting", () => {
   it("formats hours", () => {
@@ -20,5 +20,18 @@ describe("time formatting", () => {
     for (const bad of ["", "2030-07-01", "2030-07-01T9:02", "2030-13-01T09:02", "2030-07-01T09:02:00Z", null, undefined, 5]) {
       expect(localInputToTimestamp(bad)).toBeNull();
     }
+  });
+});
+
+describe("formatElapsed", () => {
+  it.each([
+    [0, "0m"],
+    [59_000, "0m"],
+    [12 * 60_000, "12m"],
+    [60 * 60_000, "1h 00m"],
+    [(3 * 60 + 5) * 60_000, "3h 05m"],
+    [-5_000, "0m"],
+  ])("%d ms → %s", (ms, text) => {
+    expect(formatElapsed(ms)).toBe(text);
   });
 });
