@@ -21,7 +21,8 @@ export default async function MorePage() {
         tiles={[
           { href: "/crew", title: "Crew", text: "Add the people who work with you and give them their own login." },
           { href: "/time", title: "Time", text: "Hours on each job, and which work pays best per hour." },
-          { href: "/settings", title: "Settings", text: "Shop address, checklists and photo storage." },
+          { href: "/settings", title: "Settings", text: "Shop address, checklists, photo storage and your customer FAQ." },
+          { href: "/help", title: "Help", text: "How to clock in, book jobs, send invoices and more." },
         ]}
       />
       <form action={signOut} className="more-signout">

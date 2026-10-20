@@ -2453,3 +2453,194 @@ td:first-child {
     font-size: 14px;
   }
 }
+
+/* Search: one box at the top of every owner screen, and the results page */
+.search-box {
+  display: flex;
+  margin: 12px 14px 4px;
+}
+.search-box input {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 14px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-right: none;
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+.search-box input::placeholder {
+  color: #a9c2ae;
+}
+.search-box input:focus {
+  outline: 2px solid var(--sage);
+  outline-offset: -1px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.search-box button {
+  flex: none;
+  width: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #efe9d8;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  cursor: pointer;
+}
+.search-box button svg {
+  width: 18px;
+  height: 18px;
+}
+.sidebar-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.sidebar-actions .linklike {
+  color: #cfe0d3;
+}
+.search-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+.search-results li + li {
+  border-top: 1px solid var(--line);
+}
+.search-hit {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px 12px;
+  min-height: 52px;
+  padding: 11px 18px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.search-hit:hover,
+.search-hit:focus-visible {
+  background: var(--paper);
+}
+.search-hit > b {
+  grid-column: 1;
+  font-size: 14.5px;
+}
+.search-hit > .subtext {
+  grid-column: 1;
+  font-size: 13px;
+}
+.search-hit > .pill,
+.search-hit > .status-pill {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+/* Help page and FAQs: tap a question to see the answer */
+.help-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 16px;
+}
+.help-jump a {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--white);
+  color: var(--ink);
+  font-size: 13px;
+  text-decoration: none;
+}
+.faq-list {
+  text-align: left;
+}
+.faq-list details + details {
+  border-top: 1px solid var(--line);
+}
+.faq-list summary {
+  cursor: pointer;
+  padding: 14px 18px;
+  min-height: 48px;
+  font-weight: 600;
+  color: var(--ink);
+  list-style-position: inside;
+}
+.faq-list details[open] summary {
+  padding-bottom: 6px;
+}
+.faq-list details > div {
+  padding: 0 18px 14px 36px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.faq-list details > div p {
+  margin: 0 0 8px;
+}
+.faq-list details:target summary,
+.faq-list details[open]:target summary {
+  color: var(--moss-700);
+}
+.faq-editor {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+.faq-editor > li {
+  padding: 14px 18px;
+}
+.faq-editor > li + li {
+  border-top: 1px solid var(--line);
+}
+.faq-editor .faq-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.faq-editor .faq-text {
+  flex: 1;
+  min-width: 0;
+}
+.faq-editor .faq-moves {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.faq-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 10px;
+}
+.public-faq {
+  margin-top: 28px;
+  text-align: left;
+}
+.public-faq h2 {
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    flex-wrap: wrap;
+  }
+  .search-box {
+    order: 3;
+    flex: 1 1 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0 12px 10px;
+  }
+  .search-box input {
+    /* 16px stops phones zooming in when the box is tapped. */
+    font-size: 16px;
+  }
+}

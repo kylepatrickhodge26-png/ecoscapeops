@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { StatusPill } from "@/components/job-status";
+import { PublicFaq } from "@/components/public-faq";
 import { requireCustomer } from "@/lib/auth";
 import { formatShortDate } from "@/lib/dates";
 import { invoiceNumber } from "@/lib/invoices/constants";
@@ -33,12 +34,13 @@ export default async function PortalPage() {
   }
 
   const supabase = await createClient();
-  const [visits, quotes, invoices] = await Promise.all([
+  const [visits, quotes, invoices, faq] = await Promise.all([
     supabase.rpc("portal_visits"),
     supabase.rpc("portal_quotes"),
     supabase.rpc("portal_invoices"),
+    supabase.rpc("portal_faq"),
   ]);
-  const failed = [visits, quotes, invoices].find((r) => r.error);
+  const failed = [visits, quotes, invoices, faq].find((r) => r.error);
   if (failed?.error) throw new Error(`Could not load your account: ${failed.error.message}`);
 
   const upcoming = visits.data!.filter((v) => v.upcoming && v.status !== "cancelled");
@@ -179,6 +181,8 @@ export default async function PortalPage() {
           </div>
         </section>
       )}
+
+      <PublicFaq items={faq.data!} />
     </>
   );
 }

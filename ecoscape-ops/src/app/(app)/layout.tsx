@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { requireMembership } from "@/lib/auth";
 import { APP_NAME } from "@/lib/brand";
 import { getCrew, showAssignment } from "@/lib/crew";
@@ -6,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { signOut } from "../(auth)/actions";
 import { NavLinks, SectionLinks } from "./nav-links";
+import { SearchBox } from "./search-box";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, business, role } = await requireMembership();
@@ -28,16 +31,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {business.name}
           </div>
         </div>
+        {role === "owner" && <SearchBox />}
         <NavLinks sections={sections} />
         <div className="sidebar-foot">
           <div className="signed-in-as" title={user.email}>
             {user.email}
           </div>
-          <form action={signOut}>
-            <button type="submit" className="linklike">
-              Sign out
-            </button>
-          </form>
+          <div className="sidebar-actions">
+            <Link href="/help" className="linklike">
+              Help
+            </Link>
+            <form action={signOut}>
+              <button type="submit" className="linklike">
+                Sign out
+              </button>
+            </form>
+          </div>
         </div>
       </aside>
       <main id="main">

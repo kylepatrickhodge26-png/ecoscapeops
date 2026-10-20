@@ -374,6 +374,44 @@ export type Database = {
           },
         ]
       }
+      faq_items: {
+        Row: {
+          answer: string
+          business_id: string
+          created_at: string
+          id: string
+          position: number
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          business_id: string
+          created_at?: string
+          id?: string
+          position?: number
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          business_id?: string
+          created_at?: string
+          id?: string
+          position?: number
+          question?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faq_items_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_lines: {
         Row: {
           amount: number | null
@@ -1741,6 +1779,10 @@ export type Database = {
         Args: { from_date: string; to_date: string }
         Returns: string
       }
+      move_faq_item: {
+        Args: { item_id: string; up: boolean }
+        Returns: undefined
+      }
       my_clock: {
         Args: never
         Returns: {
@@ -1764,6 +1806,13 @@ export type Database = {
         Returns: {
           photo_count: number
           total_bytes: number
+        }[]
+      }
+      portal_faq: {
+        Args: never
+        Returns: {
+          answer: string
+          question: string
         }[]
       }
       portal_invoices: {
@@ -1843,6 +1892,13 @@ export type Database = {
           total: number
           venmo: string
           zelle: string
+        }[]
+      }
+      public_request_faq: {
+        Args: { token: string }
+        Returns: {
+          answer: string
+          question: string
         }[]
       }
       public_request_form: {
@@ -1998,6 +2054,19 @@ export type Database = {
           title: string
         }
         Returns: string
+      }
+      search_everything: {
+        Args: { q: string }
+        Returns: {
+          amount: number
+          detail: string
+          id: string
+          kind: string
+          number: number
+          on_date: string
+          status: string
+          title: string
+        }[]
       }
       send_invoice: { Args: { invoice_id: string }; Returns: undefined }
       send_quote: { Args: { quote_id: string }; Returns: undefined }

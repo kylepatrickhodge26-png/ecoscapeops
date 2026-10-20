@@ -56,11 +56,12 @@ export function ownerSections(opts: { newRequests: number; hasCrew: boolean }): 
       key: "more",
       href: "/more",
       label: "More",
-      owns: ["/more", "/crew", "/time", "/settings"],
+      owns: ["/more", "/crew", "/time", "/settings", "/help"],
       links: [
         { href: "/crew", label: "Crew" },
         { href: "/time", label: "Time" },
         { href: "/settings", label: "Settings" },
+        { href: "/help", label: "Help" },
       ],
     },
   ];
