@@ -24,6 +24,8 @@ describe("menu sections", () => {
       "/crew": "more",
       "/time/1": "more",
       "/settings/checklists": "more",
+      "/settings/faq": "more",
+      "/help": "more",
     };
     for (const [path, key] of Object.entries(cases)) expect(activeSection(owner, path)?.key, path).toBe(key);
   });
@@ -42,5 +44,6 @@ describe("menu sections", () => {
     const crew = crewSections();
     expect(crew.map((s) => s.label)).toEqual(["Today", "My jobs"]);
     expect(activeSection(crew, "/invoices")).toBeUndefined();
+    expect(activeSection(crew, "/search")).toBeUndefined();
   });
 });

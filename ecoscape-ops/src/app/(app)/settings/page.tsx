@@ -58,6 +58,18 @@ export default async function SettingsPage(props: PageProps<"/settings">) {
 
       <div className="panel">
         <div className="panel-head">
+          <h3>Customer FAQ</h3>
+          <Link className="btn secondary small" href="/settings/faq">
+            Manage
+          </Link>
+        </div>
+        <div className="panel-body">
+          <p className="hint">Answer the questions customers always ask. They see them on their account page and your request form.</p>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head">
           <h3>Shop address</h3>
         </div>
         <div className="panel-body">
