@@ -6,7 +6,7 @@ import { StatusPill } from "@/components/job-status";
 import { QuoteStatusPill } from "@/components/quote-status";
 import { requireOwner } from "@/lib/auth";
 import { formatShortDate } from "@/lib/dates";
-import { searchHelp } from "@/lib/help";
+import { helpMatches } from "@/lib/help-answer";
 import { invoiceNumber } from "@/lib/invoices/constants";
 import { quoteNumber } from "@/lib/quotes/constants";
 import { formatPrice, type JobStatus } from "@/lib/schedule/constants";
@@ -103,7 +103,7 @@ export default async function SearchPage(props: PageProps<"/search">) {
   const { data, error } = await supabase.rpc("search_everything", { q: term });
   if (error) throw new Error(`Search failed: ${error.message}`);
   const groups = groupHits(data as SearchHit[]);
-  const help = searchHelp(term, "owner");
+  const help = helpMatches(term, "owner");
   const total = groups.reduce((n, g) => n + g.hits.length, 0) + help.length;
 
   return (

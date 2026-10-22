@@ -123,6 +123,13 @@ export const HELP_TOPICS: HelpTopic[] = [
     answer: ["Crew logins never show prices, invoices or money. Ask the owner if you need to know."],
     for: CREW,
   },
+  {
+    id: "undo-crew",
+    section: "Today and the clock",
+    question: "I finished a job by mistake. What do I do?",
+    answer: ["Tell the owner. They can open the visit, tap Edit and set its Status back to Scheduled."],
+    for: CREW,
+  },
 
   // Customers
   {
@@ -140,7 +147,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     section: "Customers",
     question: "How do I add a customer?",
     answer: [
-      "Customers → Add a customer. A name, phone or email is enough to save. Add the property address so they show up on routes.",
+      "Customers → + Add customer. A name, phone or email is enough to save. Add the property address so they show up on routes.",
       "Only tick \"Customer has opted in to SMS\" if they've agreed to get texts. The app never texts anyone who hasn't.",
     ],
     for: OWNER,
@@ -175,6 +182,16 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
     for: OWNER,
   },
+  {
+    id: "delete-customer",
+    section: "Customers",
+    question: "How do I delete a customer?",
+    answer: [
+      "Open the customer and tap Delete. That also removes their visits, invoices and photos.",
+      "If they're only done for the season, tap Stop next to their service instead, so their history stays.",
+    ],
+    for: OWNER,
+  },
 
   // Schedule
   {
@@ -192,7 +209,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     section: "Schedule",
     question: "How do I move a job to another day?",
     answer: [
-      "Open the visit on the Schedule, tap Edit and change the date. Moving one visit doesn't shift the rest.",
+      "Open the visit (find it on the Schedule, or search the customer's name), tap Edit and change the Date to the day you're doing it, earlier or later. Moving one visit doesn't shift the rest.",
       "Rain day? Use Move a day's jobs on the Weather page to move the whole day at once. It gets a text ready for each customer who agreed to texts.",
     ],
     for: OWNER,
@@ -201,7 +218,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     id: "stop-service",
     section: "Schedule",
     question: "How do I stop a customer's repeat service (end of season)?",
-    answer: ["Open the customer and tap Stop service. Upcoming visits are removed; past visits stay in their history."],
+    answer: ["Open the customer and tap Stop next to the service, then Stop service. Upcoming visits are removed; past visits stay in their history."],
     for: OWNER,
   },
   {
@@ -219,6 +236,60 @@ export const HELP_TOPICS: HelpTopic[] = [
     section: "Schedule",
     question: "How do I give a job to someone on my crew?",
     answer: ["Add them under More → Crew first. Then an Assign to choice appears when you book a job or edit a visit."],
+    for: OWNER,
+  },
+  {
+    id: "customer-day",
+    section: "Schedule",
+    question: "How do I set which day each customer gets done?",
+    answer: [
+      "Open the customer, tap Edit and set Preferred day. When you book them, First visit starts on that day, and repeat visits stay on that weekday.",
+      "Already booked on the wrong day? Change one visit with Edit. To move all of them, tap Stop next to the service on their customer page, then + Book a service again with the right First visit.",
+    ],
+    for: OWNER,
+  },
+  {
+    id: "change-price",
+    section: "Schedule",
+    question: "How do I change a customer's price or how often they're done?",
+    answer: [
+      "Just one visit: open it, tap Edit and change the Price.",
+      "From now on: on their customer page tap Stop next to the service, then + Book a service with the new price or How often. Past visits keep the price they had.",
+    ],
+    for: OWNER,
+  },
+  {
+    id: "one-time",
+    section: "Schedule",
+    question: "How do I book a one-time job?",
+    answer: ["Tap + Book a job, set How often to One time and pick the Visit date. It won't repeat."],
+    for: OWNER,
+  },
+  {
+    id: "cancel-visit",
+    section: "Schedule",
+    question: "How do I cancel or skip one visit?",
+    answer: [
+      "Open the visit and tap Could not service, then Cancel visit. The reason you type is kept on it. The rest of their visits stay booked.",
+      "To remove it completely instead, tap Delete.",
+    ],
+    for: OWNER,
+  },
+  {
+    id: "overdue",
+    section: "Schedule",
+    question: "What does Overdue mean?",
+    answer: [
+      "The visit's date has passed but it isn't marked completed or cancelled.",
+      "If you did it, open it and tap Mark completed. If not, tap Could not service to give it a new day or cancel it.",
+    ],
+    for: OWNER,
+  },
+  {
+    id: "undo-completed",
+    section: "Schedule",
+    question: "I marked a visit completed by mistake. How do I undo it?",
+    answer: ["Open the visit, tap Edit, change Status back to Scheduled and Save."],
     for: OWNER,
   },
 
@@ -274,6 +345,26 @@ export const HELP_TOPICS: HelpTopic[] = [
     answer: [
       "Money → Reports shows revenue, expenses and profit for any dates, and Export for your accountant (CSV).",
       "Log fuel, equipment and other costs under Money → Expenses.",
+    ],
+    for: OWNER,
+  },
+  {
+    id: "expenses",
+    section: "Money",
+    question: "How do I log gas or equipment costs?",
+    answer: [
+      "On Today, under Quick actions, tap Log gas or Log equipment and type the amount.",
+      "For anything else, go to Money → Expenses → + Add expense.",
+    ],
+    for: OWNER,
+  },
+  {
+    id: "auto-invoice",
+    section: "Money",
+    question: "Can invoices be made for me automatically?",
+    answer: [
+      "Yes. On Money → Invoices, tick Auto-create a draft invoice when a visit is marked completed.",
+      "You still look over each draft and send it yourself.",
     ],
     for: OWNER,
   },

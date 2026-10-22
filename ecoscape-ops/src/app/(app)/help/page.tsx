@@ -3,7 +3,9 @@ import Link from "next/link";
 
 import { requireMembership } from "@/lib/auth";
 import { helpFor, helpSections } from "@/lib/help";
+import { POPULAR_QUESTIONS } from "@/lib/help-answer";
 
+import { AskBox } from "./ask-box";
 import { OpenFromLink } from "./open-from-link";
 
 export const metadata: Metadata = { title: "Help" };
@@ -11,18 +13,22 @@ export const metadata: Metadata = { title: "Help" };
 const slug = (section: string) => `section-${section.toLowerCase().replace(/[^a-z]+/g, "-")}`;
 
 // How to use the app, for the owner and for crew. Crew see only what applies to them.
-export default async function HelpPage() {
+export default async function HelpPage(props: PageProps<"/help">) {
   const { role } = await requireMembership();
-  const sections = helpSections(helpFor(role === "owner" ? "owner" : "crew"));
+  const { q } = await props.searchParams;
+  const who = role === "owner" ? "owner" : "crew";
+  const topics = helpFor(who);
+  const sections = helpSections(topics);
 
   return (
     <>
       <div className="pagehead">
         <div>
           <h1>Help</h1>
-          <div className="meta">Tap a question to see the answer</div>
+          <div className="meta">Ask in your own words, or tap a question below</div>
         </div>
       </div>
+      <AskBox topics={topics} popular={POPULAR_QUESTIONS[who]} initial={typeof q === "string" ? q.slice(0, 200) : ""} />
       <OpenFromLink />
 
       {sections.length > 1 && (
