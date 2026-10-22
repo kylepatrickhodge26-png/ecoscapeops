@@ -2644,3 +2644,74 @@ td:first-child {
     font-size: 16px;
   }
 }
+
+/* Help: ask a question */
+.ask-help .ask-label {
+  display: block;
+  font-family: var(--font-display), serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.ask-help input[type="search"] {
+  width: 100%;
+  font-size: 16px; /* 16px stops phones zooming in */
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--ink);
+}
+.ask-help input[type="search"]:focus {
+  outline: 2px solid var(--moss-600);
+  outline-offset: 1px;
+}
+.ask-results {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+.ask-answer {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  background: var(--paper);
+}
+.ask-answer.best {
+  border-color: var(--moss-600);
+  background: var(--success-soft);
+}
+.ask-answer h4 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  color: var(--ink);
+}
+.ask-answer p {
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+.ask-answer p:last-child {
+  margin-bottom: 0;
+}
+.ask-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.ask-chip {
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+  text-align: left;
+}
+.ask-chip:hover {
+  border-color: var(--moss-600);
+}
