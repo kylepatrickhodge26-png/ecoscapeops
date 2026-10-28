@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { ActionButton } from "@/components/action-button";
 import { ConfirmButton } from "@/components/confirm-button";
 import { InvoiceStatusPill } from "@/components/invoice-status";
 import { Notice } from "@/components/notice";
@@ -11,7 +12,7 @@ import {
   preferredDayLabel,
   type NotificationPreference,
 } from "@/lib/customers/schema";
-import { formatShortDate, todayInTimeZone } from "@/lib/dates";
+import { formatShortDate, isISODate, todayInTimeZone } from "@/lib/dates";
 import { getShop } from "@/lib/geo/customers";
 import { geoProblem } from "@/lib/geo/locate";
 import { invoiceNumber } from "@/lib/invoices/constants";
@@ -19,7 +20,15 @@ import { PHOTO_BUCKET, PHOTO_KIND_LABELS } from "@/lib/photos/constants";
 import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
-import { deleteCustomer, inviteCustomer, locateCustomerNow, removeCustomerAccess, setBillMonthly } from "../actions";
+import {
+  deleteCustomer,
+  endCustomerSeason,
+  inviteCustomer,
+  locateCustomerNow,
+  removeCustomerAccess,
+  setBillMonthly,
+  startCustomerSeason,
+} from "../actions";
 import { getCustomerOr404 } from "../get-customer";
 import { BillMonthlyToggle } from "./bill-monthly-toggle";
 import { CustomerInviteButton } from "./customer-account";
@@ -43,9 +52,20 @@ function formatDate(isoDate: string) {
 export default async function CustomerPage(props: PageProps<"/customers/[id]">) {
   const { business } = await requireOwner();
   const { id } = await props.params;
-  const { notice, removed } = await props.searchParams;
+  const { notice, removed, next } = await props.searchParams;
   const customer = await getCustomerOr404(id);
   const supabase = await createClient();
+  const today = todayInTimeZone(business.time_zone);
+  const inactive = customer.status === "inactive";
+  // Upcoming repeat visits that "Done for the season" would take off the schedule.
+  const { count: repeatVisits, error: repeatError } = await supabase
+    .from("jobs")
+    .select("id, service_plans!inner(frequency)", { count: "exact", head: true })
+    .eq("customer_id", customer.id)
+    .gte("scheduled_date", today)
+    .in("status", ["scheduled", "assigned", "weather_delay"])
+    .neq("service_plans.frequency", "one_time");
+  if (repeatError) throw new Error(`Could not load visits: ${repeatError.message}`);
   const { count: visitCount } = await supabase
     .from("jobs")
     .select("id", { count: "exact", head: true })
@@ -94,6 +114,26 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
           {contact && <div className="meta">{contact}</div>}
         </div>
         <div className="head-actions">
+          {inactive ? (
+            <ActionButton action={startCustomerSeason.bind(null, customer.id)} label="Start again" pendingLabel="Starting…" />
+          ) : (
+            <ConfirmButton
+              action={endCustomerSeason.bind(null, customer.id)}
+              label="Done for the season"
+              confirmLabel="Yes, done for the season"
+              pendingLabel="Saving…"
+              danger={false}
+              confirmText={
+                <>
+                  Mark <b>{name}</b> inactive for the season?{" "}
+                  {repeatVisits
+                    ? `Their ${repeatVisits} upcoming repeat ${repeatVisits === 1 ? "visit comes" : "visits come"} off the schedule. `
+                    : ""}
+                  One-time jobs stay. Tap Start again when they&apos;re back, and visits return on their regular day.
+                </>
+              }
+            />
+          )}
           <Link className="btn secondary small" href={`/customers/${customer.id}/edit`}>
             Edit
           </Link>
@@ -135,6 +175,35 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
               <Link href={`/schedule/new?customer=${customer.id}`}>Book their first service →</Link>
             </>
           )}
+        </Notice>
+      )}
+      {notice === "season-ended" && (
+        <Notice tone="success">
+          Done for the season.{" "}
+          {Number(removed) > 0
+            ? `${removed} upcoming repeat ${removed === "1" ? "visit" : "visits"} came off the schedule. `
+            : ""}
+          One-time jobs stay. Tap Start again when they&apos;re back.
+        </Notice>
+      )}
+      {notice === "season-started" && (
+        <Notice tone="success">
+          Back for the season.{" "}
+          {typeof next === "string" && isISODate(next)
+            ? `Their repeat visits are on the schedule again, starting ${formatShortDate(next)}.`
+            : "They're marked active."}
+        </Notice>
+      )}
+      {notice === "booked-waiting" && (
+        <Notice tone="success">
+          Booked. It starts when you tap Start again, since {name} is done for the season.
+        </Notice>
+      )}
+      {inactive && notice !== "season-ended" && notice !== "booked-waiting" && (
+        <Notice tone="warn">
+          <span data-testid="season-paused">
+            Done for the season: their repeat visits are paused. Tap Start again to bring them back on their regular day.
+          </span>
         </Notice>
       )}
       {notice === "stopped" && (
@@ -201,7 +270,7 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
           </dl>
         </div>
       </div>
-      <CustomerSchedule customerId={customer.id} customerName={name} today={todayInTimeZone(business.time_zone)} />
+      <CustomerSchedule customerId={customer.id} customerName={name} today={today} />
 
       <div className="panel" aria-labelledby="customer-account" data-testid="customer-account">
         <div className="panel-head">

@@ -219,8 +219,12 @@ export const HELP_TOPICS: HelpTopic[] = [
   {
     id: "stop-service",
     section: "Schedule",
-    question: "How do I stop a customer's repeat service (end of season)?",
-    answer: ["Open the customer and tap Stop next to the service, then Stop service. Upcoming visits are removed; past visits stay in their history."],
+    question: "How do I pause a customer for the season, or stop a service?",
+    answer: [
+      "End of the season: open the customer and tap Done for the season. Their upcoming repeat visits come off the schedule; one-time jobs (like a fall cleanup) stay.",
+      "When they're back, tap Start again. Their repeat visits return on their regular day, with the same crew member. Marking them Inactive or Active on Edit does the same.",
+      "To end one service for good, tap Stop next to it, then Stop service. Past visits stay in their history.",
+    ],
     for: OWNER,
   },
   {

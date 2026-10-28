@@ -161,6 +161,7 @@ export function CustomerForm({ action, initialValues, submitLabel, cancelHref }:
               </option>
             ))}
           </select>
+          <div className="hint">Inactive takes their repeat visits off the schedule until they&apos;re active again. One-time jobs stay.</div>
           {error("status")}
         </div>
         <div className="field">

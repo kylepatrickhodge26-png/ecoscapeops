@@ -2871,3 +2871,11 @@ td:first-child {
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
   }
 }
+
+/* A one-tap action button (e.g. Start again) that can show an error under it */
+.action-button {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
