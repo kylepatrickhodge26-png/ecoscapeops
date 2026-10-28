@@ -5,11 +5,11 @@ import { RouteArrows } from "@/components/route/route-arrows";
 import type { RouteRef } from "@/components/route/route-fields";
 import { customerDisplayName } from "@/lib/customers/schema";
 import { formatShortDate } from "@/lib/dates";
-import { formatPrice, isOverdue } from "@/lib/schedule/constants";
+import { formatPrice, isClosed, isOverdue } from "@/lib/schedule/constants";
 
 import type { JobListItem } from "./queries";
 
-export function JobTable({ jobs, today, emptyTitle, emptyText, showCrew = false, route }: {
+export function JobTable({ jobs, today, emptyTitle, emptyText, showCrew = false, route, selectForm }: {
   jobs: JobListItem[];
   today: string;
   emptyTitle: string;
@@ -18,6 +18,8 @@ export function JobTable({ jobs, today, emptyTitle, emptyText, showCrew = false,
   showCrew?: boolean;
   // A day's route: the jobs are in route order, with arrows to change it.
   route?: RouteRef;
+  // The id of a form to tick visits for (moving several at once). Closed visits can't be ticked.
+  selectForm?: string;
 }) {
   const order = jobs.map((j) => j.id);
   if (jobs.length === 0) {
@@ -33,6 +35,11 @@ export function JobTable({ jobs, today, emptyTitle, emptyText, showCrew = false,
     <table className="job-table">
       <thead>
         <tr>
+          {selectForm && (
+            <th className="select-cell">
+              <span className="visually-hidden">Tick to move</span>
+            </th>
+          )}
           {route && <th>Stop</th>}
           <th>Date</th>
           <th>Customer</th>
@@ -48,6 +55,19 @@ export function JobTable({ jobs, today, emptyTitle, emptyText, showCrew = false,
       <tbody>
         {jobs.map((job) => (
           <tr key={job.id} data-job-id={job.id}>
+            {selectForm && (
+              <td className="select-cell">
+                {!isClosed(job.status) && (
+                  <input
+                    type="checkbox"
+                    name="job_ids"
+                    value={job.id}
+                    form={selectForm}
+                    aria-label={`Tick ${customerDisplayName(job.customer)} to move`}
+                  />
+                )}
+              </td>
+            )}
             {route && (
               <td className="stop-cell">
                 <RouteArrows route={route} order={order} jobId={job.id} label={customerDisplayName(job.customer)} />

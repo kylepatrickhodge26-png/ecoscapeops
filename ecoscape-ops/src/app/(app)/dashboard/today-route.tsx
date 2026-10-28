@@ -23,7 +23,24 @@ export type TodayStop = {
 
 // Today, made for a thumb: the visit you're on (or the next one) as a big card with one big
 // button, then the rest of the day in order, each with its own Clock in, then what's done.
-export function TodayRoute({ stops, clock, emptyText }: { stops: TodayStop[]; clock: MyClock; emptyText: string }) {
+export function TodayRoute({
+  stops,
+  clock,
+  emptyText,
+  canMove = false,
+}: {
+  stops: TodayStop[];
+  clock: MyClock;
+  emptyText: string;
+  // The owner can move a stop to another day; crew can't (they use Could not service).
+  canMove?: boolean;
+}) {
+  const moveLink = (s: TodayStop) =>
+    canMove && s.id !== clock.jobId && (s.status === "scheduled" || s.status === "assigned" || s.status === "weather_delay") ? (
+      <Link className="today-move" href={`/schedule/jobs/${s.id}?move=1#move`}>
+        Move
+      </Link>
+    ) : null;
   if (stops.length === 0) {
     return (
       <div className="panel" data-testid="today-route">
@@ -70,6 +87,7 @@ export function TodayRoute({ stops, clock, emptyText }: { stops: TodayStop[]; cl
           <Link className="now-more" href={focus.href}>
             Checklist, photos &amp; notes ›
           </Link>
+          {moveLink(focus) && <div className="now-move">Not today? {moveLink(focus)}</div>}
         </section>
       ) : (
         <section className="now-card done" aria-label="All done">
@@ -95,6 +113,7 @@ export function TodayRoute({ stops, clock, emptyText }: { stops: TodayStop[]; cl
                 <div className="today-action">
                   {s.status === "scheduled" || s.status === "assigned" ? null : <StatusPill status={s.status} />}
                   <JobClock jobId={s.id} status={s.status} compact />
+                  {moveLink(s)}
                 </div>
               </li>
             ))}
