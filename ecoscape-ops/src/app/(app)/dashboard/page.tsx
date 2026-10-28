@@ -159,7 +159,7 @@ async function OwnerDashboard({
       {ownStops.length > 0 && (
         <section aria-label="Your route">
           {hasCrew && <h2 className="today-section-heading">Your route</h2>}
-          <TodayRoute stops={ownStops} clock={clock} emptyText="" />
+          <TodayRoute stops={ownStops} clock={clock} emptyText="" canMove />
         </section>
       )}
       {hasCrew && <CrewNow businessId={business.id} crew={crew} ownerUserId={user.id} timeZone={business.time_zone} />}

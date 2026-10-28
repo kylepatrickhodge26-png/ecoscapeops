@@ -9,9 +9,12 @@ import { getCrew, showAssignment } from "@/lib/crew";
 import { formatLongDate, isISODate, monthOf, todayInTimeZone } from "@/lib/dates";
 import { getShop, locatePendingCustomers } from "@/lib/geo/customers";
 import { buildRoute } from "@/lib/routes/build";
+import { isClosed } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
 import { JobTable } from "../../job-table";
+import { MovedNotice } from "../../moved-notice";
+import { MoveSelected } from "../../move-visit";
 import { jobsBetween, type JobListItem } from "../../queries";
 
 export const metadata: Metadata = { title: "Day" };
@@ -24,7 +27,8 @@ const pointOf = (job: JobListItem) =>
 export default async function DayPage(props: PageProps<"/schedule/day/[date]">) {
   const { business, user } = await requireOwner();
   const { date } = await props.params;
-  const { notice } = await props.searchParams;
+  const params = await props.searchParams;
+  const { notice } = params;
   if (!isISODate(date)) notFound();
 
   const today = todayInTimeZone(business.time_zone);
@@ -64,6 +68,7 @@ export default async function DayPage(props: PageProps<"/schedule/day/[date]">) 
     })
     .filter((r) => r.stops.length > 0);
   const returnTo = `/schedule/day/${date}`;
+  const movable = live.some((j) => !isClosed(j.status));
 
   return (
     <>
@@ -85,12 +90,15 @@ export default async function DayPage(props: PageProps<"/schedule/day/[date]">) 
         )}
       </div>
       {notice === "deleted" && <Notice tone="success">Visit deleted.</Notice>}
+      <MovedNotice params={params} jobs={jobs} businessName={business.name} />
       {notice === "route-error" && <Notice tone="error">That route change couldn&apos;t be saved. Please try again.</Notice>}
       {!shop && live.length > 0 && (
         <Notice tone="warn">
           <Link href="/settings">Set your shop address</Link> to put each day&apos;s visits in route order.
         </Notice>
       )}
+
+      {movable && <MoveSelected today={today} fromDate={date} />}
 
       {routes.length === 0 && cancelled.length === 0 && (
         <div className="panel">
@@ -116,7 +124,15 @@ export default async function DayPage(props: PageProps<"/schedule/day/[date]">) 
             />
           </div>
           <div className="panel-body flush">
-            <JobTable jobs={r.stops} today={today} emptyTitle="" emptyText="" showCrew={false} route={{ date, crewMemberId: r.crewMemberId, returnTo }} />
+            <JobTable
+              jobs={r.stops}
+              today={today}
+              emptyTitle=""
+              emptyText=""
+              showCrew={false}
+              route={{ date, crewMemberId: r.crewMemberId, returnTo }}
+              selectForm={movable ? "move-selected" : undefined}
+            />
           </div>
         </section>
       ))}

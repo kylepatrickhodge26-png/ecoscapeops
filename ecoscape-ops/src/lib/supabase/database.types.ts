@@ -1793,6 +1793,10 @@ export type Database = {
           workday_started_at: string
         }[]
       }
+      move_visits: {
+        Args: { job_ids: string[]; move_later?: boolean; new_date: string }
+        Returns: number
+      }
       my_open_time_entry: {
         Args: never
         Returns: {

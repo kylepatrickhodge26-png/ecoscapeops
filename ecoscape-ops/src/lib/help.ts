@@ -209,7 +209,9 @@ export const HELP_TOPICS: HelpTopic[] = [
     section: "Schedule",
     question: "How do I move a job to another day?",
     answer: [
-      "Open the visit (find it on the Schedule, or search the customer's name), tap Edit and change the Date to the day you're doing it, earlier or later. Moving one visit doesn't shift the rest.",
+      "Open the visit (find it on the Schedule, or search the customer's name) and tap Move. Pick Today, Tomorrow, another day this week, or any date, then tap the button to move it. Their other visits stay where they are, and you get a ready-made text for customers who agreed to texts.",
+      "Their regular day is changing? Tick Also move their later visits by the same number of days. All their upcoming visits shift, and the new weekday becomes their regular day.",
+      "Several at once: open the day on the Schedule, tick the visits, pick the day and tap Move. On Today you can also tap Move next to a stop you won't get to.",
       "Rain day? Use Move a day's jobs on the Weather page to move the whole day at once. It gets a text ready for each customer who agreed to texts.",
     ],
     for: OWNER,
@@ -244,7 +246,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     question: "How do I set which day each customer gets done?",
     answer: [
       "Open the customer, tap Edit and set Preferred day. When you book them, First visit starts on that day, and repeat visits stay on that weekday.",
-      "Already booked on the wrong day? Change one visit with Edit. To move all of them, tap Stop next to the service on their customer page, then + Book a service again with the right First visit.",
+      "Already booked on the wrong day? Open their next visit, tap Move, pick the right day and tick Also move their later visits. Every upcoming visit moves, and that weekday becomes their regular day.",
     ],
     for: OWNER,
   },

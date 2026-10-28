@@ -17,6 +17,8 @@ import { JobExtras } from "../../../job-extras/job-extras";
 import { JobClock } from "../../../time-clock/job-clock";
 import { couldNotService, deleteJob, markJobCompleted } from "../../actions";
 import { getJobOr404 } from "../../get-job";
+import { MovedNotice } from "../../moved-notice";
+import { MoveVisit } from "../../move-visit";
 import { CouldNotService } from "./could-not-service";
 import { MarkCompleted } from "./mark-completed";
 
@@ -32,7 +34,8 @@ const NOTICES: Record<string, string> = {
 export default async function JobPage(props: PageProps<"/schedule/jobs/[id]">) {
   const { business, user } = await requireOwner();
   const { id } = await props.params;
-  const { notice } = await props.searchParams;
+  const params = await props.searchParams;
+  const { notice } = params;
   const job = await getJobOr404(id);
   const showCrew = showAssignment(await getCrew(business.id, user.id));
   const today = todayInTimeZone(business.time_zone);
@@ -72,6 +75,16 @@ export default async function JobPage(props: PageProps<"/schedule/jobs/[id]">) {
       <div className="job-actions">
           {open && <MarkCompleted action={markJobCompleted.bind(null, job.id)} />}
           {open && (
+            <MoveVisit
+              jobId={job.id}
+              currentDate={job.scheduled_date}
+              today={today}
+              recurring={job.plan.frequency !== "one_time" && job.plan.active}
+              back={`/schedule/jobs/${job.id}`}
+              startOpen={params.move === "1"}
+            />
+          )}
+          {open && (
             <CouldNotService
               action={couldNotService.bind(null, job.id)}
               defaultNewDate={latest(addDays(job.scheduled_date, 1), today)}
@@ -96,6 +109,7 @@ export default async function JobPage(props: PageProps<"/schedule/jobs/[id]">) {
       </div>
 
       {typeof notice === "string" && NOTICES[notice] && <Notice tone="success">{NOTICES[notice]}</Notice>}
+      <MovedNotice params={params} jobs={[job]} businessName={business.name} />
       {job.customer.access_instructions && <div className="notice">Access: {job.customer.access_instructions}</div>}
       {job.customer.service_notes && <div className="notice pre-line">Customer notes: {job.customer.service_notes}</div>}
 
