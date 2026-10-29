@@ -47,7 +47,7 @@ export async function bookService(_prev: BookingFormState, formData: FormData): 
   const { data, error } = await supabase
     .from("service_plans")
     .insert({ ...parsed.data, business_id: business.id })
-    .select("id, start_date")
+    .select("id, start_date, paused, customer_id")
     .single();
 
   if (error) {
@@ -61,6 +61,8 @@ export async function bookService(_prev: BookingFormState, formData: FormData): 
     return { values, error: "We couldn't book this service. Please try again." };
   }
 
+  // A repeat service for a customer who's done for the season waits until they're active.
+  if (data.paused) redirect(`/customers/${data.customer_id}?notice=booked-waiting`);
   redirect(`/schedule?month=${monthOf(data.start_date)}&booked=${data.id}`);
 }
 

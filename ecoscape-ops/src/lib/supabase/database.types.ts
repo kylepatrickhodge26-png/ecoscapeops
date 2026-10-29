@@ -1271,6 +1271,7 @@ export type Database = {
           frequency: Database["public"]["Enums"]["service_frequency"]
           id: string
           next_visit_date: string | null
+          paused: boolean
           price: number
           service_name: string
           start_date: string
@@ -1285,6 +1286,7 @@ export type Database = {
           frequency: Database["public"]["Enums"]["service_frequency"]
           id?: string
           next_visit_date?: string | null
+          paused?: boolean
           price: number
           service_name: string
           start_date: string
@@ -1299,6 +1301,7 @@ export type Database = {
           frequency?: Database["public"]["Enums"]["service_frequency"]
           id?: string
           next_visit_date?: string | null
+          paused?: boolean
           price?: number
           service_name?: string
           start_date?: string
@@ -1783,6 +1786,10 @@ export type Database = {
         Args: { item_id: string; up: boolean }
         Returns: undefined
       }
+      move_visits: {
+        Args: { job_ids: string[]; move_later?: boolean; new_date: string }
+        Returns: number
+      }
       my_clock: {
         Args: never
         Returns: {
@@ -1792,10 +1799,6 @@ export type Database = {
           service_name: string
           workday_started_at: string
         }[]
-      }
-      move_visits: {
-        Args: { job_ids: string[]; move_later?: boolean; new_date: string }
-        Returns: number
       }
       my_open_time_entry: {
         Args: never

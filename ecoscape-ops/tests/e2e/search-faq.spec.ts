@@ -120,17 +120,19 @@ test("crew get Help for their own work, and no search", async ({ page, browser }
 
   await crew.getByRole("link", { name: "Help" }).click();
   await expect(crew).toHaveURL(/\/help$/);
-  await expect(crew.getByText("How do I clock in to a job?")).toBeVisible();
-  await expect(crew.getByText("Why don't I see prices?")).toBeVisible();
+  // Each question in the list (the page may also show popular questions at the top).
+  const question = (p: Page, q: string) => p.locator("details > summary", { hasText: q });
+  await expect(question(crew, "How do I clock in to a job?")).toBeVisible();
+  await expect(question(crew, "Why don't I see prices?")).toBeVisible();
   await expect(crew.locator("main")).not.toContainText("How do I send an invoice?");
   await expect(crew.locator("main")).not.toContainText("Venmo");
-  await crew.getByText("How do I clock out?").click();
-  await expect(crew.getByText(/Tap Clock out & finish/)).toBeVisible();
+  await question(crew, "How do I clock out?").click();
+  await expect(crew.locator("details#clock-out")).toContainText("Tap Clock out & finish");
 
   // The owner's Help has the owner's questions, under More.
   await page.goto("/more");
   await page.getByRole("link", { name: /^Help/ }).first().click();
-  await expect(page.getByText("How do I send an invoice?")).toBeVisible();
+  await expect(question(page, "How do I send an invoice?")).toBeVisible();
 });
 
 test("the owner writes a customer FAQ, and customers see it on the request form and their account", async ({ page, browser }) => {

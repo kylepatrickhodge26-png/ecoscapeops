@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireOwner } from "@/lib/auth";
+import { todayInTimeZone } from "@/lib/dates";
 import {
   customerDisplayName,
   customerFormValuesFromFormData,
@@ -175,4 +176,52 @@ export async function removeCustomerAccess(id: string): Promise<{ error?: string
     return { error: "We couldn't remove access. Please try again." };
   }
   redirect(`/customers/${id}?notice=access-removed`);
+}
+
+// Done for the season: marking a customer inactive takes their upcoming repeat visits off the
+// schedule, and marking them active brings them back on their regular day. The database does
+// the work when the status changes (so the Edit form's Status does the same); these are the
+// one-tap buttons on the customer's page.
+async function upcomingRepeatVisits(customerId: string, today: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("scheduled_date, service_plans!inner(frequency)")
+    .eq("customer_id", customerId)
+    .gte("scheduled_date", today)
+    .in("status", ["scheduled", "assigned", "weather_delay"])
+    .neq("service_plans.frequency", "one_time")
+    .order("scheduled_date");
+  if (error) throw new Error(`Could not load visits: ${error.message}`);
+  return data.map((v) => v.scheduled_date);
+}
+
+async function setCustomerStatus(id: string, status: "active" | "inactive") {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("customers").update({ status }).eq("id", id).select("id");
+  if (error) {
+    console.error("Changing customer status failed", error);
+    return "We couldn't save that. Please try again.";
+  }
+  if (data.length === 0) return "This customer no longer exists.";
+  return null;
+}
+
+export async function endCustomerSeason(id: string): Promise<{ error?: string }> {
+  const { business } = await requireOwner();
+  if (!customerId.safeParse(id).success) return { error: "This customer no longer exists." };
+  const today = todayInTimeZone(business.time_zone);
+  const before = (await upcomingRepeatVisits(id, today)).length;
+  const problem = await setCustomerStatus(id, "inactive");
+  if (problem) return { error: problem };
+  redirect(`/customers/${id}?notice=season-ended&removed=${before}`);
+}
+
+export async function startCustomerSeason(id: string): Promise<{ error?: string }> {
+  const { business } = await requireOwner();
+  if (!customerId.safeParse(id).success) return { error: "This customer no longer exists." };
+  const problem = await setCustomerStatus(id, "active");
+  if (problem) return { error: problem };
+  const [next] = await upcomingRepeatVisits(id, todayInTimeZone(business.time_zone));
+  redirect(`/customers/${id}?notice=season-started${next ? `&next=${next}` : ""}`);
 }

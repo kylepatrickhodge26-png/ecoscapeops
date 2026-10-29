@@ -18,7 +18,7 @@ export async function CustomerSchedule({ customerId, customerName, today }: { cu
   const [plansResult, jobsResult] = await Promise.all([
     supabase
       .from("service_plans")
-      .select("id, service_name, price, frequency, active, start_date")
+      .select("id, service_name, price, frequency, active, paused, start_date")
       .eq("customer_id", customerId)
       .order("created_at"),
     supabase
@@ -64,9 +64,11 @@ export async function CustomerSchedule({ customerId, customerName, today }: { cu
                       <div className="subtext">
                         {recurring && !plan.active
                           ? "Stopped"
-                          : planUpcoming[0]
-                            ? `Next visit ${formatShortDate(planUpcoming[0].scheduled_date)}`
-                            : "No upcoming visits"}
+                          : plan.paused
+                            ? "Paused for the season"
+                            : planUpcoming[0]
+                              ? `Next visit ${formatShortDate(planUpcoming[0].scheduled_date)}`
+                              : "No upcoming visits"}
                       </div>
                     </div>
                     {recurring && plan.active && (
