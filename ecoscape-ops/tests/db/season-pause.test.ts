@@ -110,8 +110,9 @@ describe("done for the season", () => {
     const mowing = await visitsOf(alpha, plan.mowing);
     expect(await upcomingDates(alpha, plan.mowing)).toEqual(plusWeeks(7, 7, 6));
     expect(mowing.filter((v) => v.status === "scheduled" || v.status === "assigned").every((v) => v.assigned_crew_member_id === crew.crewMemberId)).toBe(true);
-    // Last week's missed leaves still count as open, so 5 more are added, from today.
-    expect(await upcomingDates(alpha, plan.leaves)).toEqual(plusWeeks(0, 7, 5));
+    // Last week's missed leaves stay overdue, but don't take an upcoming visit's place: the
+    // usual 6 come back, from today.
+    expect(await upcomingDates(alpha, plan.leaves)).toEqual(plusWeeks(0, 7, 6));
     // Booked while inactive: from their first visit date.
     expect(await upcomingDates(alpha, plan.aeration)).toEqual(plusWeeks(1, 7, 6));
     expect(await upcomingDates(alpha, plan.spring)).toEqual(plusWeeks(30, 7, 6));

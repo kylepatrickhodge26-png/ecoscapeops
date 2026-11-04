@@ -200,7 +200,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     question: "How do I book a job?",
     answer: [
       "Tap Book a job (on Today or the Schedule). Pick the customer, the service, the price, how often and the first visit.",
-      "For repeat work the app keeps the next 6 visits on the schedule, adding the next one as each is done.",
+      "For repeat work the app keeps the next 6 visits on the schedule, adding the next one as each is done. Overdue visits don't count toward the 6.",
     ],
     for: OWNER,
   },
@@ -310,6 +310,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     answer: [
       "The visit's date has passed but it isn't marked completed or cancelled.",
       "If you did it, open it and tap Mark completed. If not, tap Could not service to give it a new day or cancel it.",
+      "Overdue visits don't use up the customer's upcoming ones: the app still keeps their next 6 on the schedule.",
     ],
     for: OWNER,
   },
