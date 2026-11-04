@@ -128,16 +128,18 @@ describe("done for the season", () => {
 
   it("keeps an every-2-weeks service on its own weeks, and a moved regular day", async () => {
     const edging = (await bookService(alpha, cara, { frequency: "biweekly", start_date: day(4), service_name: "Edging" })).id;
-    // Cara's mowing moved from day 1 to day 3, later visits too: day 3 is her regular day now.
+    // Cara's mowing moved from day 1 to day 3 (day 2 if day 3 is a Sunday, which can't be a
+    // regular day), later visits too: that's her regular day now.
+    const to = new Date(`${day(3)}T00:00:00Z`).getUTCDay() === 0 ? 2 : 3;
     const [first] = await visitsOf(alpha, plan.cara);
-    expect((await alpha.client.rpc("move_visits", { job_ids: [first.id], new_date: day(3), move_later: true })).error).toBeNull();
-    expect(await upcomingDates(alpha, plan.cara)).toEqual(plusWeeks(3, 7, 6));
+    expect((await alpha.client.rpc("move_visits", { job_ids: [first.id], new_date: day(to), move_later: true })).error).toBeNull();
+    expect(await upcomingDates(alpha, plan.cara)).toEqual(plusWeeks(to, 7, 6));
 
     expect((await setStatus(alpha, cara, "inactive")).error).toBeNull();
     expect(await upcomingDates(alpha, plan.cara)).toEqual([]);
     expect(await upcomingDates(alpha, edging)).toEqual([]);
     expect((await setStatus(alpha, cara, "active")).error).toBeNull();
-    expect(await upcomingDates(alpha, plan.cara)).toEqual(plusWeeks(3, 7, 6));
+    expect(await upcomingDates(alpha, plan.cara)).toEqual(plusWeeks(to, 7, 6));
     expect(await upcomingDates(alpha, edging)).toEqual(plusWeeks(4, 14, 6));
   });
 

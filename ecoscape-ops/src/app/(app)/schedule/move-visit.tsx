@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 
 import { formatShortDate } from "@/lib/dates";
-import { dayChoices, suggestedDay, weekdayName } from "@/lib/schedule/move";
+import { dayChoices, regularDayHint, suggestedDay, weekdayName } from "@/lib/schedule/move";
 
 import { moveVisits, type MoveState } from "./move-actions";
 
@@ -26,19 +26,21 @@ function DayPicker({ today, exclude, value, onChange }: { today: string; exclude
   );
 }
 
-// "Move" on a visit: pick the day, and optionally move their later visits by the same amount.
+// "Move" on a visit: pick the day, and optionally make that day their regular day (their later
+// visits line up on it). `repeatsEvery` is the days between visits of a repeat service that's
+// still going, null otherwise.
 export function MoveVisit({
   jobId,
   currentDate,
   today,
-  recurring,
+  repeatsEvery,
   back,
   startOpen = false,
 }: {
   jobId: string;
   currentDate: string;
   today: string;
-  recurring: boolean;
+  repeatsEvery: number | null;
   back: string;
   startOpen?: boolean;
 }) {
@@ -56,19 +58,24 @@ export function MoveVisit({
   }
 
   const day = weekdayName(date || currentDate);
+  const sunday = day === "Sunday";
   return (
     <form action={formAction} className="move-panel" id="move" aria-label="Move to another day">
       <input type="hidden" name="job_ids" value={jobId} />
       <h4>Move to another day</h4>
       <DayPicker today={today} exclude={currentDate} value={date} onChange={setDate} />
-      {recurring && (
+      {repeatsEvery !== null && (
         <label className="checkbox move-later">
-          <input type="checkbox" name="move_later" checked={later} onChange={(e) => setLater(e.target.checked)} />
+          <input
+            type="checkbox"
+            name="move_later"
+            checked={later && !sunday}
+            disabled={sunday}
+            onChange={(e) => setLater(e.target.checked)}
+          />
           <span>
-            Also move their later visits by the same number of days
-            <span className="hint">
-              {day === "Sunday" ? " Their regular day stays the same." : ` Their regular day becomes ${day}.`}
-            </span>
+            Make {sunday ? "this" : day} their regular day
+            <span className="hint"> {regularDayHint(date || currentDate, repeatsEvery)}</span>
           </span>
         </label>
       )}

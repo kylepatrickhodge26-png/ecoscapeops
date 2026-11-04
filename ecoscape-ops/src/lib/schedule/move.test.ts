@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { dayChoices, movedIds, movedText, suggestedDay, weekdayName } from "./move";
+import { dayChoices, movedIds, movedText, regularDayHint, REPEAT_DAYS, suggestedDay, weekdayName } from "./move";
 
 describe("moving visits", () => {
   it("offers Today, Tomorrow and the rest of the week, skipping the visit's own day", () => {
@@ -33,5 +33,15 @@ describe("moving visits", () => {
       "Hi John, it's EcoScape. We've moved your mowing to Wednesday, October 28. Thanks!",
     );
     expect(movedText({ firstName: " ", businessName: "EcoScape", service: "Mowing", date: "2026-10-28" })).toMatch(/^Hi, it's/);
+  });
+
+  it("says where their later visits will go when the new day becomes their regular day", () => {
+    expect(regularDayHint("2026-11-12", 14)).toBe(
+      "Their later visits move to every other Thursday after this one: Thu, Nov 26, Thu, Dec 10, …",
+    );
+    expect(regularDayHint("2026-11-12", 7)).toBe("Their later visits move to every Thursday after this one: Thu, Nov 19, Thu, Nov 26, …");
+    expect(regularDayHint("2026-11-12", 21)).toMatch(/^Their later visits move to every third Thursday after this one: Thu, Dec 3,/);
+    expect(regularDayHint("2026-11-15", 14)).toBe("A Sunday can't be a regular day, so only this visit moves.");
+    expect([REPEAT_DAYS.weekly, REPEAT_DAYS.biweekly, REPEAT_DAYS.triweekly, REPEAT_DAYS.one_time]).toEqual([7, 14, 21, null]);
   });
 });
