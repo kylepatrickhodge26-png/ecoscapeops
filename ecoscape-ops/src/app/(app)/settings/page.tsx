@@ -7,6 +7,8 @@ import { customerDisplayName } from "@/lib/customers/schema";
 import { getShop } from "@/lib/geo/customers";
 import { MAX_MILES_FROM_SHOP, geoProblem } from "@/lib/geo/locate";
 import { createClient } from "@/lib/supabase/server";
+import { spanLabel } from "@/lib/weather/hourly";
+import { getWorkSettings } from "@/lib/weather/queries";
 
 import { locateRemainingCustomers } from "./actions";
 import { ShopForm } from "./shop-form";
@@ -21,7 +23,7 @@ const NOTICES: Record<string, string> = {
 export default async function SettingsPage(props: PageProps<"/settings">) {
   const { business } = await requireOwner();
   const { notice } = await props.searchParams;
-  const shop = await getShop(business.id);
+  const [shop, workSettings] = await Promise.all([getShop(business.id), getWorkSettings(business.id)]);
 
   const supabase = await createClient();
   const { data: customers, error } = await supabase
@@ -43,6 +45,24 @@ export default async function SettingsPage(props: PageProps<"/settings">) {
         </div>
       </div>
       {typeof notice === "string" && NOTICES[notice] && <Notice tone="success">{NOTICES[notice]}</Notice>}
+
+      <div className="panel">
+        <div className="panel-head">
+          <h3>Work hours &amp; rain days</h3>
+          <Link className="btn secondary small" href="/weather#work-hours">
+            Change
+          </Link>
+        </div>
+        <div className="panel-body">
+          <p className="hint" data-testid="work-hours-summary">
+            Work hours {spanLabel(workSettings.work.start, workSettings.work.end)} ·{" "}
+            {workSettings.autoMove
+              ? "repeat visits move automatically when rain is likely during work hours"
+              : "you move visits for rain yourself"}
+            .
+          </p>
+        </div>
+      </div>
 
       <div className="panel">
         <div className="panel-head">

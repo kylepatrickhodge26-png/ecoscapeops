@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { Notice } from "@/components/notice";
 import { RouteHeader } from "@/components/route/route-header";
@@ -12,6 +13,7 @@ import { buildRoute } from "@/lib/routes/build";
 import { isClosed } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
+import { DayRainNotice } from "../../../weather/rain-notices";
 import { JobTable } from "../../job-table";
 import { MovedNotice } from "../../moved-notice";
 import { MoveSelected } from "../../move-visit";
@@ -89,6 +91,12 @@ export default async function DayPage(props: PageProps<"/schedule/day/[date]">) 
           </Link>
         )}
       </div>
+      {date >= today && (
+        // The forecast streams in; a slow weather service never holds up the day's visits.
+        <Suspense fallback={null}>
+          <DayRainNotice business={business} date={date} />
+        </Suspense>
+      )}
       {notice === "deleted" && <Notice tone="success">Visit deleted.</Notice>}
       <MovedNotice params={params} jobs={jobs} businessName={business.name} />
       {notice === "route-error" && <Notice tone="error">That route change couldn&apos;t be saved. Please try again.</Notice>}

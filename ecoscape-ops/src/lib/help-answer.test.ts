@@ -42,6 +42,13 @@ describe("asking Help a question", () => {
     expect(ids("it's raining, what do I do with today's jobs")).toContain("move");
   });
 
+  it("explains moving jobs for rain automatically, and the calendar's raindrops", () => {
+    expect(top("can the app move jobs automatically when it rains")).toBe("rain-auto");
+    expect(top("move weekly mowing to the next day if it will rain")).toBe("rain-auto");
+    expect(top("what is the raindrop on the calendar")).toBe("rain-marks");
+    expect(top("how do i delay a client")).toBe("move");
+  });
+
   it("answers crew questions for crew, and never shows them money topics", () => {
     expect(top("how do i clock in", "crew")).toBe("clock-in");
     expect(top("I finished a job by mistake", "crew")).toBe("undo-crew");

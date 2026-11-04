@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { signOut } from "../(auth)/actions";
 import { NavLinks, SectionLinks } from "./nav-links";
+import { RainCheck } from "./rain-check";
 import { SearchBox } from "./search-box";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -53,6 +54,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <SectionLinks sections={sections} />
         {children}
       </main>
+      {/* Moves rainy days' repeat visits when the owner has that turned on. */}
+      {role === "owner" && <RainCheck />}
     </div>
   );
 }

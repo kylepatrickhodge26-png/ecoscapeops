@@ -10,6 +10,7 @@ import { formatShortDate, isISOMonth, monthOf, todayInTimeZone } from "@/lib/dat
 import { FREQUENCY_LABELS, isScheduleFilter } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
+import { AutoRainNotices } from "../weather/rain-notices";
 import { ScheduleCalendar } from "./schedule-calendar";
 import { ScheduleList } from "./schedule-list";
 
@@ -47,9 +48,10 @@ export default async function SchedulePage(props: PageProps<"/schedule">) {
       </div>
 
       <BookedNotice planId={params.booked} />
+      <AutoRainNotices businessId={business.id} today={today} />
 
       {view === "calendar" ? (
-        <ScheduleCalendar businessId={business.id} month={month} today={today} />
+        <ScheduleCalendar business={business} month={month} today={today} />
       ) : (
         <ScheduleList
           businessId={business.id}

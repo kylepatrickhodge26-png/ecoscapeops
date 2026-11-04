@@ -3,15 +3,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
+import { ConfirmButton } from "@/components/confirm-button";
 import { StatusPill } from "@/components/job-status";
 import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
 import { customerDisplayName } from "@/lib/customers/schema";
-import { formatShortDate } from "@/lib/dates";
+import { formatShortDate, todayInTimeZone } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
 import { formatPhone, smsLink } from "@/lib/sms";
 
-import { markWeatherTextOpened } from "../../actions";
+import { markWeatherTextOpened, undoRainDelay } from "../../actions";
 import { TextActions } from "./text-actions";
 
 export const metadata: Metadata = { title: "Rain delay" };
@@ -30,7 +31,7 @@ export default async function RainDelayPage(props: PageProps<"/weather/delays/[i
   const supabase = await createClient();
   const { data: delay, error } = await supabase
     .from("rain_delays")
-    .select("id, from_date, to_date")
+    .select("id, from_date, to_date, automatic, rain_window, undone_at")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`Could not load this rain delay: ${error.message}`);
@@ -54,6 +55,9 @@ export default async function RainDelayPage(props: PageProps<"/weather/delays/[i
   const textable = texts.filter((t) => t.can_text);
   const opened = textable.filter((t) => t.opened_at !== null).length;
   const time = new Intl.DateTimeFormat("en-US", { timeZone: business.time_zone, hour: "numeric", minute: "2-digit" });
+  const today = todayInTimeZone(business.time_zone);
+  const undone = delay.undone_at !== null;
+  const canUndo = !undone && delay.from_date >= today;
 
   return (
     <>
@@ -66,11 +70,36 @@ export default async function RainDelayPage(props: PageProps<"/weather/delays/[i
             Rain delay: {formatShortDate(delay.from_date)} → {formatShortDate(delay.to_date)}
           </h1>
           <div className="meta">
+            {delay.automatic && <>Moved automatically{delay.rain_window && ` (rain likely ${delay.rain_window})`} · </>}
             {jobs.length} {jobs.length === 1 ? "visit" : "visits"} moved · {texts.length}{" "}
             {texts.length === 1 ? "customer" : "customers"} affected · {textable.length} opted in to texts
           </div>
         </div>
+        {canUndo && (
+          <ConfirmButton
+            action={undoRainDelay.bind(null, delay.id)}
+            label="Undo"
+            confirmText={
+              <>
+                Put the visits that are still waiting back on <b>{formatShortDate(delay.from_date)}</b>? If you&apos;ve already
+                texted customers, let them know you&apos;re coming after all.
+              </>
+            }
+            confirmLabel="Undo"
+            pendingLabel="Undoing…"
+            danger={false}
+          />
+        )}
       </div>
+
+      {notice === "undone" && (
+        <Notice tone="success">
+          Undone. The visits that were still waiting are back on {formatShortDate(delay.from_date)}.
+        </Notice>
+      )}
+      {undone && notice !== "undone" && (
+        <Notice tone="warn">This rain delay was undone, so its visits went back to {formatShortDate(delay.from_date)}.</Notice>
+      )}
 
       {notice === "moved" && (
         <Notice tone="success">
@@ -79,75 +108,77 @@ export default async function RainDelayPage(props: PageProps<"/weather/delays/[i
         </Notice>
       )}
 
-      <div className="panel">
-        <div className="panel-head">
-          <h3>Text customers</h3>
-          {textable.length > 0 && (
-            <span className="subtext" data-testid="texts-opened">
-              {opened} of {textable.length} opened
-            </span>
-          )}
-        </div>
-        <div className="panel-body">
-          {textable.length === 0 ? (
-            <p className="hint">None of these customers have opted in to texts.</p>
-          ) : (
-            <p className="hint">
-              Tap <b>Open text</b> to open each customer&apos;s message in your phone&apos;s Messages app, then send it.
-              Only customers who have opted in to texts get a message. On a computer, use <b>Copy message</b>, or open
-              this page on your phone. If someone replies STOP, turn off their text opt-in.
-            </p>
-          )}
+      {!undone && (
+        <div className="panel">
+          <div className="panel-head">
+            <h3>Text customers</h3>
+            {textable.length > 0 && (
+              <span className="subtext" data-testid="texts-opened">
+                {opened} of {textable.length} opened
+              </span>
+            )}
+          </div>
+          <div className="panel-body">
+            {textable.length === 0 ? (
+              <p className="hint">None of these customers have opted in to texts.</p>
+            ) : (
+              <p className="hint">
+                Tap <b>Open text</b> to open each customer&apos;s message in your phone&apos;s Messages app, then send it.
+                Only customers who have opted in to texts get a message. On a computer, use <b>Copy message</b>, or open
+                this page on your phone. If someone replies STOP, turn off their text opt-in.
+              </p>
+            )}
 
-          <ul className="text-list">
-            {texts.map((t) => {
-              const name = customerDisplayName({ ...t, email: "" });
-              return (
-                <li key={t.customer_id} className="text-row" data-customer={name}>
-                  <div className="text-who">
-                    <Link href={`/customers/${t.customer_id}`}>
-                      <b>{name}</b>
-                    </Link>
-                    <div className="subtext">{t.to_phone ? formatPhone(t.to_phone) : t.phone || "No phone"}</div>
-                  </div>
-                  <div className="text-what">
-                    {!t.can_text ? (
-                      <>
-                        <span className="pill text-none" data-text-status="wont-text">
-                          Won&apos;t be texted
+            <ul className="text-list">
+              {texts.map((t) => {
+                const name = customerDisplayName({ ...t, email: "" });
+                return (
+                  <li key={t.customer_id} className="text-row" data-customer={name}>
+                    <div className="text-who">
+                      <Link href={`/customers/${t.customer_id}`}>
+                        <b>{name}</b>
+                      </Link>
+                      <div className="subtext">{t.to_phone ? formatPhone(t.to_phone) : t.phone || "No phone"}</div>
+                    </div>
+                    <div className="text-what">
+                      {!t.can_text ? (
+                        <>
+                          <span className="pill text-none" data-text-status="wont-text">
+                            Won&apos;t be texted
+                          </span>
+                          <div className="subtext">
+                            {REASONS[t.reason ?? ""] ?? t.reason} ·{" "}
+                            <Link href={`/customers/${t.customer_id}/edit`}>Edit customer</Link>
+                          </div>
+                        </>
+                      ) : t.opened_at ? (
+                        <span className="pill text-opened" data-text-status="opened">
+                          Opened {time.format(new Date(t.opened_at))}
                         </span>
-                        <div className="subtext">
-                          {REASONS[t.reason ?? ""] ?? t.reason} ·{" "}
-                          <Link href={`/customers/${t.customer_id}/edit`}>Edit customer</Link>
-                        </div>
-                      </>
-                    ) : t.opened_at ? (
-                      <span className="pill text-opened" data-text-status="opened">
-                        Opened {time.format(new Date(t.opened_at))}
-                      </span>
-                    ) : (
-                      <span className="pill text-pending" data-text-status="not-opened">
-                        Not texted yet
-                      </span>
-                    )}
-                    {t.body && t.to_phone && (
-                      <>
-                        <blockquote className="text-body">{t.body}</blockquote>
-                        <TextActions
-                          href={smsLink(t.to_phone, t.body)}
-                          body={t.body}
-                          name={name}
-                          markOpened={markWeatherTextOpened.bind(null, delay.id, t.customer_id)}
-                        />
-                      </>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                      ) : (
+                        <span className="pill text-pending" data-text-status="not-opened">
+                          Not texted yet
+                        </span>
+                      )}
+                      {t.body && t.to_phone && (
+                        <>
+                          <blockquote className="text-body">{t.body}</blockquote>
+                          <TextActions
+                            href={smsLink(t.to_phone, t.body)}
+                            body={t.body}
+                            name={name}
+                            markOpened={markWeatherTextOpened.bind(null, delay.id, t.customer_id)}
+                          />
+                        </>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="panel">
         <div className="panel-head">

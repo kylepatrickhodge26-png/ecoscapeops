@@ -61,6 +61,8 @@ const SYNONYMS: string[][] = [
 const KEYWORDS: Record<string, string[]> = {
   move: ["delay", "push", "postpone", "reschedule", "earlier", "later", "today", "tomorrow", "different", "switch"],
   "could-not-service": ["rain", "locked", "gate", "dog", "postpone", "missed", "cant", "behind"],
+  "rain-auto": ["rain", "automatic", "automatically", "itself", "forecast", "delay", "weather", "storm", "tomorrow", "wet"],
+  "rain-marks": ["raindrop", "drop", "calendar", "marks", "forecast", "hours", "icon", "blue"],
   "cancel-visit": ["skip", "cancel", "once", "week"],
   "customer-day": ["weekday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "route", "wrong", "usual", "regular", "mowed", "come", "comes"],
   "change-price": ["raise", "increase", "rate", "charge", "cost", "frequency", "weekly", "biweekly", "often"],

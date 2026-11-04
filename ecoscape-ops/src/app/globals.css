@@ -12,6 +12,10 @@
   --line: #d9d4c4;
   --sky: #4a7a94;
   --sky-soft: #dce9ee;
+  /* Rain likely during work hours: marks, notices. */
+  --rain: #4a7a94;
+  --rain-soft: #e3eef3;
+  --rain-ink: #2b5269;
   --clay: #b5622d;
   --clay-soft: #f3e0d2;
   --sun: #c9962e;
@@ -35,6 +39,9 @@
     --success-soft: #1f2d22;
     --success-ink: #a9cfae;
     --sun-soft: #3a311b;
+    --rain: #7fb0cb;
+    --rain-soft: #17252d;
+    --rain-ink: #b4d6e8;
   }
 }
 :root[data-theme="dark"] {
@@ -48,6 +55,9 @@
   --success-soft: #1f2d22;
   --success-ink: #a9cfae;
   --sun-soft: #3a311b;
+  --rain: #7fb0cb;
+  --rain-soft: #17252d;
+  --rain-ink: #b4d6e8;
 }
 
 * {
@@ -390,6 +400,19 @@ td:first-child {
   border-color: var(--sun);
   background: var(--sun-soft);
   color: var(--ink);
+}
+.notice.rain {
+  border-color: var(--rain);
+  background: var(--rain-soft);
+  color: var(--ink);
+}
+.rain-icon {
+  flex: none;
+  vertical-align: -1px;
+  color: var(--rain-ink);
+}
+.rain-line {
+  color: var(--rain-ink);
 }
 .notice-actions {
   display: flex;
@@ -930,6 +953,28 @@ td:first-child {
   font-size: 10.5px;
   color: var(--ink-soft);
 }
+/* "Rain likely 10am–2pm" on a calendar day (the whole hours on a computer, short on a phone). */
+.cal-rain {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin: 0 0 4px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: var(--rain-soft);
+  color: var(--rain-ink);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.cal-rain-short {
+  display: none;
+}
+.cal-rain-key {
+  margin-top: 8px;
+}
 
 /* Phones: names don't fit 7 columns, so each day shows just its status shapes and
    the whole day opens the day's list. */
@@ -965,6 +1010,20 @@ td:first-child {
   .cal-job-name,
   .more-count {
     display: none;
+  }
+  .cal-rain {
+    justify-content: center;
+    gap: 1px;
+    margin: 0 0 3px;
+    padding: 0 1px;
+    font-size: 9px;
+    pointer-events: none;
+  }
+  .cal-rain-long {
+    display: none;
+  }
+  .cal-rain-short {
+    display: inline;
   }
   .status-legend {
     font-size: 11px;

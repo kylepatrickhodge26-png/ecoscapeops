@@ -18,6 +18,7 @@ import { crewCustomerName } from "../my-jobs/crew-job-card";
 import { JobTable } from "../schedule/job-table";
 import { jobsBetween, type JobListItem } from "../schedule/queries";
 import { getMyClock } from "../time-clock/clock-state";
+import { AutoRainNotices } from "../weather/rain-notices";
 import { WorkdayCard } from "../time-clock/workday-card";
 import { CrewNow } from "./crew-now";
 import { QuickLog } from "./quick-log";
@@ -63,7 +64,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
       loggedExpenseId={typeof logged === "string" ? logged : undefined}
     />
   ) : (
-    <CrewDashboard summary={summary} area={area} />
+    <CrewDashboard summary={summary} area={area} business={membership.business} />
   );
 }
 
@@ -155,6 +156,7 @@ async function OwnerDashboard({
       </div>
 
       <LoggedNotice expenseId={loggedExpenseId} />
+      <AutoRainNotices businessId={business.id} today={summary.today} />
       <WorkdayCard />
       {ownStops.length > 0 && (
         <section aria-label="Your route">
@@ -167,7 +169,7 @@ async function OwnerDashboard({
       <CountCards
         summary={summary}
         whose="Business"
-        weather={<WeatherCard area={area} today={summary.today} isOwner />}
+        weather={<WeatherCard area={area} business={business} today={summary.today} isOwner />}
       />
 
       <div className="panel">
@@ -260,7 +262,15 @@ async function OwnerDashboard({
 
 // A crew member's Today: their workday clock, the visit they're on (or the next one) with one
 // big button, then the rest of their route. Only their own visits, never prices.
-async function CrewDashboard({ summary, area }: { summary: Summary; area: ServiceArea | null }) {
+async function CrewDashboard({
+  summary,
+  area,
+  business,
+}: {
+  summary: Summary;
+  area: ServiceArea | null;
+  business: Membership["business"];
+}) {
   const supabase = await createClient();
   const [{ data: route, error }, { data: settings, error: settingsError }, clock] = await Promise.all([
     supabase.rpc("crew_route", { route_date: summary.today }),
@@ -296,7 +306,7 @@ async function CrewDashboard({ summary, area }: { summary: Summary; area: Servic
       <TodayRoute stops={stops} clock={clock} emptyText="Nothing is assigned to you today." />
       {area && (
         <div className="grid today-weather">
-          <WeatherCard area={area} today={summary.today} isOwner={false} />
+          <WeatherCard area={area} business={business} today={summary.today} isOwner={false} />
         </div>
       )}
     </>
