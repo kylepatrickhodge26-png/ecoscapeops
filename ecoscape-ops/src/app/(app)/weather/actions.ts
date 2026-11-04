@@ -7,6 +7,7 @@ import { z } from "zod";
 import { requireOwner } from "@/lib/auth";
 import { isISODate } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
+import { EARLIEST_START, LATEST_END, minutesOf, timeValue } from "@/lib/weather/hourly";
 import { lookupZip } from "@/lib/weather/zip";
 
 // All owner-only. The database enforces that regardless, and decides who can be texted.
@@ -80,3 +81,46 @@ export async function markWeatherTextOpened(rainDelayId: string, customerId: str
   if (error) console.error("Recording an opened weather text failed", error);
   refresh();
 }
+
+export type RainSettingsValues = { start: number; end: number; autoMove: boolean };
+export type RainSettingsState = { values: RainSettingsValues; error?: string; fieldError?: string };
+
+// Work hours, and whether rain moves repeat visits automatically.
+export async function saveRainSettings(_prev: RainSettingsState, formData: FormData): Promise<RainSettingsState> {
+  const { business } = await requireOwner();
+  const start = minutesOf(formData.get("work_start"));
+  const end = minutesOf(formData.get("work_end"));
+  const values = { start: start ?? _prev.values.start, end: end ?? _prev.values.end, autoMove: formData.get("rain_auto_move") === "on" };
+  if (start === null || end === null || start < EARLIEST_START || end > LATEST_END || start % 15 !== 0 || end % 15 !== 0) {
+    return { values, error: "Choose when work starts and ends." };
+  }
+  if (end <= start) return { values, fieldError: "Work has to end after it starts" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("businesses")
+    .update({ work_start: timeValue(start), work_end: timeValue(end), rain_auto_move: values.autoMove })
+    .eq("id", business.id)
+    .select("id");
+  if (error || data.length !== 1) {
+    console.error("Saving work hours failed", error);
+    return { values, error: "We couldn't save that. Please try again." };
+  }
+  redirect("/weather?notice=work-hours#work-hours");
+}
+
+// Puts a rain delay's visits back on their old day (the database checks it's the owner's and
+// that the day hasn't passed).
+export async function undoRainDelay(rainDelayId: string): Promise<{ error?: string }> {
+  await requireOwner();
+  if (!uuid.safeParse(rainDelayId).success) return { error: "Rain delay not found." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("undo_rain_delay", { rain_delay_id: rainDelayId });
+  if (error) {
+    if (error.code === "22023" || error.code === "P0002") return { error: `${error.message}.` };
+    console.error("Undoing a rain delay failed", error);
+    return { error: "We couldn't undo that. Please try again." };
+  }
+  redirect(`/weather/delays/${rainDelayId}?notice=undone`);
+}
+

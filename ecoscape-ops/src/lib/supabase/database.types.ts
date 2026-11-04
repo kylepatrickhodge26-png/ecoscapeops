@@ -43,22 +43,31 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          rain_auto_move: boolean
           time_zone: string
           updated_at: string
+          work_end: string
+          work_start: string
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          rain_auto_move?: boolean
           time_zone?: string
           updated_at?: string
+          work_end?: string
+          work_start?: string
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          rain_auto_move?: boolean
           time_zone?: string
           updated_at?: string
+          work_end?: string
+          work_start?: string
         }
         Relationships: []
       }
@@ -1006,16 +1015,19 @@ export type Database = {
         Row: {
           business_id: string
           job_id: string
+          previous_status: Database["public"]["Enums"]["job_status"] | null
           rain_delay_id: string
         }
         Insert: {
           business_id: string
           job_id: string
+          previous_status?: Database["public"]["Enums"]["job_status"] | null
           rain_delay_id: string
         }
         Update: {
           business_id?: string
           job_id?: string
+          previous_status?: Database["public"]["Enums"]["job_status"] | null
           rain_delay_id?: string
         }
         Relationships: [
@@ -1044,28 +1056,37 @@ export type Database = {
       }
       rain_delays: {
         Row: {
+          automatic: boolean
           business_id: string
           created_at: string
           created_by: string | null
           from_date: string
           id: string
+          rain_window: string
           to_date: string
+          undone_at: string | null
         }
         Insert: {
+          automatic?: boolean
           business_id: string
           created_at?: string
           created_by?: string | null
           from_date: string
           id?: string
+          rain_window?: string
           to_date: string
+          undone_at?: string | null
         }
         Update: {
+          automatic?: boolean
           business_id?: string
           created_at?: string
           created_by?: string | null
           from_date?: string
           id?: string
+          rain_window?: string
           to_date?: string
+          undone_at?: string | null
         }
         Relationships: [
           {
@@ -1567,6 +1588,10 @@ export type Database = {
           kind: Database["public"]["Enums"]["photo_kind"]
           storage_path: string
         }
+        Returns: string
+      }
+      auto_rain_move: {
+        Args: { move_to: string; rain_day: string; rain_hours: string }
         Returns: string
       }
       balance: {
@@ -2178,6 +2203,7 @@ export type Database = {
           service_name: string
         }[]
       }
+      undo_rain_delay: { Args: { rain_delay_id: string }; Returns: number }
       workday_by_crew: {
         Args: { from_date: string; to_date: string }
         Returns: {

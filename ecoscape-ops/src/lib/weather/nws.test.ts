@@ -2,10 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { getDailyForecast } from "./nws";
+import { getDailyForecast, getHourlyForecast } from "./nws";
 
 const FORECAST_URL = "https://api.weather.gov/gridpoints/OKX/72,55/forecast";
-const points = { properties: { forecast: FORECAST_URL, relativeLocation: { properties: { city: "Ronkonkoma", state: "NY" } } } };
+const HOURLY_URL = "https://api.weather.gov/gridpoints/OKX/72,55/forecast/hourly";
+const points = {
+  properties: { forecast: FORECAST_URL, forecastHourly: HOURLY_URL, relativeLocation: { properties: { city: "Ronkonkoma", state: "NY" } } },
+};
 const forecast = {
   properties: {
     periods: [
@@ -83,6 +86,45 @@ describe("getDailyForecast", () => {
   it("never follows a forecast link that points anywhere but the weather service", async () => {
     const fetchMock = mockNws([200, { properties: { forecast: "https://evil.example.com/forecast" } }]);
     expect(await getDailyForecast(40.8, -73.1)).toEqual({ ok: false });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("getHourlyForecast", () => {
+  const hourly = {
+    properties: {
+      periods: [
+        { startTime: "2026-11-09T10:00:00-05:00", endTime: "2026-11-09T11:00:00-05:00", probabilityOfPrecipitation: { value: 70 }, shortForecast: "Rain Likely" },
+      ],
+    },
+  };
+
+  it("follows the location's hourly link and reads each hour", async () => {
+    const fetchMock = mockNws([200, points], [200, hourly]);
+    expect(await getHourlyForecast(40.80834, -73.13051)).toEqual({
+      ok: true,
+      hours: [{ start: Date.parse("2026-11-09T15:00:00Z"), end: Date.parse("2026-11-09T16:00:00Z"), rainChance: 70, summary: "Rain Likely" }],
+    });
+    const [[pointsUrl, pointsInit], [hourlyUrl, hourlyInit]] = calls(fetchMock);
+    expect(pointsUrl).toBe("https://api.weather.gov/points/40.8083,-73.1305");
+    expect(hourlyUrl).toBe(HOURLY_URL);
+    expect((hourlyInit.headers as Record<string, string>)["User-Agent"]).toMatch(/^EcoScape Ops \(/);
+    expect(pointsInit.next).toEqual({ revalidate: 86_400 });
+    expect(hourlyInit.next).toEqual({ revalidate: 3600 });
+  });
+
+  it("says so when there's no hourly forecast or it can't be read", async () => {
+    mockNws([200, { properties: { forecast: FORECAST_URL } }]);
+    expect(await getHourlyForecast(40.8, -73.1)).toEqual({ ok: false });
+    mockNws([200, points], [503, { title: "Service Unavailable" }]);
+    expect(await getHourlyForecast(40.8, -73.1)).toEqual({ ok: false });
+    mockNws([200, points], [200, { properties: { periods: "soon" } }]);
+    expect(await getHourlyForecast(40.8, -73.1)).toEqual({ ok: false });
+  });
+
+  it("never follows an hourly link that points anywhere but the weather service", async () => {
+    const fetchMock = mockNws([200, { properties: { forecastHourly: "https://evil.example.com/hourly" } }]);
+    expect(await getHourlyForecast(40.8, -73.1)).toEqual({ ok: false });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

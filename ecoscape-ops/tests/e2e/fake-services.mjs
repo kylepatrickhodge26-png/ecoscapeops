@@ -2,8 +2,8 @@
 // during end-to-end tests, so the tests never call the real services and always get the
 // same answers. Started by playwright.config.ts.
 //
-//   Weather:  /points/{lat},{lon} and the forecast it links to, for the ZIP codes below
-//             (positions come from the same ZIP code list the app uses).
+//   Weather:  /points/{lat},{lon} and the forecasts it links to (day-and-night and hourly),
+//             for the ZIP codes below (positions come from the same ZIP code list the app uses).
 //   Geocoder: /geocoder/locations/onelineaddress for the addresses in ADDRESSES, answering
 //             in the Census geocoder's format. /__census/queries lists what was asked.
 import { createServer } from "node:http";
@@ -139,6 +139,36 @@ function handleCensus(url, res) {
   });
 }
 
+// Hour by hour for the same days. On each day, the day's chance of rain is from 10am to 2pm;
+// the other hours are much drier. So a rainy day (50%+) has "rain likely 10am–2pm".
+function hourlyFor(rain) {
+  const today = todayIn(TIME_ZONE);
+  const offset = utcOffset(TIME_ZONE);
+  const hour = (date, h) => `${date}T${String(h).padStart(2, "0")}:00:00${offset}`;
+  const periods = rain.flatMap((pop, i) => {
+    const date = addDays(today, i);
+    return Array.from({ length: 24 }, (_, h) => {
+      const chance = h >= 10 && h < 14 ? pop : Math.floor(pop / 4);
+      return {
+        startTime: hour(date, h),
+        endTime: h === 23 ? hour(addDays(date, 1), 0) : hour(date, h + 1),
+        isDaytime: h >= 6 && h < 18,
+        temperature: 60 + i,
+        temperatureUnit: "F",
+        probabilityOfPrecipitation: { unitCode: "wmoUnit:percent", value: chance },
+        windSpeed: "5 mph",
+        windDirection: "SW",
+        shortForecast: chance >= 50 ? "Rain Likely" : "Partly Cloudy",
+        detailedForecast: "",
+      };
+    });
+  });
+  return {
+    type: "Feature",
+    properties: { units: "us", forecastGenerator: "HourlyForecastGenerator", periods: periods.map((p, i) => ({ number: i + 1, name: "", ...p })) },
+  };
+}
+
 const server = createServer((req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
   if (url.pathname === "/health") return json(res, 200, { ok: true });
@@ -154,7 +184,11 @@ const server = createServer((req, res) => {
     const zip = Object.keys(PLACES).find((z) => position(z) === points[1]);
     if (!zip) return json(res, 404, { title: "Data Unavailable For Requested Point", status: 404 });
     return json(res, 200, {
-      properties: { forecast: `http://127.0.0.1:${PORT}/gridpoints/TST/${zip}/forecast`, timeZone: TIME_ZONE },
+      properties: {
+        forecast: `http://127.0.0.1:${PORT}/gridpoints/TST/${zip}/forecast`,
+        forecastHourly: `http://127.0.0.1:${PORT}/gridpoints/TST/${zip}/forecast/hourly`,
+        timeZone: TIME_ZONE,
+      },
     });
   }
 
@@ -163,6 +197,13 @@ const server = createServer((req, res) => {
     const rain = PLACES[forecast[1]];
     if (!rain) return json(res, 500, { title: "Unexpected Problem", status: 500 });
     return json(res, 200, forecastFor(rain));
+  }
+
+  const hourly = /^\/gridpoints\/TST\/(\d{5})\/forecast\/hourly$/.exec(url.pathname);
+  if (hourly && hourly[1] in PLACES) {
+    const rain = PLACES[hourly[1]];
+    if (!rain) return json(res, 500, { title: "Unexpected Problem", status: 500 });
+    return json(res, 200, hourlyFor(rain));
   }
 
   json(res, 404, { title: "Not Found", status: 404 });
