@@ -196,6 +196,20 @@ async function upcomingRepeatVisits(customerId: string, today: string) {
   return data.map((v) => v.scheduled_date);
 }
 
+// Their earlier repeat visits that were never done: Done for the season cancels these.
+async function leftoverRepeatVisits(customerId: string, today: string) {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("jobs")
+    .select("id, service_plans!inner(frequency)", { count: "exact", head: true })
+    .eq("customer_id", customerId)
+    .lt("scheduled_date", today)
+    .in("status", ["scheduled", "assigned", "weather_delay", "unable_to_complete"])
+    .neq("service_plans.frequency", "one_time");
+  if (error) throw new Error(`Could not load visits: ${error.message}`);
+  return count ?? 0;
+}
+
 async function setCustomerStatus(id: string, status: "active" | "inactive") {
   const supabase = await createClient();
   const { data, error } = await supabase.from("customers").update({ status }).eq("id", id).select("id");
@@ -211,10 +225,10 @@ export async function endCustomerSeason(id: string): Promise<{ error?: string }>
   const { business } = await requireOwner();
   if (!customerId.safeParse(id).success) return { error: "This customer no longer exists." };
   const today = todayInTimeZone(business.time_zone);
-  const before = (await upcomingRepeatVisits(id, today)).length;
+  const [before, leftover] = await Promise.all([upcomingRepeatVisits(id, today), leftoverRepeatVisits(id, today)]);
   const problem = await setCustomerStatus(id, "inactive");
   if (problem) return { error: problem };
-  redirect(`/customers/${id}?notice=season-ended&removed=${before}`);
+  redirect(`/customers/${id}?notice=season-ended&removed=${before.length}&cancelled=${leftover}`);
 }
 
 export async function startCustomerSeason(id: string): Promise<{ error?: string }> {

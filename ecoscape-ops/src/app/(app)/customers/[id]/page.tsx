@@ -52,7 +52,7 @@ function formatDate(isoDate: string) {
 export default async function CustomerPage(props: PageProps<"/customers/[id]">) {
   const { business } = await requireOwner();
   const { id } = await props.params;
-  const { notice, removed, next } = await props.searchParams;
+  const { notice, removed, cancelled, next } = await props.searchParams;
   const customer = await getCustomerOr404(id);
   const supabase = await createClient();
   const today = todayInTimeZone(business.time_zone);
@@ -66,6 +66,17 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
     .in("status", ["scheduled", "assigned", "weather_delay"])
     .neq("service_plans.frequency", "one_time");
   if (repeatError) throw new Error(`Could not load visits: ${repeatError.message}`);
+  // Earlier repeat visits that were never done: "Done for the season" cancels them.
+  const { data: leftovers, error: leftoverError } = await supabase
+    .from("jobs")
+    .select("scheduled_date, service_plans!inner(frequency)")
+    .eq("customer_id", customer.id)
+    .lt("scheduled_date", today)
+    .in("status", ["scheduled", "assigned", "weather_delay", "unable_to_complete"])
+    .neq("service_plans.frequency", "one_time")
+    .order("scheduled_date");
+  if (leftoverError) throw new Error(`Could not load visits: ${leftoverError.message}`);
+  const leftoverDays = leftovers.map((v) => formatShortDate(v.scheduled_date));
   const { count: visitCount } = await supabase
     .from("jobs")
     .select("id", { count: "exact", head: true })
@@ -129,6 +140,8 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
                   {repeatVisits
                     ? `Their ${repeatVisits} upcoming repeat ${repeatVisits === 1 ? "visit comes" : "visits come"} off the schedule. `
                     : ""}
+                  {leftoverDays.length > 0 &&
+                    `Their ${leftoverDays.length === 1 ? "earlier visit that was" : `${leftoverDays.length} earlier visits that were`} never marked done (${leftoverDays.slice(0, 3).join(", ")}${leftoverDays.length > 3 ? ", …" : ""}) ${leftoverDays.length === 1 ? "is" : "are"} cancelled too, so if you did ${leftoverDays.length === 1 ? "it" : "any"}, mark ${leftoverDays.length === 1 ? "it" : "those"} done first. `}
                   One-time jobs stay. Tap Start again when they&apos;re back, and visits return on their regular day.
                 </>
               }
@@ -182,6 +195,9 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
           Done for the season.{" "}
           {Number(removed) > 0
             ? `${removed} upcoming repeat ${removed === "1" ? "visit" : "visits"} came off the schedule. `
+            : ""}
+          {Number(cancelled) > 0
+            ? `${cancelled} earlier ${cancelled === "1" ? "visit that was" : "visits that were"} never marked done ${cancelled === "1" ? "was" : "were"} cancelled. `
             : ""}
           One-time jobs stay. Tap Start again when they&apos;re back.
         </Notice>

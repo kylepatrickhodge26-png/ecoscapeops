@@ -1,4 +1,4 @@
-// Scheduling rules enforced by the database: visit generation, keeping 6 visits ahead,
+// Scheduling rules enforced by the database: visit generation, keeping 6 upcoming visits,
 // stopping a service, and tenant isolation for service plans and jobs.
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -169,6 +169,22 @@ describe("keeping 6 visits ahead", () => {
     expect(openVisits(visits)).toHaveLength(6);
   });
 
+  it("keeps 6 upcoming visits even when old ones were never marked done", async () => {
+    const today = todayIn("America/New_York");
+    type V = { scheduled_date: string; status: string };
+    const open = (v: V) => v.status !== "completed" && v.status !== "cancelled";
+    const upcoming = (visits: V[]) => visits.filter((v) => open(v) && v.scheduled_date >= today);
+    const overdue = (visits: V[]) => visits.filter((v) => open(v) && v.scheduled_date < today);
+    // Started 4 weeks ago; only last week's visit was marked done.
+    const plan = await bookService(owner, customerId, { start_date: addDays(today, -28) });
+    const lastWeek = (await visitsFor(owner, plan.id)).find((v) => v.scheduled_date === addDays(today, -7))!;
+    await setStatus(lastWeek.id, "completed");
+
+    const visits = await visitsFor(owner, plan.id);
+    expect(overdue(visits)).toHaveLength(3);
+    expect(dates(upcoming(visits))).toEqual([0, 7, 14, 21, 28, 35].map((n) => addDays(today, n)));
+  });
+
   it("doesn't add visits for other status changes", async () => {
     const plan = await bookService(owner, customerId);
     const first = (await visitsFor(owner, plan.id))[0];
@@ -211,7 +227,7 @@ describe("stopping a service", () => {
     const plan = await bookService(owner, customerId, { start_date: addDays(today, -14) });
     let visits = await visitsFor(owner, plan.id);
     await owner.client.from("jobs").update({ status: "completed" }).eq("id", visits[0].id);
-    visits = await visitsFor(owner, plan.id); // now 7 visits (one added)
+    visits = await visitsFor(owner, plan.id); // now 8 visits (two added: 6 upcoming again)
     const weatherDelayed = visits[4];
     await owner.client.from("jobs").update({ status: "weather_delay" }).eq("id", weatherDelayed.id);
 
@@ -221,7 +237,7 @@ describe("stopping a service", () => {
     visits = await visitsFor(owner, plan.id);
     // Kept: the completed and the missed past visits, plus the weather-delayed one.
     expect(dates(visits)).toEqual([addDays(today, -14), addDays(today, -7), weatherDelayed.scheduled_date]);
-    expect(removed).toBe(4);
+    expect(removed).toBe(5);
 
     const { data: stopped } = await owner.client
       .from("service_plans")
