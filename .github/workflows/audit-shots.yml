@@ -4,7 +4,7 @@ name: Audit screenshots
 
 on:
   push:
-    branches: [claude/audit]
+    branches: [claude/audit, claude/audit-tour]
 
 permissions:
   contents: write
