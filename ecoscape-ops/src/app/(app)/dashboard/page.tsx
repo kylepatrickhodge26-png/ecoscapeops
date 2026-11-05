@@ -214,23 +214,27 @@ async function OwnerDashboard({
         </div>
       </div>
 
-      <div className="panel">
-        <div className="panel-head">
-          <h3>Today&apos;s jobs</h3>
-          <Link className="btn secondary small" href="/schedule">
-            View schedule
-          </Link>
+      {/* Working solo, Your route above already lists today's jobs; this shows everyone's
+          when there's a crew, or that nothing is booked. */}
+      {(hasCrew || ownStops.length === 0) && (
+        <div className="panel">
+          <div className="panel-head">
+            <h3>{hasCrew ? "Everyone's jobs today" : "Today's jobs"}</h3>
+            <Link className="btn secondary small" href="/schedule">
+              View schedule
+            </Link>
+          </div>
+          <div className="panel-body flush">
+            <JobTable
+              jobs={todaysJobs}
+              today={summary.today}
+              emptyTitle="Nothing scheduled today"
+              emptyText="No jobs are booked for today."
+              showCrew={hasCrew}
+            />
+          </div>
         </div>
-        <div className="panel-body flush">
-          <JobTable
-            jobs={todaysJobs}
-            today={summary.today}
-            emptyTitle="Nothing scheduled today"
-            emptyText="No jobs are booked for today."
-            showCrew={hasCrew}
-          />
-        </div>
-      </div>
+      )}
 
       <div className="grid money">
         <div className="card accent-sage" data-card="revenue">

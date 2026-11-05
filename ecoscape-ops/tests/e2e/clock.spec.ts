@@ -120,7 +120,7 @@ test("the owner clocks into their own jobs from Today too", async ({ page }) => 
   await expect(workday(page)).toContainText("On the clock since");
   await nowCard(page).getByRole("button", { name: "Clock out & finish" }).click();
   await expect(page.getByText("All done for today")).toBeVisible();
-  await expect(page.locator(".job-table tbody tr").first().locator(".status-pill")).toHaveText("Completed");
+  await expect(page.locator(".today-done .status-pill")).toHaveText("Completed");
 });
 
 test("Today is the first tab, and everything else is one tap away", async ({ page, browser }) => {
