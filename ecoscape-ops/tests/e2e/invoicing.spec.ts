@@ -28,7 +28,8 @@ async function bookVisit(page: Page, customerId: string, price: string, service 
 }
 
 async function completeVisit(page: Page, customerName: string) {
-  await page.goto("/dashboard");
+  // Today's visits in the schedule's list (a solo owner's Today shows them as a route instead).
+  await page.goto("/schedule?view=list&filter=today");
   await page.locator(".job-table tbody tr", { hasText: customerName }).first().locator(".row-link").click();
   await page.getByRole("button", { name: "Mark completed" }).click();
   await expect(page.getByText("Marked completed.")).toBeVisible();

@@ -83,60 +83,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
         </div>
       </div>
 
-      <div className="panel">
-        <div className="panel-head">
-          <h3>Getting paid</h3>
-        </div>
-        <div className="panel-body invoice-settings">
-          <AutoInvoiceToggle enabled={settings.autoInvoice} save={setAutoInvoice} />
-          <div className="payment-options-status" data-testid="payment-options-status">
-            {ways ? (
-              <p>
-                Customers can pay you with <b>{ways}</b> from their invoice link. The money goes straight to you; record each payment
-                when it arrives.
-              </p>
-            ) : (
-              <p>
-                Add the payment apps you already use (Venmo, Cash App, PayPal, Zelle) so customers can pay from their invoice link.
-                It&apos;s free, and the money goes straight to you.
-              </p>
-            )}
-            <Link className="btn small" href="/invoices/payment-options">
-              {ways ? "Edit payment options" : "Set up payment options"}
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      <div className="panel" data-testid="monthly-invoices">
-        <div className="panel-head">
-          <h3>Monthly invoices</h3>
-        </div>
-        <div className="panel-body">
-          <p className="hint">
-            {monthlyCustomers
-              ? `${monthlyCustomers} ${monthlyCustomers === 1 ? "customer is" : "customers are"} billed monthly: one invoice covers all their completed visits for the month. `
-              : "Turn on Bill monthly on a customer's page to give them one invoice a month instead of one per visit. "}
-            Running it again never bills a visit twice; it only picks up visits completed since.
-          </p>
-          <form action={generateMonthlyInvoices} className="range-form">
-            <div className="field">
-              <label htmlFor="month">Month</label>
-              <select id="month" name="month" defaultValue={`${monthOf(today)}-01`}>
-                {monthlyOptions(today).map((m) => (
-                  <option key={m} value={m}>
-                    {formatMonth(m.slice(0, 7))}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button className="btn" type="submit" disabled={!monthlyCustomers}>
-              Generate invoices
-            </button>
-          </form>
-        </div>
-      </div>
-
+      {/* The invoices first; the monthly run and the one-time setup below them. */}
       <nav className="tabbar" aria-label="Filter invoices">
         <Link href="/invoices" className={status === null ? "active" : undefined} aria-current={status === null ? "page" : undefined}>
           All
@@ -194,6 +141,60 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
               </tbody>
             </table>
           )}
+        </div>
+      </div>
+
+      <div className="panel" data-testid="monthly-invoices">
+        <div className="panel-head">
+          <h3>Monthly invoices</h3>
+        </div>
+        <div className="panel-body">
+          <p className="hint">
+            {monthlyCustomers
+              ? `${monthlyCustomers} ${monthlyCustomers === 1 ? "customer is" : "customers are"} billed monthly: one invoice covers all their completed visits for the month. `
+              : "Turn on Bill monthly on a customer's page to give them one invoice a month instead of one per visit. "}
+            Running it again never bills a visit twice; it only picks up visits completed since.
+          </p>
+          <form action={generateMonthlyInvoices} className="range-form">
+            <div className="field">
+              <label htmlFor="month">Month</label>
+              <select id="month" name="month" defaultValue={`${monthOf(today)}-01`}>
+                {monthlyOptions(today).map((m) => (
+                  <option key={m} value={m}>
+                    {formatMonth(m.slice(0, 7))}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button className="btn" type="submit" disabled={!monthlyCustomers}>
+              Generate invoices
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head">
+          <h3>Getting paid</h3>
+        </div>
+        <div className="panel-body invoice-settings">
+          <AutoInvoiceToggle enabled={settings.autoInvoice} save={setAutoInvoice} />
+          <div className="payment-options-status" data-testid="payment-options-status">
+            {ways ? (
+              <p>
+                Customers can pay you with <b>{ways}</b> from their invoice link. The money goes straight to you; record each payment
+                when it arrives.
+              </p>
+            ) : (
+              <p>
+                Add the payment apps you already use (Venmo, Cash App, PayPal, Zelle) so customers can pay from their invoice link.
+                It&apos;s free, and the money goes straight to you.
+              </p>
+            )}
+            <Link className="btn small" href="/invoices/payment-options">
+              {ways ? "Edit payment options" : "Set up payment options"}
+            </Link>
+          </div>
         </div>
       </div>
     </>

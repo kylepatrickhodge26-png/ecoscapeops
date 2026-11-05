@@ -195,6 +195,8 @@ test("old visits can be cleared from Needs attention: ticked, then marked done o
   await page.getByRole("button", { name: "Mark 1 visit done" }).click();
   await expect(page.getByText("Marked 1 visit done.")).toBeVisible();
   await expect(rows).toHaveCount(1);
+  // Starts afresh: nothing ticked.
+  await expect(page.getByRole("button", { name: "Mark visits done" })).toBeDisabled();
 
   await rows.nth(0).getByRole("checkbox").check();
   await page.getByRole("button", { name: "Cancel 1 visit" }).click();

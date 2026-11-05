@@ -35,7 +35,7 @@ describe("menu sections", () => {
   });
   it("shows My jobs only once there's a crew", () => {
     const solo = ownerSections({ newRequests: 0, hasCrew: false });
-    expect(solo.find((s) => s.key === "schedule")!.links.map((l) => l.label)).toEqual(["Calendar", "Weather"]);
+    expect(solo.find((s) => s.key === "schedule")!.links.map((l) => l.label)).toEqual(["Schedule", "Weather"]);
   });
   it("carries the new-request count to the Customers tab", () => {
     expect(owner.find((s) => s.key === "customers")!.badge).toBe(2);

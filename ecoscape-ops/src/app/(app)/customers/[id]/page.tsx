@@ -234,6 +234,53 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
       {customer.access_instructions && <div className="notice">Access: {customer.access_instructions}</div>}
       {customer.service_notes && <div className="notice pre-line">Notes: {customer.service_notes}</div>}
 
+      {/* Most-used first: their services and visits, then invoices; the rest of their details below. */}
+      <CustomerSchedule customerId={customer.id} customerName={name} today={today} />
+
+      <div className="panel" aria-labelledby="customer-invoices">
+        <div className="panel-head">
+          <h3 id="customer-invoices">Invoices</h3>
+          <Link className="btn secondary small" href={`/invoices/new?customer=${customer.id}`}>
+            + New invoice
+          </Link>
+        </div>
+        <div className="panel-body">
+          <BillMonthlyToggle enabled={customer.bill_monthly} save={setBillMonthly.bind(null, customer.id)} />
+        </div>
+        <div className="panel-body flush">
+          {invoices.length === 0 ? (
+            <div className="empty">No invoices yet.</div>
+          ) : (
+            <table className="invoice-table">
+              <thead>
+                <tr>
+                  <th>Invoice</th>
+                  <th>Issued</th>
+                  <th className="num">Total</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map((inv) => (
+                  <tr key={inv.id}>
+                    <td>
+                      <Link className="row-link" href={`/invoices/${inv.id}`}>
+                        <b>{invoiceNumber(inv.number)}</b>
+                      </Link>
+                    </td>
+                    <td className="nowrap">{formatShortDate(inv.issue_date)}</td>
+                    <td className="num">{formatPrice(inv.total)}</td>
+                    <td>
+                      <InvoiceStatusPill status={inv.display_status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
       <div className="panel">
         <div className="panel-head">
           <h3>Details</h3>
@@ -286,7 +333,6 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
           </dl>
         </div>
       </div>
-      <CustomerSchedule customerId={customer.id} customerName={name} today={today} />
 
       <div className="panel" aria-labelledby="customer-account" data-testid="customer-account">
         <div className="panel-head">
@@ -356,50 +402,6 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
                 );
               })}
             </ul>
-          )}
-        </div>
-      </div>
-
-      <div className="panel" aria-labelledby="customer-invoices">
-        <div className="panel-head">
-          <h3 id="customer-invoices">Invoices</h3>
-          <Link className="btn secondary small" href={`/invoices/new?customer=${customer.id}`}>
-            + New invoice
-          </Link>
-        </div>
-        <div className="panel-body">
-          <BillMonthlyToggle enabled={customer.bill_monthly} save={setBillMonthly.bind(null, customer.id)} />
-        </div>
-        <div className="panel-body flush">
-          {invoices.length === 0 ? (
-            <div className="empty">No invoices yet.</div>
-          ) : (
-            <table className="invoice-table">
-              <thead>
-                <tr>
-                  <th>Invoice</th>
-                  <th>Issued</th>
-                  <th className="num">Total</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.map((inv) => (
-                  <tr key={inv.id}>
-                    <td>
-                      <Link className="row-link" href={`/invoices/${inv.id}`}>
-                        <b>{invoiceNumber(inv.number)}</b>
-                      </Link>
-                    </td>
-                    <td className="nowrap">{formatShortDate(inv.issue_date)}</td>
-                    <td className="num">{formatPrice(inv.total)}</td>
-                    <td>
-                      <InvoiceStatusPill status={inv.display_status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           )}
         </div>
       </div>

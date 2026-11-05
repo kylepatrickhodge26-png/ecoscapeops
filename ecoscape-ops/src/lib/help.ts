@@ -310,6 +310,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     answer: [
       "The visit's date has passed but it isn't marked completed or cancelled.",
       "If you did it, open it and tap Mark completed. If not, tap Could not service to give it a new day or cancel it.",
+      "To clear a few at once: Schedule → List → Needs attention, tick them, then tap Mark visits done (the ones you did) or Cancel visits (the ones that didn't happen).",
       "Overdue visits don't use up the customer's upcoming ones: the app still keeps their next 6 on the schedule.",
     ],
     for: OWNER,

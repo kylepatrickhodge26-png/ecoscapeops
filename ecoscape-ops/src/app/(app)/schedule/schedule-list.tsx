@@ -49,7 +49,8 @@ export async function ScheduleList({
           </Link>
         ))}
       </nav>
-      {filter === "attention" && jobs.length > 0 && <AttentionActions />}
+      {/* Keyed on the list, so clearing visits starts it afresh (nothing ticked, no old message). */}
+      {filter === "attention" && jobs.length > 0 && <AttentionActions key={jobs.map((j) => j.id.slice(0, 8)).join("")} />}
       <div className="panel">
         <div className="panel-body flush">
           <JobTable

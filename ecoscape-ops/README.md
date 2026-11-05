@@ -39,7 +39,7 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
   - *Upcoming*: today or later, and not completed or cancelled.
   - *Today*: visits dated today, whatever their status.
   - *Completed*.
-  - *Needs attention*: unable to complete, weather delay, or **overdue** (a past visit never completed or cancelled).
+  - *Needs attention*: unable to complete, weather delay, or **overdue** (a past visit never completed or cancelled). To clear old ones at once, tick them there and tap *Mark N visits done* or *Cancel N visits* (owner only; one step in the database, only the owner's own visits, and visits already completed or cancelled are left as they are).
   - *All*.
 - **Could not service** asks for an optional reason, then either reschedules the visit (default: the next day) or cancels it. The reason and outcome are added to the visit's notes.
 - **"Today"** uses the business's time zone, which is taken from the owner's browser at signup. It falls back to America/New_York.
@@ -68,8 +68,8 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 - **Revenue (owners only).** The headline is every non-cancelled visit booked this month at its price, completed or not. Most small operators don't invoice every visit, so counting only invoiced-and-paid money would understate it, which was the prototype's original mistake. A second line shows how much of that is already completed.
 - **Estimated profit (owners only)** is this month's revenue (as above) minus this month's logged expenses.
 - **Invoice totals:** *Outstanding* (owed on sent invoices, with how much is overdue) and money *collected this month*; see Invoicing decisions for how invoiced visits count toward revenue.
-- **Quick actions (owners):** add a customer, book a job, **log gas**, **log equipment**, add any other expense, manage crew, and see what needs attention.
-- **Today's jobs:** owners get the business's list, with the money cards at the bottom of the page. Crew members get only their own route (see *Today and the clock*), and never see prices or money totals.
+- **Quick actions (owners)**, in three rows: add a customer, book a job or start an invoice; **log gas**, **log equipment** or any other expense; and go to what needs attention, moving a day's jobs for the weather, or the crew.
+- **Today's jobs:** working solo, the owner's *route* is the day's list (it isn't repeated in a table below). With a crew, *Everyone's jobs today* lists the whole business's day under the owner's own route. The money cards are at the bottom of the page. Crew members get only their own route (see *Today and the clock*), and never see prices or money totals.
 - All the numbers come from one database function, `dashboard_summary()`, which scopes by role. A crew member's numbers can't include anyone else's jobs, and money totals are never sent to crew at all.
 
 ## Expenses decisions
@@ -98,6 +98,7 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 
 - **Invoices** follow the prototype: numbered from #1001 per business, due in 14 days by default, for one customer. Lines can bill the customer's visits (picked from a list; the price can be changed on the invoice) and/or anything else ("Mulch, 2 × $30"). Optional notes for the customer. No sales tax.
 - **Statuses:** *Draft* → *Sent* (or *Cancelled*) are set by the owner. *Partly paid*, *Paid* and *Overdue* are worked out from the payments and the due date every time an invoice is shown, so they can never be out of date. Overdue beats partly paid; paid beats overdue.
+- **A draft past its due date** (one made a while ago by auto-invoice or the monthly run, say) would show as overdue the moment it's sent, and its text would give a date already gone. So its page says so and offers a new due date (14 days from today, ready to save) above the send buttons.
 - **Drafts** can be edited or deleted. A **sent** invoice can't be edited (so what the customer saw is what's recorded); it can get a later due date, or be cancelled if nothing has been paid on it.
 - **A visit can be on only one live invoice.** Cancelling an invoice frees its visits.
 - **Sending:** each invoice has a private pay link. The owner shares it with *Open text* (from their own phone, like weather texts, and only for customers who opted in to texts), *Copy link* (to email it), or *Mark as sent* (e.g. a paper invoice). Any of these marks a draft sent. Drafts and cancelled invoices' links show nothing.
@@ -225,8 +226,9 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 
 ## Menu and name decisions
 
-- **Five sections instead of a long list, most-used first.** Owners see *Today*, *Schedule*, *Customers*, *Money* and *More*. Each section owns its pages, so the right one stays highlighted anywhere in the app, and its pages show as a short row of buttons at the top (Customers: All customers, Requests; Schedule: Calendar, My jobs, Weather; Money: Quotes, Invoices, Expenses, Reports; More: Crew, Time, Settings, Help). *Money* and *More* open a page of big, described buttons for new users. Crew see only *Today* and *My jobs*.
+- **Five sections instead of a long list, most-used first.** Owners see *Today*, *Schedule*, *Customers*, *Money* and *More*. Each section owns its pages, so the right one stays highlighted anywhere in the app, and its pages show as a short row of buttons at the top (Customers: All customers, Requests; Schedule: Schedule (the calendar or the list), My jobs, Weather; Money: Quotes, Invoices, Expenses, Reports; More: Crew, Time, Settings, Help). *Money* and *More* open a page of big, described buttons for new users. Crew see only *Today* and *My jobs*.
 - **Phone tab bar.** On phones the five sections sit in a tab bar along the bottom (thumb reach, with icons); the new-request count shows on *Customers*.
+- **Most-used first on long pages.** A customer's page opens with their services and visits, then their invoices; their details, account invite and photos follow. The Invoices page lists the invoices right under the totals, with the monthly run and the payment setup below the list.
 - **The app's name lives in one file**, `src/lib/brand.ts` (`APP_NAME`, `APP_SHORT_NAME` for under the phone icon, `APP_TAGLINE`). Page titles, sign-in screens, the installed-app name and invite messages all use it.
 
 ## Rain days, handled for you

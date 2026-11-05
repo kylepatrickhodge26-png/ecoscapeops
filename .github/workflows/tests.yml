@@ -58,6 +58,9 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser tests (desktop and phone)
         if: ${{ !cancelled() }}
-        run: npx playwright test --reporter=list,github
+        run: npx playwright test
         env:
           CI: "true"
+      - name: Summarize failing browser tests
+        if: ${{ failure() }}
+        run: node tests/e2e/ci-summary.mjs test-results.json

@@ -1303,9 +1303,18 @@ td:first-child {
 }
 .quick-actions {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.quick-row {
+  display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 8px;
+}
+.quick-row + .quick-row {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
 }
 @media (max-width: 640px) {
   .grid,
@@ -1728,6 +1737,12 @@ td:first-child {
 .due-date-form {
   margin-top: 16px;
   align-items: flex-end;
+}
+/* A draft past its due date: the warning and a new due date, above the send buttons. */
+.past-due-draft {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
 }
 
 /* The customer's pay page */

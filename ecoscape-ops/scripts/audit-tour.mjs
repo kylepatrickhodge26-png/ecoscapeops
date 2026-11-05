@@ -150,6 +150,12 @@ if (invoiceId) {
   await must("payment", owner.rpc("record_manual_payment", { invoice_id: invoiceId, amount: 50, method: "cash", note: "", received_on: day(0), request_id: randomUUID() }));
 }
 await must("draft invoice", owner.rpc("save_invoice", { invoice_id: null, customer_id: customers.Karen, due_date: day(14), notes: "", lines: [{ job_id: null, description: "Aeration", quantity: 1, unit_price: 120 }] }));
+// A draft made a while ago, now past its due date (only the admin key can backdate it).
+const { data: oldDraftId } = await must("old draft", owner.rpc("save_invoice", { invoice_id: null, customer_id: customers.Zina, due_date: day(14), notes: "", lines: [{ job_id: null, description: "Leaf cleanup", quantity: 1, unit_price: 150 }] }));
+if (oldDraftId && status.SECRET_KEY) {
+  const admin = createClient(status.API_URL, status.SECRET_KEY, opts);
+  await must("backdate draft", admin.from("invoices").update({ issue_date: day(-16), due_date: day(-2) }).eq("id", oldDraftId));
+}
 await must("expenses", owner.from("expenses").insert([
   { business_id: biz, category: "fuel", amount: 62.4, vendor: "Speedway", spent_on: day(0) },
   { business_id: biz, category: "equipment", amount: 189.99, vendor: "Home Depot", spent_on: day(-3) },
@@ -240,6 +246,7 @@ const ownerPages = [
   ["/quotes/new", "quote-new"],
   ["/invoices", "invoices"],
   [`/invoices/${invoiceId}`, "invoice"],
+  [`/invoices/${oldDraftId}`, "invoice-draft-past-due"],
   ["/invoices/new", "invoice-new"],
   ["/invoices/payment-options", "payment-options"],
   ["/expenses", "expenses"],

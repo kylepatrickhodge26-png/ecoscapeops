@@ -176,41 +176,48 @@ async function OwnerDashboard({
         <div className="panel-head">
           <h3>Quick actions</h3>
         </div>
+        {/* Three rows: adding things, logging costs, and places to go. */}
         <div className="panel-body quick-actions">
-          <Link className="btn secondary small" href="/customers/new">
-            + Add customer
-          </Link>
-          <Link className="btn secondary small" href="/schedule/new">
-            + Book a job
-          </Link>
-          <Link className="btn secondary small" href="/invoices/new">
-            + New invoice
-          </Link>
-          {/* Keyed on the last logged expense so the quick-log forms close after saving. */}
-          <QuickLog
-            key={`fuel-${loggedExpenseId}`}
-            action={quickLogExpense.bind(null, "fuel")}
-            label="Log gas"
-            vendorPlaceholder="e.g. Speedway"
-          />
-          <QuickLog
-            key={`equipment-${loggedExpenseId}`}
-            action={quickLogExpense.bind(null, "equipment")}
-            label="Log equipment"
-            vendorPlaceholder="e.g. Home Depot"
-          />
-          <Link className="btn secondary small" href="/expenses/new">
-            + Other expense
-          </Link>
-          <Link className="btn secondary small" href="/weather/move">
-            Move a day&apos;s jobs (weather)
-          </Link>
-          <Link className="btn secondary small" href="/crew">
-            Manage crew
-          </Link>
-          <Link className="btn secondary small" href="/schedule?view=list&filter=attention">
-            Needs attention
-          </Link>
+          <div className="quick-row" role="group" aria-label="Add">
+            <Link className="btn secondary small" href="/customers/new">
+              + Add customer
+            </Link>
+            <Link className="btn secondary small" href="/schedule/new">
+              + Book a job
+            </Link>
+            <Link className="btn secondary small" href="/invoices/new">
+              + New invoice
+            </Link>
+          </div>
+          <div className="quick-row" role="group" aria-label="Log an expense">
+            {/* Keyed on the last logged expense so the quick-log forms close after saving. */}
+            <QuickLog
+              key={`fuel-${loggedExpenseId}`}
+              action={quickLogExpense.bind(null, "fuel")}
+              label="Log gas"
+              vendorPlaceholder="e.g. Speedway"
+            />
+            <QuickLog
+              key={`equipment-${loggedExpenseId}`}
+              action={quickLogExpense.bind(null, "equipment")}
+              label="Log equipment"
+              vendorPlaceholder="e.g. Home Depot"
+            />
+            <Link className="btn secondary small" href="/expenses/new">
+              + Other expense
+            </Link>
+          </div>
+          <div className="quick-row" role="group" aria-label="Go to">
+            <Link className="btn secondary small" href="/schedule?view=list&filter=attention">
+              Needs attention
+            </Link>
+            <Link className="btn secondary small" href="/weather/move">
+              Move a day&apos;s jobs (weather)
+            </Link>
+            <Link className="btn secondary small" href="/crew">
+              Manage crew
+            </Link>
+          </div>
         </div>
       </div>
 

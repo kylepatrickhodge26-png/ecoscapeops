@@ -36,8 +36,10 @@ test("a prospect's quote is copied, accepted, and booked on the schedule", async
 
   await page.goto("/customers");
   await expect(page.getByText("Pat Prospect")).toBeVisible();
-  await page.goto("/schedule?filter=all");
-  await expect(page.getByText("Spring cleanup").first()).toBeVisible();
+  // The calendar shows customers' names; the list shows the service.
+  await page.goto("/schedule?view=list&filter=all");
+  await expect(page.locator(".job-table tbody tr").first()).toContainText("Spring cleanup");
+  await expect(page.locator(".job-table tbody tr").first()).toContainText("Pat Prospect");
 });
 
 test("another business doesn't see the quote", async ({ browser }) => {
@@ -47,6 +49,8 @@ test("another business doesn't see the quote", async ({ browser }) => {
   await a.getByLabel("Name", { exact: true }).fill("Private Prospect");
   await fillLine(a, 1, "Job", "1", "100");
   await a.getByRole("button", { name: "Save draft" }).click();
+  // Wait for the saved quote's own page before taking its address.
+  await expect(a).toHaveURL(/\/quotes\/[0-9a-f-]{36}/);
   const url = a.url().split("?")[0];
 
   const b = await (await browser.newContext()).newPage();
