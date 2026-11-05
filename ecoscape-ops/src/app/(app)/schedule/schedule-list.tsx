@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { SCHEDULE_FILTERS, SCHEDULE_FILTER_LABELS, type ScheduleFilter } from "@/lib/schedule/constants";
 
+import { AttentionActions } from "./attention-actions";
 import { JobTable } from "./job-table";
 import { LIST_LIMIT, countNeedingAttention, listJobs } from "./queries";
 
@@ -48,6 +49,8 @@ export async function ScheduleList({
           </Link>
         ))}
       </nav>
+      {/* Keyed on the list, so clearing visits starts it afresh (nothing ticked, no old message). */}
+      {filter === "attention" && jobs.length > 0 && <AttentionActions key={jobs.map((j) => j.id.slice(0, 8)).join("")} />}
       <div className="panel">
         <div className="panel-body flush">
           <JobTable
@@ -56,6 +59,7 @@ export async function ScheduleList({
             emptyTitle={EMPTY[filter][0]}
             emptyText={EMPTY[filter][1]}
             showCrew={showCrew}
+            selectForm={filter === "attention" ? "attention-selected" : undefined}
           />
         </div>
       </div>

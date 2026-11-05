@@ -24,7 +24,7 @@ export function ownerSections(opts: { newRequests: number; hasCrew: boolean }): 
       label: "Schedule",
       owns: ["/schedule", "/my-jobs", "/weather"],
       links: [
-        { href: "/schedule", label: "Calendar" },
+        { href: "/schedule", label: "Schedule" },
         ...(opts.hasCrew ? [{ href: "/my-jobs", label: "My jobs" }] : []),
         { href: "/weather", label: "Weather" },
       ],

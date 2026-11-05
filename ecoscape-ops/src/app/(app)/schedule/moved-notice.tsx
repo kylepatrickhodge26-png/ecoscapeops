@@ -28,9 +28,7 @@ export function MovedNotice({ params, jobs, businessName }: { params: Params; jo
   const day = formatLongDate(to);
   const weekday = weekdayName(to);
   const message = later
-    ? `Moved to ${day}. Their later visits moved the same number of days (${n} ${n === 1 ? "visit" : "visits"} in all)${
-        weekday === "Sunday" ? "." : `, and their regular day is now ${weekday}.`
-      }`
+    ? `Moved to ${day}, and ${weekday} is now their regular day: their later visits moved to match (${n} ${n === 1 ? "visit" : "visits"} in all).`
     : n === 1
       ? `Moved to ${day}.`
       : `Moved ${n} visits to ${day}.`;

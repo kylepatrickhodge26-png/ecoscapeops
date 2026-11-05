@@ -1,6 +1,6 @@
 // Done for the season: marking a customer inactive takes their upcoming repeat visits off the
-// schedule (one-time jobs, visits under way and history stay) and pauses their repeat
-// services; repeat bookings made while they're inactive wait; marking them active brings the
+// schedule, cancels earlier ones that were never done (one-time jobs, visits under way and
+// done ones stay) and pauses their repeat services; repeat bookings made while they're inactive wait; marking them active brings the
 // visits back on their regular day. Only the owner can do it, and nothing crosses businesses.
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -63,7 +63,7 @@ describe("done for the season", () => {
     expect(await upcomingDates(alpha, plan.bob)).toEqual(plusWeeks(0, 7, 6));
   });
 
-  it("takes upcoming repeat visits off and keeps one-time jobs, visits under way and history", async () => {
+  it("takes upcoming repeat visits off, cancels earlier ones never done, keeps one-time jobs, visits under way and done ones", async () => {
     expect((await setStatus(alpha, alice, "inactive")).data).toHaveLength(1);
 
     expect((await visitsOf(alpha, plan.mowing)).map((v) => [v.scheduled_date, v.status])).toEqual([[today, "in_progress"]]);
@@ -71,8 +71,10 @@ describe("done for the season", () => {
     expect((await visitsOf(alpha, plan.cleanup)).map((v) => [v.scheduled_date, v.status])).toEqual([[day(10), "scheduled"]]);
     expect((await visitsOf(alpha, plan.leaves)).map((v) => [v.scheduled_date, v.status])).toEqual([
       [day(-14), "completed"],
-      [day(-7), "scheduled"],
+      [day(-7), "cancelled"],
     ]);
+    const { data: missed } = await alpha.client.from("jobs").select("notes").eq("service_plan_id", plan.leaves).eq("scheduled_date", day(-7)).single();
+    expect(missed!.notes).toBe("Cancelled: done for the season");
     for (const p of [plan.mowing, plan.edging, plan.leaves]) expect(await planOf(alpha, p)).toMatchObject({ active: true, paused: true });
     expect(await planOf(alpha, plan.cleanup)).toMatchObject({ paused: false });
 
@@ -110,8 +112,9 @@ describe("done for the season", () => {
     const mowing = await visitsOf(alpha, plan.mowing);
     expect(await upcomingDates(alpha, plan.mowing)).toEqual(plusWeeks(7, 7, 6));
     expect(mowing.filter((v) => v.status === "scheduled" || v.status === "assigned").every((v) => v.assigned_crew_member_id === crew.crewMemberId)).toBe(true);
-    // Last week's missed leaves still count as open, so 5 more are added, from today.
-    expect(await upcomingDates(alpha, plan.leaves)).toEqual(plusWeeks(0, 7, 5));
+    // Last week's missed leaves were cancelled with the season (and stay cancelled); the usual
+    // 6 come back, from today.
+    expect(await upcomingDates(alpha, plan.leaves)).toEqual(plusWeeks(0, 7, 6));
     // Booked while inactive: from their first visit date.
     expect(await upcomingDates(alpha, plan.aeration)).toEqual(plusWeeks(1, 7, 6));
     expect(await upcomingDates(alpha, plan.spring)).toEqual(plusWeeks(30, 7, 6));
@@ -128,16 +131,18 @@ describe("done for the season", () => {
 
   it("keeps an every-2-weeks service on its own weeks, and a moved regular day", async () => {
     const edging = (await bookService(alpha, cara, { frequency: "biweekly", start_date: day(4), service_name: "Edging" })).id;
-    // Cara's mowing moved from day 1 to day 3, later visits too: day 3 is her regular day now.
+    // Cara's mowing moved from day 1 to day 3 (day 2 if day 3 is a Sunday, which can't be a
+    // regular day), later visits too: that's her regular day now.
+    const to = new Date(`${day(3)}T00:00:00Z`).getUTCDay() === 0 ? 2 : 3;
     const [first] = await visitsOf(alpha, plan.cara);
-    expect((await alpha.client.rpc("move_visits", { job_ids: [first.id], new_date: day(3), move_later: true })).error).toBeNull();
-    expect(await upcomingDates(alpha, plan.cara)).toEqual(plusWeeks(3, 7, 6));
+    expect((await alpha.client.rpc("move_visits", { job_ids: [first.id], new_date: day(to), move_later: true })).error).toBeNull();
+    expect(await upcomingDates(alpha, plan.cara)).toEqual(plusWeeks(to, 7, 6));
 
     expect((await setStatus(alpha, cara, "inactive")).error).toBeNull();
     expect(await upcomingDates(alpha, plan.cara)).toEqual([]);
     expect(await upcomingDates(alpha, edging)).toEqual([]);
     expect((await setStatus(alpha, cara, "active")).error).toBeNull();
-    expect(await upcomingDates(alpha, plan.cara)).toEqual(plusWeeks(3, 7, 6));
+    expect(await upcomingDates(alpha, plan.cara)).toEqual(plusWeeks(to, 7, 6));
     expect(await upcomingDates(alpha, edging)).toEqual(plusWeeks(4, 14, 6));
   });
 

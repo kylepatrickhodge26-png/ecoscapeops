@@ -11,7 +11,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: [["list"]],
+  // In CI also: notes on the pull request at each failing line, and a JSON file that
+  // tests/e2e/ci-summary.mjs turns into one short note per failing test.
+  reporter: process.env.CI ? [["list"], ["github"], ["json", { outputFile: "test-results.json" }]] : [["list"]],
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: "retain-on-failure",

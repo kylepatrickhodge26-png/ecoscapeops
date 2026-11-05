@@ -46,4 +46,10 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
 
 export const DEFAULT_TERMS_DAYS = 14;
 
+// A draft whose due date has already passed (one made a while ago, by auto-invoice or the
+// monthly run, say). Sent as it is, it would be overdue from the start, so the invoice page
+// asks for a new due date first. Sent invoices show as overdue instead.
+export const isPastDueDraft = (invoice: { status: string; due_date: string }, today: string) =>
+  invoice.status === "draft" && invoice.due_date < today;
+
 export const invoiceNumber = (n: number) => `#${n}`;

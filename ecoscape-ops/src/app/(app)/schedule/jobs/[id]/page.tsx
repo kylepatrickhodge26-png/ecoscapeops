@@ -10,6 +10,7 @@ import { customerDisplayName } from "@/lib/customers/schema";
 import { addDays, formatLongDate, formatShortDate, monthOf, todayInTimeZone } from "@/lib/dates";
 import { INVOICE_STATUS_LABELS, invoiceNumber, isInvoiceStatus } from "@/lib/invoices/constants";
 import { FREQUENCY_LABELS, formatPrice, isClosed, isOverdue } from "@/lib/schedule/constants";
+import { REPEAT_DAYS } from "@/lib/schedule/move";
 import { createClient } from "@/lib/supabase/server";
 import { formatClock, formatDateTime, formatHours } from "@/lib/time/format";
 
@@ -79,7 +80,7 @@ export default async function JobPage(props: PageProps<"/schedule/jobs/[id]">) {
               jobId={job.id}
               currentDate={job.scheduled_date}
               today={today}
-              recurring={job.plan.frequency !== "one_time" && job.plan.active}
+              repeatsEvery={job.plan.active ? REPEAT_DAYS[job.plan.frequency] : null}
               back={`/schedule/jobs/${job.id}`}
               startOpen={params.move === "1"}
             />

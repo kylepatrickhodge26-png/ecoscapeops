@@ -98,12 +98,12 @@ test("counts and revenue follow what's booked, completed, and cancelled", async 
   await expect(card(page, "revenue").locator(".big")).toHaveText(formatPrice(booked));
   await expect(card(page, "revenue")).toContainText("$0.00 completed so far");
   await expect(card(page, "profit").locator(".big")).toHaveText(formatPrice(booked));
-  const todaysJobs = page.locator(".job-table tbody tr");
-  await expect(todaysJobs).toHaveCount(1);
-  await expect(todaysJobs.first()).toContainText("John Smith");
+  // Working solo, today's visit is on Your route (and not listed a second time).
+  await expect(page.locator(".now-customer")).toHaveText("John Smith");
+  await expect(page.locator(".job-table")).toHaveCount(0);
 
   // Complete today's visit (the next one is added 6 weeks out — never this month).
-  await todaysJobs.first().locator(".row-link").click();
+  await page.locator(".now-card .now-more").click();
   await page.getByRole("button", { name: "Mark completed" }).click();
   await expect(page.getByText("Marked completed.")).toBeVisible();
 
@@ -121,7 +121,7 @@ test("counts and revenue follow what's booked, completed, and cancelled", async 
   await expect(card(page, "week").locator(".big")).toHaveText("2");
   await expect(card(page, "revenue").locator(".big")).toHaveText(formatPrice(booked));
   await expect(card(page, "revenue")).toContainText(`${formatPrice(65)} completed so far`);
-  await expect(todaysJobs.first().locator(".status-pill")).toHaveText("Completed");
+  await expect(page.locator(".today-done .status-pill")).toHaveText("Completed");
 });
 
 test("a crew member's dashboard counts only their own jobs and shows no money", async ({ page, browser }) => {

@@ -83,28 +83,65 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
         </div>
       </div>
 
+      {/* The invoices first; the monthly run and the one-time setup below them. */}
+      <nav className="tabbar" aria-label="Filter invoices">
+        <Link href="/invoices" className={status === null ? "active" : undefined} aria-current={status === null ? "page" : undefined}>
+          All
+        </Link>
+        {INVOICE_STATUSES.map((s) => (
+          <Link
+            key={s}
+            href={`/invoices?status=${s}`}
+            className={status === s ? "active" : undefined}
+            aria-current={status === s ? "page" : undefined}
+          >
+            {INVOICE_STATUS_LABELS[s]}
+          </Link>
+        ))}
+      </nav>
+
       <div className="panel">
-        <div className="panel-head">
-          <h3>Getting paid</h3>
-        </div>
-        <div className="panel-body invoice-settings">
-          <AutoInvoiceToggle enabled={settings.autoInvoice} save={setAutoInvoice} />
-          <div className="payment-options-status" data-testid="payment-options-status">
-            {ways ? (
-              <p>
-                Customers can pay you with <b>{ways}</b> from their invoice link. The money goes straight to you; record each payment
-                when it arrives.
-              </p>
-            ) : (
-              <p>
-                Add the payment apps you already use (Venmo, Cash App, PayPal, Zelle) so customers can pay from their invoice link.
-                It&apos;s free, and the money goes straight to you.
-              </p>
-            )}
-            <Link className="btn small" href="/invoices/payment-options">
-              {ways ? "Edit payment options" : "Set up payment options"}
-            </Link>
-          </div>
+        <div className="panel-body flush">
+          {invoices.length === 0 ? (
+            <div className="empty">
+              <div className="big">{status ? `No ${INVOICE_STATUS_LABELS[status].toLowerCase()} invoices` : "No invoices yet"}</div>
+              {!status && "Create one, or turn on auto-invoicing to get a draft for every completed visit."}
+            </div>
+          ) : (
+            <table className="invoice-table invoice-list">
+              <thead>
+                <tr>
+                  <th>Invoice</th>
+                  <th>Customer</th>
+                  <th>Issued</th>
+                  <th>Due</th>
+                  <th className="num">Total</th>
+                  <th className="num">Balance</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map((inv) => (
+                  <tr key={inv.id} data-invoice-number={inv.number}>
+                    <td>
+                      <Link className="row-link" href={`/invoices/${inv.id}`}>
+                        <b>{invoiceNumber(inv.number)}</b>
+                      </Link>
+                    </td>
+                    <td className="customer-cell">{inv.customer ? customerDisplayName(inv.customer) : "—"}</td>
+                    <td className="nowrap issued-cell">{formatShortDate(inv.issue_date)}</td>
+                    <td className="nowrap due-cell">{formatShortDate(inv.due_date)}</td>
+                    <td className="num total-cell">{formatPrice(inv.total)}</td>
+                    {/* Nothing is owed on a cancelled invoice. */}
+                    <td className="num balance-cell">{inv.display_status === "cancelled" ? "—" : formatPrice(Math.max(inv.balance ?? 0, 0))}</td>
+                    <td className="status-cell">
+                      <InvoiceStatusPill status={inv.display_status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -137,63 +174,28 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
         </div>
       </div>
 
-      <nav className="tabbar" aria-label="Filter invoices">
-        <Link href="/invoices" className={status === null ? "active" : undefined} aria-current={status === null ? "page" : undefined}>
-          All
-        </Link>
-        {INVOICE_STATUSES.map((s) => (
-          <Link
-            key={s}
-            href={`/invoices?status=${s}`}
-            className={status === s ? "active" : undefined}
-            aria-current={status === s ? "page" : undefined}
-          >
-            {INVOICE_STATUS_LABELS[s]}
-          </Link>
-        ))}
-      </nav>
-
       <div className="panel">
-        <div className="panel-body flush">
-          {invoices.length === 0 ? (
-            <div className="empty">
-              <div className="big">{status ? `No ${INVOICE_STATUS_LABELS[status].toLowerCase()} invoices` : "No invoices yet"}</div>
-              {!status && "Create one, or turn on auto-invoicing to get a draft for every completed visit."}
-            </div>
-          ) : (
-            <table className="invoice-table">
-              <thead>
-                <tr>
-                  <th>Invoice</th>
-                  <th>Customer</th>
-                  <th>Issued</th>
-                  <th>Due</th>
-                  <th className="num">Total</th>
-                  <th className="num">Balance</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.map((inv) => (
-                  <tr key={inv.id} data-invoice-number={inv.number}>
-                    <td>
-                      <Link className="row-link" href={`/invoices/${inv.id}`}>
-                        <b>{invoiceNumber(inv.number)}</b>
-                      </Link>
-                    </td>
-                    <td>{inv.customer ? customerDisplayName(inv.customer) : "—"}</td>
-                    <td className="nowrap">{formatShortDate(inv.issue_date)}</td>
-                    <td className="nowrap">{formatShortDate(inv.due_date)}</td>
-                    <td className="num">{formatPrice(inv.total)}</td>
-                    <td className="num">{formatPrice(Math.max(inv.balance ?? 0, 0))}</td>
-                    <td>
-                      <InvoiceStatusPill status={inv.display_status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+        <div className="panel-head">
+          <h3>Getting paid</h3>
+        </div>
+        <div className="panel-body invoice-settings">
+          <AutoInvoiceToggle enabled={settings.autoInvoice} save={setAutoInvoice} />
+          <div className="payment-options-status" data-testid="payment-options-status">
+            {ways ? (
+              <p>
+                Customers can pay you with <b>{ways}</b> from their invoice link. The money goes straight to you; record each payment
+                when it arrives.
+              </p>
+            ) : (
+              <p>
+                Add the payment apps you already use (Venmo, Cash App, PayPal, Zelle) so customers can pay from their invoice link.
+                It&apos;s free, and the money goes straight to you.
+              </p>
+            )}
+            <Link className="btn small" href="/invoices/payment-options">
+              {ways ? "Edit payment options" : "Set up payment options"}
+            </Link>
+          </div>
         </div>
       </div>
     </>

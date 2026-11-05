@@ -18,7 +18,8 @@ export function JobTable({ jobs, today, emptyTitle, emptyText, showCrew = false,
   showCrew?: boolean;
   // A day's route: the jobs are in route order, with arrows to change it.
   route?: RouteRef;
-  // The id of a form to tick visits for (moving several at once). Closed visits can't be ticked.
+  // The id of a form to tick visits for (moving several at once, or clearing old ones). Closed
+  // visits can't be ticked.
   selectForm?: string;
 }) {
   const order = jobs.map((j) => j.id);
@@ -37,7 +38,7 @@ export function JobTable({ jobs, today, emptyTitle, emptyText, showCrew = false,
         <tr>
           {selectForm && (
             <th className="select-cell">
-              <span className="visually-hidden">Tick to move</span>
+              <span className="visually-hidden">Tick</span>
             </th>
           )}
           {route && <th>Stop</th>}
@@ -63,7 +64,7 @@ export function JobTable({ jobs, today, emptyTitle, emptyText, showCrew = false,
                     name="job_ids"
                     value={job.id}
                     form={selectForm}
-                    aria-label={`Tick ${customerDisplayName(job.customer)} to move`}
+                    aria-label={`Tick ${customerDisplayName(job.customer)}, ${formatShortDate(job.scheduled_date)}`}
                   />
                 )}
               </td>

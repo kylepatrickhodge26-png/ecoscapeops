@@ -1,0 +1,66 @@
+# Runs every check on each push: lint, types and unit tests, then the database and browser
+# (phone and desktop) tests against a local Supabase. Free for public repositories.
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: ecoscape-ops
+
+jobs:
+  checks:
+    name: Lint, types and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ecoscape-ops/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+        if: ${{ !cancelled() }}
+      - run: npx vitest run --project unit --reporter=default --reporter=github-actions
+        if: ${{ !cancelled() }}
+
+  database-and-browser:
+    name: Database and browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ecoscape-ops/package-lock.json
+      - run: npm ci
+      - name: Start a local Supabase
+        run: npx supabase start -x studio,realtime,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta
+      - name: Point the app at it
+        run: |
+          npx supabase status -o json > "$RUNNER_TEMP/supabase.json"
+          node -e 'const s = require(process.argv[1]); require("fs").writeFileSync(".env.local", `NEXT_PUBLIC_SUPABASE_URL=${s.API_URL}\nNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${s.PUBLISHABLE_KEY}\n`)' "$RUNNER_TEMP/supabase.json"
+      - name: Database tests
+        run: npx vitest run --project db --reporter=default --reporter=github-actions
+      - name: Install a browser
+        if: ${{ !cancelled() }}
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests (desktop and phone)
+        if: ${{ !cancelled() }}
+        run: npx playwright test
+        env:
+          CI: "true"
+      - name: Summarize failing browser tests
+        if: ${{ failure() }}
+        run: node tests/e2e/ci-summary.mjs test-results.json

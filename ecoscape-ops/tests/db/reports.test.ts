@@ -1,6 +1,8 @@
 // Reports: owner-only figures worked out from the business's own rows. Checks the numbers
 // (including that an invoiced visit is counted once), that crew, other businesses and
 // signed-out visitors can't run them, and that bad date ranges are refused.
+import { randomUUID } from "node:crypto";
+
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { addCustomer, adminClient, anonClient, bookService, joinCrew, signUpOwner, visitsFor, type TestCrew, type TestOwner } from "./helpers";
@@ -58,11 +60,16 @@ describe("reports", () => {
 
   it("counts an invoiced visit once", async () => {
     const admin = adminClient();
-    const { data: invoice } = await admin
+    // An invoice dated inside the report's range (the app only issues invoices today). The pay
+    // link's token is given here because its default comes from a function only the app's own
+    // functions can run.
+    const payToken = randomUUID().replaceAll("-", "") + randomUUID().replaceAll("-", "");
+    const { data: invoice, error } = await admin
       .from("invoices")
-      .insert({ business_id: alpha.businessId, customer_id: customerId, number: 1, issue_date: "2031-04-05", due_date: "2031-04-20" })
+      .insert({ business_id: alpha.businessId, customer_id: customerId, number: 1, issue_date: "2031-04-05", due_date: "2031-04-20", pay_token: payToken })
       .select("id")
       .single();
+    expect(error).toBeNull();
     await admin.from("invoice_lines").insert([
       { business_id: alpha.businessId, invoice_id: invoice!.id, job_id: visit, position: 0, description: "Mowing", quantity: 1, unit_price: 120 },
       { business_id: alpha.businessId, invoice_id: invoice!.id, position: 1, description: "Delivery", quantity: 1, unit_price: 25 },
@@ -84,7 +91,7 @@ describe("reports", () => {
     const { data } = await bravo.client.rpc("report_summary", RANGE);
     expect(data![0]).toMatchObject({ booked: 7000, expenses: 0 });
     const { data: customers } = await bravo.client.rpc("report_revenue_by_customer", RANGE);
-    expect(customers!.map((c) => c.customer_name)).toEqual(["Zed"]);
+    expect(customers!.map((c) => c.customer_name)).toEqual(["Zed Customer"]);
   });
 
   it("keeps crew members and signed-out visitors out", async () => {

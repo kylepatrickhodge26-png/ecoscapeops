@@ -8,8 +8,8 @@ import { InvoiceStatusPill } from "@/components/invoice-status";
 import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
 import { customerDisplayName } from "@/lib/customers/schema";
-import { formatShortDate, todayInTimeZone } from "@/lib/dates";
-import { PAYMENT_METHOD_LABELS, invoiceNumber } from "@/lib/invoices/constants";
+import { addDays, formatShortDate, todayInTimeZone } from "@/lib/dates";
+import { DEFAULT_TERMS_DAYS, PAYMENT_METHOD_LABELS, invoiceNumber, isPastDueDraft } from "@/lib/invoices/constants";
 import { paymentOptionsSummary } from "@/lib/invoices/payment-options";
 import { formatPrice } from "@/lib/schedule/constants";
 import { siteOrigin } from "@/lib/site-origin";
@@ -156,6 +156,17 @@ export default async function InvoicePage(props: PageProps<"/invoices/[id]">) {
             <h3>{isDraft ? "Send to customer" : "Resend to customer"}</h3>
           </div>
           <div className="panel-body">
+            {/* A draft made a while ago (auto-invoice, monthly) can be past its due date: sent as it is, it would be
+                overdue from the start, and the text would say so. */}
+            {isPastDueDraft(invoice, today) && (
+              <div className="past-due-draft" data-testid="past-due-draft">
+                <Notice tone="warn">
+                  Its due date, {formatShortDate(invoice.due_date)}, has already passed, so the customer would see it as overdue
+                  as soon as you send it. Give it a new due date first.
+                </Notice>
+                <DueDateForm action={changeDueDate.bind(null, invoice.id)} current={addDays(today, DEFAULT_TERMS_DAYS)} min={invoice.issue_date} />
+              </div>
+            )}
             <p className="hint">
               {ways ? (
                 <>The pay link shows the customer this invoice and how to pay you ({ways}).</>
