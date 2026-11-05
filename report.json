@@ -1,0 +1,824 @@
+{
+  "pages": [
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/dashboard",
+      "file": "owner-desktop-today.png",
+      "status": 200,
+      "finalUrl": "/dashboard",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/dashboard",
+      "file": "owner-phone-today.png",
+      "status": 200,
+      "finalUrl": "/dashboard",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/schedule",
+      "file": "owner-desktop-schedule-calendar.png",
+      "status": 200,
+      "finalUrl": "/schedule",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/schedule",
+      "file": "owner-phone-schedule-calendar.png",
+      "status": 200,
+      "finalUrl": "/schedule",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/schedule?view=list&filter=upcoming",
+      "file": "owner-desktop-schedule-list.png",
+      "status": 200,
+      "finalUrl": "/schedule?view=list&filter=upcoming",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/schedule?view=list&filter=upcoming",
+      "file": "owner-phone-schedule-list.png",
+      "status": 200,
+      "finalUrl": "/schedule?view=list&filter=upcoming",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/schedule?view=list&filter=attention",
+      "file": "owner-desktop-schedule-attention.png",
+      "status": 200,
+      "finalUrl": "/schedule?view=list&filter=attention",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/schedule?view=list&filter=attention",
+      "file": "owner-phone-schedule-attention.png",
+      "status": 200,
+      "finalUrl": "/schedule?view=list&filter=attention",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/schedule/day/2026-11-05",
+      "file": "owner-desktop-schedule-day-today.png",
+      "status": 200,
+      "finalUrl": "/schedule/day/2026-11-05",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/schedule/day/2026-11-05",
+      "file": "owner-phone-schedule-day-today.png",
+      "status": 200,
+      "finalUrl": "/schedule/day/2026-11-05",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/schedule/day/2026-11-07",
+      "file": "owner-desktop-schedule-day-rain-moved.png",
+      "status": 200,
+      "finalUrl": "/schedule/day/2026-11-07",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/schedule/day/2026-11-07",
+      "file": "owner-phone-schedule-day-rain-moved.png",
+      "status": 200,
+      "finalUrl": "/schedule/day/2026-11-07",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/schedule/jobs/56b2c5d8-44fb-46cf-8a2e-6c6574a04425",
+      "file": "owner-desktop-visit.png",
+      "status": 200,
+      "finalUrl": "/schedule/jobs/56b2c5d8-44fb-46cf-8a2e-6c6574a04425",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/schedule/jobs/56b2c5d8-44fb-46cf-8a2e-6c6574a04425",
+      "file": "owner-phone-visit.png",
+      "status": 200,
+      "finalUrl": "/schedule/jobs/56b2c5d8-44fb-46cf-8a2e-6c6574a04425",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/schedule/jobs/56b2c5d8-44fb-46cf-8a2e-6c6574a04425?move=1",
+      "file": "owner-desktop-visit-move.png",
+      "status": 200,
+      "finalUrl": "/schedule/jobs/56b2c5d8-44fb-46cf-8a2e-6c6574a04425?move=1",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/schedule/jobs/56b2c5d8-44fb-46cf-8a2e-6c6574a04425?move=1",
+      "file": "owner-phone-visit-move.png",
+      "status": 200,
+      "finalUrl": "/schedule/jobs/56b2c5d8-44fb-46cf-8a2e-6c6574a04425?move=1",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/schedule/jobs/56b2c5d8-44fb-46cf-8a2e-6c6574a04425/edit",
+      "file": "owner-desktop-visit-edit.png",
+      "status": 200,
+      "finalUrl": "/schedule/jobs/56b2c5d8-44fb-46cf-8a2e-6c6574a04425/edit",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/schedule/jobs/56b2c5d8-44fb-46cf-8a2e-6c6574a04425/edit",
+      "file": "owner-phone-visit-edit.png",
+      "status": 200,
+      "finalUrl": "/schedule/jobs/56b2c5d8-44fb-46cf-8a2e-6c6574a04425/edit",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/schedule/new",
+      "file": "owner-desktop-book.png",
+      "status": 200,
+      "finalUrl": "/schedule/new",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/schedule/new",
+      "file": "owner-phone-book.png",
+      "status": 200,
+      "finalUrl": "/schedule/new",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/my-jobs",
+      "file": "owner-desktop-my-jobs.png",
+      "status": 200,
+      "finalUrl": "/my-jobs",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/my-jobs",
+      "file": "owner-phone-my-jobs.png",
+      "status": 200,
+      "finalUrl": "/my-jobs",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/weather",
+      "file": "owner-desktop-weather.png",
+      "status": 200,
+      "finalUrl": "/weather",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/weather",
+      "file": "owner-phone-weather.png",
+      "status": 200,
+      "finalUrl": "/weather",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/weather/delays/66195467-58e0-40e7-b27b-1b0b41f5483e",
+      "file": "owner-desktop-rain-delay.png",
+      "status": 200,
+      "finalUrl": "/weather/delays/66195467-58e0-40e7-b27b-1b0b41f5483e",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/weather/delays/66195467-58e0-40e7-b27b-1b0b41f5483e",
+      "file": "owner-phone-rain-delay.png",
+      "status": 200,
+      "finalUrl": "/weather/delays/66195467-58e0-40e7-b27b-1b0b41f5483e",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/weather/move",
+      "file": "owner-desktop-weather-move.png",
+      "status": 200,
+      "finalUrl": "/weather/move",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/weather/move",
+      "file": "owner-phone-weather-move.png",
+      "status": 200,
+      "finalUrl": "/weather/move",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/customers",
+      "file": "owner-desktop-customers.png",
+      "status": 200,
+      "finalUrl": "/customers",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/customers",
+      "file": "owner-phone-customers.png",
+      "status": 200,
+      "finalUrl": "/customers",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/customers/5dfb5be8-f54a-4743-ace8-90e5b6be149f",
+      "file": "owner-desktop-customer-john.png",
+      "status": 200,
+      "finalUrl": "/customers/5dfb5be8-f54a-4743-ace8-90e5b6be149f",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/customers/5dfb5be8-f54a-4743-ace8-90e5b6be149f",
+      "file": "owner-phone-customer-john.png",
+      "status": 200,
+      "finalUrl": "/customers/5dfb5be8-f54a-4743-ace8-90e5b6be149f",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/customers/1accc06a-9449-42f0-93e7-8048a76644d1",
+      "file": "owner-desktop-customer-tomy-inactive.png",
+      "status": 200,
+      "finalUrl": "/customers/1accc06a-9449-42f0-93e7-8048a76644d1",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/customers/1accc06a-9449-42f0-93e7-8048a76644d1",
+      "file": "owner-phone-customer-tomy-inactive.png",
+      "status": 200,
+      "finalUrl": "/customers/1accc06a-9449-42f0-93e7-8048a76644d1",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/customers/5dfb5be8-f54a-4743-ace8-90e5b6be149f/edit",
+      "file": "owner-desktop-customer-edit.png",
+      "status": 200,
+      "finalUrl": "/customers/5dfb5be8-f54a-4743-ace8-90e5b6be149f/edit",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/customers/5dfb5be8-f54a-4743-ace8-90e5b6be149f/edit",
+      "file": "owner-phone-customer-edit.png",
+      "status": 200,
+      "finalUrl": "/customers/5dfb5be8-f54a-4743-ace8-90e5b6be149f/edit",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/customers/new",
+      "file": "owner-desktop-customer-new.png",
+      "status": 200,
+      "finalUrl": "/customers/new",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/customers/new",
+      "file": "owner-phone-customer-new.png",
+      "status": 200,
+      "finalUrl": "/customers/new",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/requests",
+      "file": "owner-desktop-requests.png",
+      "status": 200,
+      "finalUrl": "/requests",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/requests",
+      "file": "owner-phone-requests.png",
+      "status": 200,
+      "finalUrl": "/requests",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/money",
+      "file": "owner-desktop-money.png",
+      "status": 200,
+      "finalUrl": "/money",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/money",
+      "file": "owner-phone-money.png",
+      "status": 200,
+      "finalUrl": "/money",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/quotes",
+      "file": "owner-desktop-quotes.png",
+      "status": 200,
+      "finalUrl": "/quotes",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/quotes",
+      "file": "owner-phone-quotes.png",
+      "status": 200,
+      "finalUrl": "/quotes",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/quotes/8705326d-543a-452a-89b2-ecd5739d2f2e",
+      "file": "owner-desktop-quote.png",
+      "status": 200,
+      "finalUrl": "/quotes/8705326d-543a-452a-89b2-ecd5739d2f2e",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/quotes/8705326d-543a-452a-89b2-ecd5739d2f2e",
+      "file": "owner-phone-quote.png",
+      "status": 200,
+      "finalUrl": "/quotes/8705326d-543a-452a-89b2-ecd5739d2f2e",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/quotes/new",
+      "file": "owner-desktop-quote-new.png",
+      "status": 200,
+      "finalUrl": "/quotes/new",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/quotes/new",
+      "file": "owner-phone-quote-new.png",
+      "status": 200,
+      "finalUrl": "/quotes/new",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/invoices",
+      "file": "owner-desktop-invoices.png",
+      "status": 200,
+      "finalUrl": "/invoices",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/invoices",
+      "file": "owner-phone-invoices.png",
+      "status": 200,
+      "finalUrl": "/invoices",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/invoices/ab5aaa3c-c665-42ad-9608-c37baf10054a",
+      "file": "owner-desktop-invoice.png",
+      "status": 200,
+      "finalUrl": "/invoices/ab5aaa3c-c665-42ad-9608-c37baf10054a",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/invoices/ab5aaa3c-c665-42ad-9608-c37baf10054a",
+      "file": "owner-phone-invoice.png",
+      "status": 200,
+      "finalUrl": "/invoices/ab5aaa3c-c665-42ad-9608-c37baf10054a",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/invoices/6fe6452d-0ab0-4c48-9652-81d7e87d157a",
+      "file": "owner-desktop-invoice-draft-past-due.png",
+      "status": 200,
+      "finalUrl": "/invoices/6fe6452d-0ab0-4c48-9652-81d7e87d157a",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/invoices/6fe6452d-0ab0-4c48-9652-81d7e87d157a",
+      "file": "owner-phone-invoice-draft-past-due.png",
+      "status": 200,
+      "finalUrl": "/invoices/6fe6452d-0ab0-4c48-9652-81d7e87d157a",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/invoices/new",
+      "file": "owner-desktop-invoice-new.png",
+      "status": 200,
+      "finalUrl": "/invoices/new",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/invoices/new",
+      "file": "owner-phone-invoice-new.png",
+      "status": 200,
+      "finalUrl": "/invoices/new",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/invoices/payment-options",
+      "file": "owner-desktop-payment-options.png",
+      "status": 200,
+      "finalUrl": "/invoices/payment-options",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/invoices/payment-options",
+      "file": "owner-phone-payment-options.png",
+      "status": 200,
+      "finalUrl": "/invoices/payment-options",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/expenses",
+      "file": "owner-desktop-expenses.png",
+      "status": 200,
+      "finalUrl": "/expenses",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/expenses",
+      "file": "owner-phone-expenses.png",
+      "status": 200,
+      "finalUrl": "/expenses",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/expenses/new",
+      "file": "owner-desktop-expense-new.png",
+      "status": 200,
+      "finalUrl": "/expenses/new",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/expenses/new",
+      "file": "owner-phone-expense-new.png",
+      "status": 200,
+      "finalUrl": "/expenses/new",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/reports",
+      "file": "owner-desktop-reports.png",
+      "status": 200,
+      "finalUrl": "/reports",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/reports",
+      "file": "owner-phone-reports.png",
+      "status": 200,
+      "finalUrl": "/reports",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/more",
+      "file": "owner-desktop-more.png",
+      "status": 200,
+      "finalUrl": "/more",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/more",
+      "file": "owner-phone-more.png",
+      "status": 200,
+      "finalUrl": "/more",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/crew",
+      "file": "owner-desktop-crew.png",
+      "status": 200,
+      "finalUrl": "/crew",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/crew",
+      "file": "owner-phone-crew.png",
+      "status": 200,
+      "finalUrl": "/crew",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/time",
+      "file": "owner-desktop-time.png",
+      "status": 200,
+      "finalUrl": "/time",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/time",
+      "file": "owner-phone-time.png",
+      "status": 200,
+      "finalUrl": "/time",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/settings",
+      "file": "owner-desktop-settings.png",
+      "status": 200,
+      "finalUrl": "/settings",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/settings",
+      "file": "owner-phone-settings.png",
+      "status": 200,
+      "finalUrl": "/settings",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/settings/checklists",
+      "file": "owner-desktop-checklists.png",
+      "status": 200,
+      "finalUrl": "/settings/checklists",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/settings/checklists",
+      "file": "owner-phone-checklists.png",
+      "status": 200,
+      "finalUrl": "/settings/checklists",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/settings/faq",
+      "file": "owner-desktop-faq.png",
+      "status": 200,
+      "finalUrl": "/settings/faq",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/settings/faq",
+      "file": "owner-phone-faq.png",
+      "status": 200,
+      "finalUrl": "/settings/faq",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/help",
+      "file": "owner-desktop-help.png",
+      "status": 200,
+      "finalUrl": "/help",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/help",
+      "file": "owner-phone-help.png",
+      "status": 200,
+      "finalUrl": "/help",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "desktop",
+      "path": "/search?q=john",
+      "file": "owner-desktop-search.png",
+      "status": 200,
+      "finalUrl": "/search?q=john",
+      "errors": []
+    },
+    {
+      "who": "owner",
+      "size": "phone",
+      "path": "/search?q=john",
+      "file": "owner-phone-search.png",
+      "status": 200,
+      "finalUrl": "/search?q=john",
+      "errors": []
+    },
+    {
+      "who": "crew",
+      "size": "phone",
+      "path": "/dashboard",
+      "file": "crew-phone-today.png",
+      "status": 200,
+      "finalUrl": "/dashboard",
+      "errors": []
+    },
+    {
+      "who": "crew",
+      "size": "phone",
+      "path": "/my-jobs",
+      "file": "crew-phone-my-jobs.png",
+      "status": 200,
+      "finalUrl": "/my-jobs",
+      "errors": []
+    },
+    {
+      "who": "crew",
+      "size": "phone",
+      "path": "/help",
+      "file": "crew-phone-help.png",
+      "status": 200,
+      "finalUrl": "/help",
+      "errors": []
+    },
+    {
+      "who": "crew",
+      "size": "phone",
+      "path": "/customers",
+      "file": "crew-phone-blocked-customers.png",
+      "status": 200,
+      "finalUrl": "/my-jobs",
+      "errors": []
+    },
+    {
+      "who": "customer",
+      "size": "phone",
+      "path": "/portal",
+      "file": "customer-phone-portal.png",
+      "status": 200,
+      "finalUrl": "/portal",
+      "errors": []
+    },
+    {
+      "who": "customer",
+      "size": "phone",
+      "path": "/dashboard",
+      "file": "customer-phone-blocked-dashboard.png",
+      "status": 200,
+      "finalUrl": "/portal",
+      "errors": []
+    },
+    {
+      "who": "public",
+      "size": "phone",
+      "path": "/",
+      "file": "public-phone-home.png",
+      "status": 200,
+      "finalUrl": "/",
+      "errors": []
+    },
+    {
+      "who": "public",
+      "size": "phone",
+      "path": "/login",
+      "file": "public-phone-login.png",
+      "status": 200,
+      "finalUrl": "/login",
+      "errors": []
+    },
+    {
+      "who": "public",
+      "size": "phone",
+      "path": "/signup",
+      "file": "public-phone-signup.png",
+      "status": 200,
+      "finalUrl": "/signup",
+      "errors": []
+    },
+    {
+      "who": "public",
+      "size": "phone",
+      "path": "/request/ece22ea0eab8438d9ebff988877c9fab62c429da0d3a4ca0af50c92f302e32d3",
+      "file": "public-phone-request-form.png",
+      "status": 200,
+      "finalUrl": "/request/ece22ea0eab8438d9ebff988877c9fab62c429da0d3a4ca0af50c92f302e32d3",
+      "errors": []
+    },
+    {
+      "who": "public",
+      "size": "phone",
+      "path": "/pay/b0c7b40888394a9a8d5aca8fd9dfacbd83a509baf0b54cd0b12f52e30fc482ee",
+      "file": "public-phone-pay.png",
+      "status": 200,
+      "finalUrl": "/pay/b0c7b40888394a9a8d5aca8fd9dfacbd83a509baf0b54cd0b12f52e30fc482ee",
+      "errors": []
+    }
+  ],
+  "seedErrors": []
+}
