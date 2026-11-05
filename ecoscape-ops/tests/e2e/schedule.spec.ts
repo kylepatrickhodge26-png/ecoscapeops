@@ -177,6 +177,37 @@ test("Needs attention collects weather delays and overdue visits", async ({ page
   await expect(page.locator(".count-badge")).toHaveText("2");
 });
 
+test("old visits can be cleared from Needs attention: ticked, then marked done or cancelled", async ({ page }) => {
+  const customerId = await setUpCustomer(page, "Tidy Lawns");
+  await bookService(page, { customerId, startDate: addDays(today(), 1) });
+  // Two visits whose days have passed without being closed out.
+  for (const daysAgo of [2, 3]) {
+    await openFirstUpcomingVisit(page);
+    await editVisit(page, { date: addDays(today(), -daysAgo) });
+  }
+
+  await page.goto("/schedule?view=list&filter=attention");
+  const rows = page.locator(".job-table tbody tr");
+  await expect(rows).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "Mark visits done" })).toBeDisabled();
+
+  await rows.nth(0).getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Mark 1 visit done" }).click();
+  await expect(page.getByText("Marked 1 visit done.")).toBeVisible();
+  await expect(rows).toHaveCount(1);
+
+  await rows.nth(0).getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Cancel 1 visit" }).click();
+  await expect(page.getByText("Cancelled 1 visit.")).toBeVisible();
+  await expect(page.getByText("All clear")).toBeVisible();
+
+  await page.goto("/schedule?view=list&filter=completed");
+  await expect(rows).toHaveCount(1);
+  // Their next 6 visits are still booked.
+  await page.goto("/schedule?view=list&filter=upcoming");
+  await expect(listedDates(page)).toHaveCount(6);
+});
+
 test("every status has its own shape and color", async ({ page }) => {
   const customerId = await setUpCustomer(page, "Shapes Lawns");
   await bookService(page, { customerId, startDate: addDays(today(), 1) });

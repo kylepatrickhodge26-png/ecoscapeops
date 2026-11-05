@@ -41,12 +41,17 @@ async function must(label, promise) {
 const browser = await chromium.launch();
 const desktop = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 const phone = await browser.newContext({ ...devices["Pixel 7"] });
+let current = null; // the page in use, for a screenshot if something fails
+const annotate = (level, message) => console.log(`::${level}::${String(message).replace(/\r?\n/g, " ").slice(0, 900)}`);
+
+try {
 
 // ---------------------------------------------------------------------------
 // The owner signs up through the app, then sets the service area and shop in the app.
 // ---------------------------------------------------------------------------
 const ownerEmail = `kyle-${tag}@example.test`;
 const page = await desktop.newPage();
+current = page;
 page.on("pageerror", (e) => report.seedErrors.push({ label: "owner page error", error: e.message }));
 await page.goto(`${BASE}/signup`);
 await page.getByLabel("Your name").fill("Kyle");
@@ -274,6 +279,15 @@ for (const [path, name] of [
   [`/pay/${payLink?.pay_token}`, "pay"],
 ]) await shoot(publicCtx, "public", "phone", path, name);
 
+} catch (error) {
+  report.fatal = String(error?.stack ?? error);
+  annotate("error", `tour stopped: ${error?.message ?? error} at ${current?.url?.() ?? "?"}`);
+  if (current) await current.screenshot({ path: `${out}/fail.png`, fullPage: true }).catch(() => {});
+  if (current) writeFileSync(`${out}/fail.txt`, await current.locator("body").innerText().catch(() => ""));
+}
+
 writeFileSync(`${out}/report.json`, JSON.stringify(report, null, 2));
 await browser.close();
+for (const e of report.seedErrors) annotate("warning", `seed ${e.label}: ${e.error}`);
+for (const p of report.pages.filter((p) => p.errors.length || p.tooWide)) annotate("warning", `${p.who} ${p.size} ${p.path}: ${p.errors.join(" | ")}${p.tooWide ? ` too wide (${p.tooWide}px)` : ""}`);
 console.log(`Pages: ${report.pages.length}, with errors: ${report.pages.filter((p) => p.errors.length).length}, seed errors: ${report.seedErrors.length}`);

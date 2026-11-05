@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { requireOwner } from "@/lib/auth";
 import { monthOf, todayInTimeZone } from "@/lib/dates";
-import { isClosed } from "@/lib/schedule/constants";
+import { CLOSED_STATUSES, isClosed } from "@/lib/schedule/constants";
 import {
   appendNote,
   bookingFormValuesFromFormData,
@@ -115,6 +115,32 @@ export async function markJobCompleted(id: string): Promise<ActionResult> {
   if (data.length === 0) return { error: "This visit no longer exists." };
 
   redirect(`/schedule/jobs/${id}?notice=completed`);
+}
+
+export type CloseVisitsState = { error?: string };
+
+// Needs attention: marks the ticked visits done, or cancels them, in one go. Visits already
+// done or cancelled are left as they are.
+export async function closeVisits(_prev: CloseVisitsState, formData: FormData): Promise<CloseVisitsState> {
+  const { business } = await requireOwner();
+  const ids = [...new Set(formData.getAll("job_ids").map(String))].filter((v) => uuid.safeParse(v).success).slice(0, 200);
+  const how = formData.get("how");
+  if (how !== "completed" && how !== "cancelled") return { error: "Tap Mark done or Cancel." };
+  if (ids.length === 0) return { error: "Tick the visits first." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("jobs")
+    .update({ status: how })
+    .in("id", ids)
+    .eq("business_id", business.id)
+    .not("status", "in", `(${CLOSED_STATUSES.join(",")})`)
+    .select("id");
+  if (error) {
+    console.error("Closing visits failed", error);
+    return { error: "We couldn't update those visits. Please try again." };
+  }
+  redirect(`/schedule?view=list&filter=attention&notice=${how}&n=${data.length}`);
 }
 
 export type CouldNotServiceState = {

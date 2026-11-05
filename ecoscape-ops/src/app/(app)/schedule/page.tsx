@@ -48,6 +48,13 @@ export default async function SchedulePage(props: PageProps<"/schedule">) {
       </div>
 
       <BookedNotice planId={params.booked} />
+      {(params.notice === "completed" || params.notice === "cancelled") && (
+        <Notice tone="success">
+          {params.notice === "completed" ? "Marked" : "Cancelled"} {Number(params.n) || 0}{" "}
+          {Number(params.n) === 1 ? "visit" : "visits"}
+          {params.notice === "completed" ? " done" : ""}.
+        </Notice>
+      )}
       <AutoRainNotices businessId={business.id} today={today} />
 
       {view === "calendar" ? (
