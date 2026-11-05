@@ -34,7 +34,9 @@ test("booking a weekly service puts the next 6 visits on the schedule", async ({
 
   // From the new customer's page, like the prototype's "set up their service now?".
   await page.getByRole("link", { name: "Book their first service →" }).click();
-  await expect(page.getByLabel("Customer")).toHaveValue(/[0-9a-f-]{36}/);
+  // Wait for the booking form (the customer page also has things labelled "Customer…").
+  await expect(page).toHaveURL(/\/schedule\/new\?customer=[0-9a-f-]{36}/);
+  await expect(page.getByLabel("Customer", { exact: true })).toHaveValue(/[0-9a-f-]{36}/);
   const firstTuesday = nextWeekdayOnOrAfter(today(), 2);
   await expect(page.getByLabel("First visit")).toHaveValue(firstTuesday);
 

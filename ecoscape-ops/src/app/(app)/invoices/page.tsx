@@ -108,7 +108,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
               {!status && "Create one, or turn on auto-invoicing to get a draft for every completed visit."}
             </div>
           ) : (
-            <table className="invoice-table">
+            <table className="invoice-table invoice-list">
               <thead>
                 <tr>
                   <th>Invoice</th>
@@ -128,12 +128,13 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
                         <b>{invoiceNumber(inv.number)}</b>
                       </Link>
                     </td>
-                    <td>{inv.customer ? customerDisplayName(inv.customer) : "—"}</td>
-                    <td className="nowrap">{formatShortDate(inv.issue_date)}</td>
-                    <td className="nowrap">{formatShortDate(inv.due_date)}</td>
-                    <td className="num">{formatPrice(inv.total)}</td>
-                    <td className="num">{formatPrice(Math.max(inv.balance ?? 0, 0))}</td>
-                    <td>
+                    <td className="customer-cell">{inv.customer ? customerDisplayName(inv.customer) : "—"}</td>
+                    <td className="nowrap issued-cell">{formatShortDate(inv.issue_date)}</td>
+                    <td className="nowrap due-cell">{formatShortDate(inv.due_date)}</td>
+                    <td className="num total-cell">{formatPrice(inv.total)}</td>
+                    {/* Nothing is owed on a cancelled invoice. */}
+                    <td className="num balance-cell">{inv.display_status === "cancelled" ? "—" : formatPrice(Math.max(inv.balance ?? 0, 0))}</td>
+                    <td className="status-cell">
                       <InvoiceStatusPill status={inv.display_status} />
                     </td>
                   </tr>
