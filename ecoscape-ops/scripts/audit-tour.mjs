@@ -183,6 +183,8 @@ const { data: payLink } = await owner.from("invoices").select("pay_token").eq("i
 async function signIn(context, email) {
   const p = await context.newPage();
   await p.goto(`${BASE}/login`);
+  // Already signed in (the owner signed up in this window): the login page sends you on.
+  if (!new URL(p.url()).pathname.startsWith("/login")) return void (await p.close());
   await p.getByLabel("Email").fill(email);
   await p.getByLabel("Password").fill(PASSWORD);
   await p.getByRole("button", { name: /sign in|log in/i }).click();
