@@ -1,7 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
 import { addDays, formatShortDate, todayInTimeZone } from "../../src/lib/dates";
-import { PASSWORD, addCustomer, signUpBusiness, uniqueEmail } from "./helpers";
+import { addCustomer, chooseFrequency, type Frequency, openMore, PASSWORD, signUpBusiness, uniqueEmail } from "./helpers";
 
 const TIME_ZONE = "America/New_York";
 test.use({ timezoneId: TIME_ZONE });
@@ -31,9 +31,9 @@ async function joinCrew(browser: Browser, inviteUrl: string) {
 
 async function bookFor(page: Page, customerId: string, assignee: string, fields: { service?: string; frequency?: "Every week" | "One time"; startDate?: string } = {}) {
   await page.goto(`/schedule/new?customer=${customerId}`);
-  await page.getByLabel("Service").fill(fields.service ?? "Mowing");
+  await page.getByLabel("Service", { exact: true }).fill(fields.service ?? "Mowing");
   await page.getByLabel("Price ($)").fill("65");
-  await page.getByLabel("How often").selectOption(fields.frequency ?? "Every week");
+  await chooseFrequency(page, (fields.frequency ?? "Every week") as Frequency);
   await page.getByLabel(/First visit|Visit date/).fill(fields.startDate ?? today());
   await page.getByLabel("Assign to").selectOption({ label: assignee });
   await page.getByRole("button", { name: /^Book/ }).click();
@@ -53,7 +53,7 @@ test("'Assign to' stays hidden for a solo owner and appears once they add a crew
   const customerId = await addCustomer(page, { firstName: "John", lastName: "Smith" });
 
   await page.goto(`/schedule/new?customer=${customerId}`);
-  await expect(page.getByLabel("Service")).toBeVisible();
+  await expect(page.getByLabel("Service", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Assign to")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "My jobs" })).toHaveCount(0);
 
@@ -185,6 +185,7 @@ test("reassigning a visit moves it from one crew member's list to the other's", 
   await page.goto("/schedule?view=list&filter=today");
   await openVisit(page, page.locator(".job-table tbody tr").first());
   await expect(page.locator("dl.details")).toContainText("Maria");
+  await openMore(page);
   await page.getByRole("link", { name: "Edit" }).click();
   await expect(page.getByLabel("Assign to")).toHaveValue(/[0-9a-f-]{36}/);
   await page.getByLabel("Assign to").selectOption({ label: "Luis" });
@@ -229,7 +230,9 @@ test("removing a crew member ends their access and unassigns their jobs", async 
   await expect(jobCards(maria)).toHaveCount(2);
 
   await page.goto("/crew");
-  await page.locator('[data-crew-member="Maria"]').getByRole("button", { name: "Remove" }).click();
+  const row = page.locator('[data-crew-member="Maria"]');
+  await openMore(row);
+  await row.getByRole("button", { name: "Remove" }).click();
   await expect(page.getByText(/Their login loses access right away\. Their 6 upcoming jobs become unassigned\./)).toBeVisible();
   await page.getByRole("button", { name: "Remove", exact: true }).last().click();
   await expect(page.getByText("Crew member removed.")).toBeVisible();
@@ -252,7 +255,9 @@ test("the owner can rename a crew member", async ({ page, browser }) => {
   const maria = await joinCrew(browser, link);
 
   await page.goto("/crew");
-  await page.locator('[data-crew-member="Mariah"]').getByRole("button", { name: "Rename" }).click();
+  const row = page.locator('[data-crew-member="Mariah"]');
+  await openMore(row);
+  await row.getByRole("button", { name: "Rename" }).click();
   await page.getByLabel("New name").fill("Maria G.");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Name updated.")).toBeVisible();

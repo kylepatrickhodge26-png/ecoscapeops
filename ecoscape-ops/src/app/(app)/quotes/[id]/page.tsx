@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ConfirmButton } from "@/components/confirm-button";
+import { MoreMenu } from "@/components/more-menu";
 import { Notice } from "@/components/notice";
 import { QuoteStatusPill } from "@/components/quote-status";
 import { requireOwner } from "@/lib/auth";
@@ -76,12 +77,11 @@ export default async function QuotePage(props: PageProps<"/quotes/[id]">) {
         </div>
       </div>
 
+      {/* Sending (a draft) or booking it (once they say yes) is the main thing, in the panels
+          below; the rest is under More. */}
       <div className="job-actions no-print">
-        {quote.status === "draft" && (
-          <Link className="btn secondary small" href={`/quotes/${quote.id}/edit`}>
-            Edit
-          </Link>
-        )}
+        <MoreMenu>
+        {quote.status === "draft" && <Link href={`/quotes/${quote.id}/edit`}>Edit</Link>}
         <PrintButton />
         <ConfirmButton
           action={duplicateQuote.bind(null, quote.id)}
@@ -109,6 +109,7 @@ export default async function QuotePage(props: PageProps<"/quotes/[id]">) {
             confirmText={<>Mark quote {quoteNumber(quote.number)} as declined? You can still accept it later if they change their mind.</>}
           />
         )}
+        </MoreMenu>
       </div>
 
       {typeof notice === "string" && NOTICES[notice] && <Notice tone="success">{NOTICES[notice]}</Notice>}

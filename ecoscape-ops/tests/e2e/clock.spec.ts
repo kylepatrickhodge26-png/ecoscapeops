@@ -1,7 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
 import { addDays, todayInTimeZone } from "../../src/lib/dates";
-import { PASSWORD, signUpBusiness, uniqueEmail } from "./helpers";
+import { chooseFrequency, PASSWORD, signUpBusiness, uniqueEmail } from "./helpers";
 
 // The Today screen: start the day, clock in to the next visit, clock out & finish, end the day,
 // each a single tap, for crew members and the owner alike.
@@ -14,6 +14,7 @@ async function addCustomer(page: Page, name: string) {
   const [first, last] = name.split(" ");
   await page.getByLabel("First name").fill(first);
   await page.getByLabel("Last name").fill(last);
+  await page.getByLabel("Not yet").check();
   await page.getByRole("button", { name: "Add customer" }).click();
   await expect(page.getByText("Customer added.")).toBeVisible();
   return new URL(page.url()).pathname.split("/")[2];
@@ -21,9 +22,9 @@ async function addCustomer(page: Page, name: string) {
 
 async function book(page: Page, customerId: string, service: string, assignee?: string) {
   await page.goto(`/schedule/new?customer=${customerId}`);
-  await page.getByLabel("Service").fill(service);
+  await page.getByLabel("Service", { exact: true }).fill(service);
   await page.getByLabel("Price ($)").fill("65");
-  await page.getByLabel("How often").selectOption("One time");
+  await chooseFrequency(page, "One time");
   await page.getByLabel(/First visit|Visit date/).fill(today());
   if (assignee) await page.getByLabel("Assign to").selectOption({ label: assignee });
   await page.getByRole("button", { name: /^Book/ }).click();

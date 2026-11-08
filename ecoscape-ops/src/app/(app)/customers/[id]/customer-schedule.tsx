@@ -43,9 +43,6 @@ export async function CustomerSchedule({ customerId, customerName, today }: { cu
       <div className="panel">
         <div className="panel-head">
           <h3>Services</h3>
-          <Link className="btn small" href={`/schedule/new?customer=${customerId}`}>
-            + Book a service
-          </Link>
         </div>
         <div className="panel-body">
           {plans.length === 0 ? (

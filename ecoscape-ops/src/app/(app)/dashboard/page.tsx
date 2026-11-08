@@ -5,23 +5,20 @@ import { Notice } from "@/components/notice";
 import { requireMembership, type Membership } from "@/lib/auth";
 import { getCrew, showAssignment } from "@/lib/crew";
 import { customerDisplayName } from "@/lib/customers/schema";
-import { formatLongDate, formatMonth, formatShortDate, monthOf } from "@/lib/dates";
-import { EXPENSE_CATEGORY_LABELS } from "@/lib/expenses/schema";
+import { formatLongDate, formatMonth, monthOf } from "@/lib/dates";
 import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 import { getShop } from "@/lib/geo/customers";
 import { buildRoute } from "@/lib/routes/build";
 import { getServiceArea, type ServiceArea } from "@/lib/weather/queries";
 
-import { quickLogExpense } from "../expenses/actions";
 import { crewCustomerName } from "../my-jobs/crew-job-card";
 import { JobTable } from "../schedule/job-table";
-import { jobsBetween, type JobListItem } from "../schedule/queries";
+import { countNeedingAttention, jobsBetween, type JobListItem } from "../schedule/queries";
 import { getMyClock } from "../time-clock/clock-state";
 import { AutoRainNotices } from "../weather/rain-notices";
 import { WorkdayCard } from "../time-clock/workday-card";
 import { CrewNow } from "./crew-now";
-import { QuickLog } from "./quick-log";
 import { TodayRoute, type TodayStop } from "./today-route";
 import { WeatherCard } from "./weather-card";
 
@@ -45,9 +42,8 @@ type Summary = {
   month_completed: number | null;
 };
 
-export default async function DashboardPage(props: PageProps<"/dashboard">) {
+export default async function DashboardPage() {
   const membership = await requireMembership();
-  const { logged } = await props.searchParams;
   const supabase = await createClient();
   // Role-aware in the database: owners get the whole business, crew only their own jobs.
   const { data, error } = await supabase.rpc("dashboard_summary");
@@ -57,12 +53,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
   const area = await getServiceArea();
 
   return membership.role === "owner" ? (
-    <OwnerDashboard
-      membership={membership}
-      summary={summary}
-      area={area}
-      loggedExpenseId={typeof logged === "string" ? logged : undefined}
-    />
+    <OwnerDashboard membership={membership} summary={summary} area={area} />
   ) : (
     <CrewDashboard summary={summary} area={area} business={membership.business} />
   );
@@ -99,12 +90,10 @@ async function OwnerDashboard({
   membership,
   summary,
   area,
-  loggedExpenseId,
 }: {
   membership: Membership;
   summary: Summary;
   area: ServiceArea | null;
-  loggedExpenseId?: string;
 }) {
   const { business, user } = membership;
   const month = formatMonth(monthOf(summary.today)).split(" ")[0];
@@ -114,12 +103,13 @@ async function OwnerDashboard({
   const outstanding = summary.outstanding ?? 0;
   const overdue = summary.overdue ?? 0;
   const supabase = await createClient();
-  const [todaysJobs, crew, shop, clock, { data: routeDays }] = await Promise.all([
+  const [todaysJobs, crew, shop, clock, { data: routeDays }, attention] = await Promise.all([
     jobsBetween(business.id, summary.today, summary.today),
     getCrew(business.id, user.id),
     getShop(business.id),
     getMyClock(),
     supabase.from("route_days").select("crew_member_id, start_address, start_lat, start_lon, manual_order").eq("business_id", business.id).eq("route_date", summary.today),
+    countNeedingAttention(business.id, summary.today),
   ]);
   const hasCrew = showAssignment(crew);
   // The owner's own route: visits assigned to them (and, working solo, every visit).
@@ -148,15 +138,30 @@ async function OwnerDashboard({
 
   return (
     <>
+      {/* Today's two buttons: put a customer in, or put work on the schedule. Everything else
+          is in its own section. */}
       <div className="pagehead">
         <div>
           <h1>Today</h1>
           <div className="meta">{formatLongDate(summary.today)}</div>
         </div>
+        <div className="head-actions">
+          <Link className="btn" href="/customers/new">
+            + Add customer
+          </Link>
+          <Link className="btn secondary" href="/schedule/new">
+            + Book a job
+          </Link>
+        </div>
       </div>
 
-      <LoggedNotice expenseId={loggedExpenseId} />
       <AutoRainNotices businessId={business.id} today={summary.today} />
+      {attention > 0 && (
+        <Notice tone="warn">
+          {attention} {attention === 1 ? "visit needs" : "visits need"} a look (overdue, rained out or couldn&apos;t be done).{" "}
+          <Link href="/schedule?view=list&filter=attention">Review</Link>
+        </Notice>
+      )}
       <WorkdayCard />
       {ownStops.length > 0 && (
         <section aria-label="Your route">
@@ -171,55 +176,6 @@ async function OwnerDashboard({
         whose="Business"
         weather={<WeatherCard area={area} business={business} today={summary.today} isOwner />}
       />
-
-      <div className="panel">
-        <div className="panel-head">
-          <h3>Quick actions</h3>
-        </div>
-        {/* Three rows: adding things, logging costs, and places to go. */}
-        <div className="panel-body quick-actions">
-          <div className="quick-row" role="group" aria-label="Add">
-            <Link className="btn secondary small" href="/customers/new">
-              + Add customer
-            </Link>
-            <Link className="btn secondary small" href="/schedule/new">
-              + Book a job
-            </Link>
-            <Link className="btn secondary small" href="/invoices/new">
-              + New invoice
-            </Link>
-          </div>
-          <div className="quick-row" role="group" aria-label="Log an expense">
-            {/* Keyed on the last logged expense so the quick-log forms close after saving. */}
-            <QuickLog
-              key={`fuel-${loggedExpenseId}`}
-              action={quickLogExpense.bind(null, "fuel")}
-              label="Log gas"
-              vendorPlaceholder="e.g. Speedway"
-            />
-            <QuickLog
-              key={`equipment-${loggedExpenseId}`}
-              action={quickLogExpense.bind(null, "equipment")}
-              label="Log equipment"
-              vendorPlaceholder="e.g. Home Depot"
-            />
-            <Link className="btn secondary small" href="/expenses/new">
-              + Other expense
-            </Link>
-          </div>
-          <div className="quick-row" role="group" aria-label="Go to">
-            <Link className="btn secondary small" href="/schedule?view=list&filter=attention">
-              Needs attention
-            </Link>
-            <Link className="btn secondary small" href="/weather/move">
-              Move a day&apos;s jobs (weather)
-            </Link>
-            <Link className="btn secondary small" href="/crew">
-              Manage crew
-            </Link>
-          </div>
-        </div>
-      </div>
 
       {/* Working solo, Your route above already lists today's jobs; this shows everyone's
           when there's a crew, or that nothing is booked. */}
@@ -321,24 +277,5 @@ async function CrewDashboard({
         </div>
       )}
     </>
-  );
-}
-
-// "Logged $62.40 for fuel (Speedway)." after a quick-log.
-async function LoggedNotice({ expenseId }: { expenseId?: string }) {
-  if (!expenseId || !/^[0-9a-f-]{36}$/.test(expenseId)) return null;
-  const supabase = await createClient();
-  const { data: expense } = await supabase
-    .from("expenses")
-    .select("id, amount, category, vendor, spent_on")
-    .eq("id", expenseId)
-    .maybeSingle();
-  if (!expense) return null;
-  return (
-    <Notice tone="success">
-      Logged {formatPrice(expense.amount)} for {EXPENSE_CATEGORY_LABELS[expense.category].toLowerCase()}
-      {expense.vendor && ` (${expense.vendor})`} on {formatShortDate(expense.spent_on)}.{" "}
-      <Link href={`/expenses/${expense.id}/edit`}>Edit</Link>
-    </Notice>
   );
 }

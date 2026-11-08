@@ -148,7 +148,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     question: "How do I add a customer?",
     answer: [
       "Customers → + Add customer. A name, phone or email is enough to save. Add the property address so they show up on routes.",
-      "Only tick \"Customer has opted in to SMS\" if they've agreed to get texts. The app never texts anyone who hasn't.",
+      "Only tick \"OK to text them\" if they've agreed to get texts. The app never texts anyone who hasn't.",
     ],
     for: OWNER,
   },

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { addDays, formatLongDate, formatShortDate, monthOf, nextWeekdayOnOrAfter, todayInTimeZone } from "../../src/lib/dates";
-import { addCustomer, bookService, listedDates, signUpBusiness } from "./helpers";
+import { addCustomer, bookService, listedDates, openMore, signUpBusiness } from "./helpers";
 
 // The business's time zone comes from the browser at signup; pin it so "today" is known.
 const TIME_ZONE = "America/New_York";
@@ -20,10 +20,11 @@ async function openFirstUpcomingVisit(page: Page) {
 }
 
 async function editVisit(page: Page, changes: { status?: string; date?: string; service?: string; price?: string }) {
+  await openMore(page);
   await page.getByRole("link", { name: "Edit" }).click();
   if (changes.status) await page.getByLabel("Status").selectOption(changes.status);
   if (changes.date) await page.getByLabel("Date").fill(changes.date);
-  if (changes.service) await page.getByLabel("Service").fill(changes.service);
+  if (changes.service) await page.getByLabel("Service", { exact: true }).fill(changes.service);
   if (changes.price) await page.getByLabel("Price ($)").fill(changes.price);
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Changes saved.")).toBeVisible();
@@ -40,7 +41,7 @@ test("booking a weekly service puts the next 6 visits on the schedule", async ({
   const firstTuesday = nextWeekdayOnOrAfter(today(), 2);
   await expect(page.getByLabel("First visit")).toHaveValue(firstTuesday);
 
-  await page.getByLabel("Service").fill("Mowing");
+  await page.getByLabel("Service", { exact: true }).fill("Mowing");
   await page.getByLabel("Price ($)").fill("65");
   await page.getByRole("button", { name: "Book 6 visits" }).click();
 
@@ -109,6 +110,7 @@ test("'Could not service' reschedules the visit to a new day", async ({ page }) 
   await bookService(page, { customerId, startDate: start });
   await openFirstUpcomingVisit(page);
 
+  await openMore(page);
   await page.getByRole("button", { name: "Could not service" }).click();
   await expect(page.getByText("Couldn't service this visit? Reschedule it or cancel it.")).toBeVisible();
   await expect(page.getByLabel("New date")).toHaveValue(addDays(start, 1));
@@ -139,6 +141,7 @@ test("'Could not service' can cancel the visit instead, and the next one is adde
   await bookService(page, { customerId, startDate: start });
   await openFirstUpcomingVisit(page);
 
+  await openMore(page);
   await page.getByRole("button", { name: "Could not service" }).click();
   await page.getByLabel("What happened? (optional)").fill("Customer asked to skip");
   await page.getByRole("button", { name: "Cancel visit" }).click();
@@ -147,6 +150,8 @@ test("'Could not service' can cancel the visit instead, and the next one is adde
   await expect(page.locator(".status-pill")).toHaveAttribute("data-status", "cancelled");
   await expect(page.getByText(`Couldn't service on ${formatShortDate(start)} (Customer asked to skip) — cancelled.`)).toBeVisible();
   // A closed visit offers no more "complete" / "could not service" actions.
+  await expect(page.getByRole("button", { name: "Mark completed" })).toHaveCount(0);
+  await openMore(page);
   await expect(page.getByRole("button", { name: "Could not service" })).toHaveCount(0);
 
   await page.goto("/schedule?view=list&filter=upcoming");
@@ -257,6 +262,7 @@ test("a visit can be edited and deleted", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mowing + edging for John Smith");
   await expect(page.locator("dl.details")).toContainText("$80.00");
 
+  await openMore(page);
   await page.getByRole("button", { name: "Delete" }).click();
   await expect(page.getByText(`Delete this Mowing + edging visit for John Smith on ${formatShortDate(addDays(start, 1))}?`)).toBeVisible();
   await page.getByRole("button", { name: "Yes, delete" }).click();
@@ -290,6 +296,7 @@ test("deleting a customer warns that their visits go too", async ({ page }) => {
   const customerId = await setUpCustomer(page, "Goodbye Lawns");
   await bookService(page, { customerId, startDate: addDays(today(), 1) });
   await page.goto(`/customers/${customerId}`);
+  await openMore(page);
   await page.getByRole("button", { name: "Delete" }).click();
   await expect(page.getByText(/This also permanently deletes their 6 visits and booked services/)).toBeVisible();
 });

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ConfirmButton } from "@/components/confirm-button";
+import { MoreMenu } from "@/components/more-menu";
 import { StatusPill } from "@/components/job-status";
 import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
@@ -73,8 +74,10 @@ export default async function JobPage(props: PageProps<"/schedule/jobs/[id]">) {
           </div>
         </div>
       </div>
+      {/* One main button (Mark completed while the visit is open); the rest under More. */}
       <div className="job-actions">
-          {open && <MarkCompleted action={markJobCompleted.bind(null, job.id)} />}
+        {open && <MarkCompleted action={markJobCompleted.bind(null, job.id)} />}
+        <MoreMenu defaultOpen={open && params.move === "1"}>
           {open && (
             <MoveVisit
               jobId={job.id}
@@ -92,9 +95,7 @@ export default async function JobPage(props: PageProps<"/schedule/jobs/[id]">) {
               today={today}
             />
           )}
-          <Link className="btn secondary small" href={`/schedule/jobs/${job.id}/edit`}>
-            Edit
-          </Link>
+          <Link href={`/schedule/jobs/${job.id}/edit`}>Edit</Link>
           <ConfirmButton
             action={deleteJob.bind(null, job.id)}
             label="Delete"
@@ -107,6 +108,7 @@ export default async function JobPage(props: PageProps<"/schedule/jobs/[id]">) {
               </>
             }
           />
+        </MoreMenu>
       </div>
 
       {typeof notice === "string" && NOTICES[notice] && <Notice tone="success">{NOTICES[notice]}</Notice>}

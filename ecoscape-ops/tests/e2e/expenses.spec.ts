@@ -1,7 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
 import { addDays, formatShortDate, monthOf, todayInTimeZone } from "../../src/lib/dates";
-import { PASSWORD, addCustomer, signUpBusiness, uniqueEmail } from "./helpers";
+import { addCustomer, chooseFrequency, PASSWORD, signUpBusiness, uniqueEmail } from "./helpers";
 
 const TIME_ZONE = "America/New_York";
 test.use({ timezoneId: TIME_ZONE });
@@ -13,22 +13,23 @@ const expenseRows = (page: Page) => page.locator(".expense-table tbody tr");
 async function bookToday(page: Page, price: string) {
   const customerId = await addCustomer(page, { firstName: "John", lastName: "Smith" });
   await page.goto(`/schedule/new?customer=${customerId}`);
-  await page.getByLabel("Service").fill("Mowing");
+  await page.getByLabel("Service", { exact: true }).fill("Mowing");
   await page.getByLabel("Price ($)").fill(price);
-  await page.getByLabel("How often").selectOption("One time");
+  await chooseFrequency(page, "One time");
   await page.getByLabel("Visit date").fill(today());
   await page.getByRole("button", { name: "Book visit" }).click();
   await expect(page.getByText(/booked for/)).toBeVisible();
 }
 
+// Gas and equipment are one tap on Expenses.
 async function quickLog(page: Page, label: "Log gas" | "Log equipment", amount: string, vendor?: string) {
-  await page.goto("/dashboard");
+  await page.goto("/expenses");
   await page.getByRole("button", { name: label }).click();
   const form = page.getByRole("form", { name: label });
   await form.getByLabel("Amount ($)").fill(amount);
   if (vendor) await form.getByLabel("Where (optional)").fill(vendor);
   await form.getByRole("button", { name: "Log it" }).click();
-  await expect(page).toHaveURL(/\/dashboard\?logged=/);
+  await expect(page).toHaveURL(/\/expenses\?logged=/);
 }
 
 async function addExpense(page: Page, e: { category: string; amount: string; vendor?: string; notes?: string; date?: string }) {
@@ -56,7 +57,7 @@ async function joinCrew(browser: Browser, owner: Page, name: string) {
   return crew;
 }
 
-test("quick-logging gas and equipment from the dashboard lowers this month's profit", async ({ page }) => {
+test("quick-logging gas and equipment on Expenses lowers this month's profit", async ({ page }) => {
   await signUpBusiness(page, "Quick Log Lawns");
   await bookToday(page, "300");
   await page.goto("/dashboard");
@@ -64,13 +65,15 @@ test("quick-logging gas and equipment from the dashboard lowers this month's pro
 
   await quickLog(page, "Log gas", "62.40", "Speedway");
   await expect(page.getByText(`Logged $62.40 for fuel (Speedway) on ${formatShortDate(today())}.`)).toBeVisible();
-  await expect(profit(page).locator(".big")).toHaveText("$237.60");
-  await expect(profit(page)).toContainText("revenue minus $62.40 in expenses this month");
   // The form closes after saving.
   await expect(page.getByRole("form", { name: "Log gas" })).toHaveCount(0);
+  await page.goto("/dashboard");
+  await expect(profit(page).locator(".big")).toHaveText("$237.60");
+  await expect(profit(page)).toContainText("revenue minus $62.40 in expenses this month");
 
   await quickLog(page, "Log equipment", "410");
   await expect(page.getByText(/Logged \$410\.00 for equipment on/)).toBeVisible();
+  await page.goto("/dashboard");
   await expect(profit(page).locator(".big")).toHaveText("-$172.40");
 
   await page.getByRole("link", { name: "$472.40 in expenses" }).click();
@@ -83,6 +86,7 @@ test("quick-logging gas and equipment from the dashboard lowers this month's pro
 
 test("quick-log checks the amount", async ({ page }) => {
   await signUpBusiness(page, "Careful Loggers");
+  await page.goto("/expenses");
   await page.getByRole("button", { name: "Log gas" }).click();
   const form = page.getByRole("form", { name: "Log gas" });
   await form.getByLabel("Where (optional)").fill("Shell");
@@ -93,7 +97,8 @@ test("quick-log checks the amount", async ({ page }) => {
 
 test("the full form logs any category, into the right month", async ({ page }) => {
   await signUpBusiness(page, "Ledger Lawns");
-  await page.locator(".quick-actions").getByRole("link", { name: "+ Other expense" }).click();
+  await page.goto("/expenses");
+  await page.getByRole("link", { name: "+ Add expense" }).click();
   await expect(page).toHaveURL(/\/expenses\/new$/);
   await expect(page.getByLabel("Category").locator("option")).toHaveText([
     "Fuel",

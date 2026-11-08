@@ -2,7 +2,7 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 
 import { addDays, monthOf, todayInTimeZone } from "../../src/lib/dates";
 import { formatPrice } from "../../src/lib/schedule/constants";
-import { PASSWORD, addCustomer, signUpBusiness, uniqueEmail } from "./helpers";
+import { addCustomer, chooseFrequency, type Frequency, openMore, PASSWORD, signUpBusiness, uniqueEmail } from "./helpers";
 
 const TIME_ZONE = "America/New_York";
 test.use({ timezoneId: TIME_ZONE });
@@ -18,9 +18,9 @@ async function book(
   b: { service?: string; price: string; frequency?: "Every week" | "One time"; date: string; assignee?: string },
 ) {
   await page.goto(`/schedule/new?customer=${customerId}`);
-  await page.getByLabel("Service").fill(b.service ?? "Mowing");
+  await page.getByLabel("Service", { exact: true }).fill(b.service ?? "Mowing");
   await page.getByLabel("Price ($)").fill(b.price);
-  await page.getByLabel("How often").selectOption(b.frequency ?? "One time");
+  await chooseFrequency(page, (b.frequency ?? "One time") as Frequency);
   await page.getByLabel(/First visit|Visit date/).fill(b.date);
   if (b.assignee) await page.getByLabel("Assign to").selectOption({ label: b.assignee });
   await page.getByRole("button", { name: /^Book/ }).click();
@@ -46,7 +46,7 @@ async function joinCrew(browser: Browser, inviteUrl: string) {
   return page;
 }
 
-test("a new business's dashboard starts at zero, with quick actions one tap away", async ({ page }) => {
+test("a new business's dashboard starts at zero, with its two buttons one tap away", async ({ page }) => {
   await signUpBusiness(page, "Fresh Start Lawns");
   await expect(card(page, "today").locator(".big")).toHaveText("0");
   await expect(card(page, "tomorrow").locator(".big")).toHaveText("0");
@@ -56,15 +56,17 @@ test("a new business's dashboard starts at zero, with quick actions one tap away
   await expect(card(page, "outstanding").locator(".big")).toHaveText("$0.00");
   await expect(card(page, "outstanding")).toContainText("nothing overdue");
 
-  const quick = page.locator(".quick-actions");
-  await quick.getByRole("link", { name: "+ Add customer" }).click();
+  // Today keeps just two buttons: put a customer in, or put work on the schedule.
+  const head = page.locator(".pagehead .head-actions");
+  await expect(head.getByRole("link")).toHaveText(["+ Add customer", "+ Book a job"]);
+  await head.getByRole("link", { name: "+ Add customer" }).click();
   await expect(page).toHaveURL(/\/customers\/new$/);
   await page.goto("/dashboard");
-  await quick.getByRole("link", { name: "+ Book a job" }).click();
+  await head.getByRole("link", { name: "+ Book a job" }).click();
   await expect(page).toHaveURL(/\/schedule\/new$/);
   await page.goto("/dashboard");
-  await quick.getByRole("link", { name: "Manage crew" }).click();
-  await expect(page).toHaveURL(/\/crew$/);
+  // Nothing needs a look yet.
+  await expect(page.getByRole("link", { name: "Review" })).toHaveCount(0);
 });
 
 test("counts and revenue follow what's booked, completed, and cancelled", async ({ page }) => {
@@ -110,6 +112,7 @@ test("counts and revenue follow what's booked, completed, and cancelled", async 
   // Mike's visit tomorrow is called off.
   await page.goto("/schedule?view=list&filter=upcoming");
   await page.getByRole("row", { name: /Mike Jones/ }).locator(".row-link").click();
+  await openMore(page);
   await page.getByRole("button", { name: "Could not service" }).click();
   await page.getByRole("button", { name: "Cancel visit" }).click();
   await expect(page.getByText("Visit cancelled.")).toBeVisible();

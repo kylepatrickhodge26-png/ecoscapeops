@@ -8,6 +8,9 @@ import { EXPENSE_CATEGORY_LABELS, type ExpenseCategory } from "@/lib/expenses/sc
 import { formatPrice } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
+import { quickLogExpense } from "./actions";
+import { QuickLog } from "./quick-log";
+
 export const metadata: Metadata = { title: "Expenses" };
 
 const NOTICES: Record<string, string> = {
@@ -19,6 +22,7 @@ const NOTICES: Record<string, string> = {
 export default async function ExpensesPage(props: PageProps<"/expenses">) {
   const { business } = await requireOwner();
   const params = await props.searchParams;
+  const logged = typeof params.logged === "string" ? params.logged : undefined;
   const today = todayInTimeZone(business.time_zone);
   const month = isISOMonth(params.month) ? params.month : monthOf(today);
   const monthEnd = addDays(`${addMonths(month, 1)}-01`, -1);
@@ -51,6 +55,19 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
         </Link>
       </div>
 
+      {/* One tap for the everyday costs: today's date, an amount, and where. Keyed on the last
+          logged expense so the forms close after saving. */}
+      <div className="quick-row" role="group" aria-label="Quick log">
+        <QuickLog key={`fuel-${logged}`} action={quickLogExpense.bind(null, "fuel")} label="Log gas" vendorPlaceholder="e.g. Speedway" />
+        <QuickLog
+          key={`equipment-${logged}`}
+          action={quickLogExpense.bind(null, "equipment")}
+          label="Log equipment"
+          vendorPlaceholder="e.g. Home Depot"
+        />
+      </div>
+
+      <LoggedNotice expenseId={logged} />
       {typeof params.notice === "string" && NOTICES[params.notice] && (
         <Notice tone="success">{NOTICES[params.notice]}</Notice>
       )}
@@ -143,5 +160,24 @@ export default async function ExpensesPage(props: PageProps<"/expenses">) {
         </div>
       </div>
     </>
+  );
+}
+
+// "Logged $62.40 for fuel (Speedway)." after a quick log.
+async function LoggedNotice({ expenseId }: { expenseId?: string }) {
+  if (!expenseId || !/^[0-9a-f-]{36}$/.test(expenseId)) return null;
+  const supabase = await createClient();
+  const { data: expense } = await supabase
+    .from("expenses")
+    .select("id, amount, category, vendor, spent_on")
+    .eq("id", expenseId)
+    .maybeSingle();
+  if (!expense) return null;
+  return (
+    <Notice tone="success">
+      Logged {formatPrice(expense.amount)} for {EXPENSE_CATEGORY_LABELS[expense.category].toLowerCase()}
+      {expense.vendor && ` (${expense.vendor})`} on {formatShortDate(expense.spent_on)}.{" "}
+      <Link href={`/expenses/${expense.id}/edit`}>Edit</Link>
+    </Notice>
   );
 }

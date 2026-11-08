@@ -2,12 +2,14 @@ import "server-only";
 
 import { z } from "zod";
 
+import { APP_NAME } from "@/lib/brand";
+
 import type { GeoMatch } from "./locate";
 
 // The U.S. Census Bureau's geocoder: free, no account or key, US addresses only.
 // https://geocoding.geo.census.gov/geocoder/
 
-const USER_AGENT = "EcoScape Ops (github.com/kylepatrickhodge26-png/ecoscapeops)";
+const USER_AGENT = `${APP_NAME} (github.com/kylepatrickhodge26-png/ecoscapeops)`;
 
 // CENSUS_GEOCODER_URL is only for tests.
 const baseUrl = () => process.env.CENSUS_GEOCODER_URL || "https://geocoding.geo.census.gov";

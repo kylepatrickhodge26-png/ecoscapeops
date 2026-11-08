@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 
-import type { QuickLogState } from "../expenses/actions";
+import type { QuickLogState } from "./actions";
 
 // One-tap expense logging from the dashboard: today's date, an amount, optionally where.
 export function QuickLog({

@@ -28,7 +28,8 @@ async function addCustomer(page: Page, c: TextCustomer) {
   await page.getByLabel("First name").fill(c.firstName);
   await page.getByLabel("Last name").fill(c.lastName);
   if (c.phone) await page.getByLabel("Phone").fill(c.phone);
-  if (c.optIn) await page.getByLabel("Customer has opted in to SMS").check();
+  if (c.optIn) await page.getByLabel("OK to text them").check();
+  await page.getByLabel("Not yet").check();
   await page.getByRole("button", { name: "Add customer" }).click();
   await expect(page.getByText("Customer added.")).toBeVisible();
   return new URL(page.url()).pathname.split("/")[2];
@@ -284,7 +285,7 @@ test("turning off a customer's text opt-in takes away their text", async ({ page
 
   // e.g. after they reply STOP
   await page.goto(`/customers/${customer}/edit`);
-  await page.getByLabel("Customer has opted in to SMS").uncheck();
+  await page.getByLabel("OK to text them").uncheck();
   await page.getByRole("button", { name: /^Save/ }).click();
   await expect(page).toHaveURL(new RegExp(`/customers/${customer}`));
 

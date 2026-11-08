@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { addCustomer, signUpBusiness } from "./helpers";
+import { addCustomer, openMore, openMoreDetails, signUpBusiness } from "./helpers";
 
 test("an owner can add, view, edit, and delete a customer", async ({ page }) => {
   await signUpBusiness(page, "Full Cycle Landscaping");
@@ -12,13 +12,15 @@ test("an owner can add, view, edit, and delete a customer", async ({ page }) => 
   await page.getByLabel("Phone").fill("(631) 555-0142");
   await page.getByLabel("Email").fill("jsmith@example.com");
   await page.getByLabel("Property address").fill("123 Example Street, Lake Ronkonkoma, NY");
+  await page.getByLabel("Not yet").check();
+  await openMoreDetails(page);
   await page.getByLabel("Billing address").fill("PO Box 12, Ronkonkoma, NY");
   await page.getByLabel("Gate / access instructions").fill("Side gate, code 4471");
   await page.getByLabel("Service notes").fill("Dog in backyard on weekends — call ahead.");
   await page.getByLabel("Preferred day").selectOption("Tuesday");
   await page.getByLabel("Notification preference").selectOption("Email");
   await page.getByLabel("Customer since").fill("2026-04-01");
-  await page.getByLabel("Customer has opted in to SMS").check();
+  await page.getByLabel("OK to text them").check();
   await page.getByRole("button", { name: "Add customer" }).click();
 
   // Detail page shows everything that was entered.
@@ -47,20 +49,22 @@ test("an owner can add, view, edit, and delete a customer", async ({ page }) => 
 
   // Edit: the form is pre-filled with the saved values.
   await row.getByRole("link", { name: "John Smith" }).click();
-  await page.getByRole("link", { name: "Edit" }).click();
+  await openMore(page);
+  await page.getByRole("link", { name: "Edit details" }).click();
   await expect(page.getByLabel("First name")).toHaveValue("John");
   await expect(page.getByLabel("Preferred day")).toHaveValue("tuesday");
-  await expect(page.getByLabel("Customer has opted in to SMS")).toBeChecked();
+  await expect(page.getByLabel("OK to text them")).toBeChecked();
   await page.getByLabel("Last name").fill("Smithson");
   await page.getByLabel("Status").selectOption("Inactive");
-  await page.getByLabel("Customer has opted in to SMS").uncheck();
+  await page.getByLabel("OK to text them").uncheck();
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Changes saved.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "John Smithson" })).toBeVisible();
   await expect(detail("Status")).toHaveText("inactive");
   await expect(detail("SMS opt-in")).toHaveText("No");
 
-  // Delete, with a confirmation step that can be cancelled.
+  // Delete (under More), with a confirmation step that can be cancelled.
+  await openMore(page);
   await page.getByRole("button", { name: "Delete" }).click();
   await expect(page.getByText("Delete John Smithson? This can't be undone.")).toBeVisible();
   await page.getByRole("button", { name: "Cancel" }).click();
@@ -74,15 +78,17 @@ test("an owner can add, view, edit, and delete a customer", async ({ page }) => 
 test("the form explains what's wrong and keeps what was typed", async ({ page }) => {
   await signUpBusiness(page, "Picky Forms Inc");
   await page.goto("/customers/new");
+  await page.getByLabel("Not yet").check();
 
   await page.getByRole("button", { name: "Add customer" }).click();
   await expect(page.getByText("Enter at least a name, phone number, or email")).toBeVisible();
 
   await page.getByLabel("First name").fill("Dana");
   await page.getByLabel("Email").fill("not-an-email");
+  await openMoreDetails(page);
   await page.getByLabel("Service notes").fill("Prefers morning service.");
   await page.getByLabel("Preferred day").selectOption("Saturday");
-  await page.getByLabel("Customer has opted in to SMS").check();
+  await page.getByLabel("OK to text them").check();
   await page.getByRole("button", { name: "Add customer" }).click();
 
   await expect(page.getByText("Enter a valid email address")).toBeVisible();
@@ -91,7 +97,7 @@ test("the form explains what's wrong and keeps what was typed", async ({ page })
   await expect(page.getByLabel("Email")).toHaveValue("not-an-email");
   await expect(page.getByLabel("Service notes")).toHaveValue("Prefers morning service.");
   await expect(page.getByLabel("Preferred day")).toHaveValue("saturday");
-  await expect(page.getByLabel("Customer has opted in to SMS")).toBeChecked();
+  await expect(page.getByLabel("OK to text them")).toBeChecked();
 
   await page.getByLabel("Email").fill("dreyes@example.com");
   await page.getByRole("button", { name: "Add customer" }).click();
@@ -106,6 +112,7 @@ test("adding a customer whose phone number is already on file asks first", async
   await page.getByLabel("First name").fill("Michael");
   await page.getByLabel("Last name").fill("Jones");
   await page.getByLabel("Phone").fill("631.555.0198");
+  await page.getByLabel("Not yet").check();
   await page.getByRole("button", { name: "Add customer" }).click();
   await expect(
     page.getByRole("alert").filter({
