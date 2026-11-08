@@ -385,9 +385,10 @@ main {
   background: var(--line);
 }
 /* On the visit, quote and invoice pages the button sits at the left edge of the page, so its
-   drop-down opens rightwards. Anchored to its right edge it would run over the sidebar. */
+   drop-down opens rightwards (as does the request link's). Anchored to its right edge it would run over the sidebar. */
 @media (min-width: 901px) {
-  .job-actions .more-menu-panel {
+  .job-actions .more-menu-panel,
+  .share-link + .head-actions .more-menu-panel {
     right: auto;
     left: 0;
   }
