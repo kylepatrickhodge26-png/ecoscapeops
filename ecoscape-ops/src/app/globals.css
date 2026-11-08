@@ -384,6 +384,14 @@ main {
   margin: 4px 6px;
   background: var(--line);
 }
+/* On the visit, quote and invoice pages the button sits at the left edge of the page, so its
+   drop-down opens rightwards. Anchored to its right edge it would run over the sidebar. */
+@media (min-width: 901px) {
+  .job-actions .more-menu-panel {
+    right: auto;
+    left: 0;
+  }
+}
 @media (max-width: 900px) {
   .more-menu-backdrop {
     display: block;

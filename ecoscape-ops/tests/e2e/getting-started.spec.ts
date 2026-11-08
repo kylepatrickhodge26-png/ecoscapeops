@@ -76,7 +76,8 @@ test("a list of customers can be pasted in all at once, and importing it again a
   await signUpBusiness(page, "Import Lawns");
   await page.goto("/customers");
   await openMore(page);
-  await page.getByRole("link", { name: "Import a list" }).click();
+  // With no customers yet the page also offers Import a list in the middle: use the one under More.
+  await page.getByRole("group", { name: "More actions" }).getByRole("link", { name: "Import a list" }).click();
   await expect(page).toHaveURL(/\/customers\/import$/);
 
   const list = [

@@ -49,6 +49,8 @@ test("an owner can add, view, edit, and delete a customer", async ({ page }) => 
 
   // Edit: the form is pre-filled with the saved values.
   await row.getByRole("link", { name: "John Smith" }).click();
+  // Both the list and the customer page have a More button: wait for the customer page first.
+  await expect(page.getByRole("heading", { name: "John Smith" })).toBeVisible();
   await openMore(page);
   await page.getByRole("link", { name: "Edit details" }).click();
   await expect(page.getByLabel("First name")).toHaveValue("John");

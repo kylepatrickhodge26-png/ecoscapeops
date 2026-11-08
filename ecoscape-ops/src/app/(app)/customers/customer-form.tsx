@@ -106,7 +106,7 @@ export function CustomerForm({ action, initialValues, submitLabel, cancelHref, b
           {state.error}
         </div>
       )}
-      {Object.keys(errors).length > 0 && (
+      {(Object.keys(errors).length > 0 || Object.keys(serviceErrors).length > 0) && (
         <div className="notice error" role="alert">
           Please fix the highlighted fields.
         </div>
