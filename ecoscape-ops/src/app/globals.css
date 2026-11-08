@@ -461,6 +461,10 @@ main {
 .panel-body.flush {
   padding: 0;
 }
+/* A panel that holds a More menu must not clip its drop-down (the sideways scroll above would). */
+.panel-body:has(.more-menu) {
+  overflow: visible;
+}
 
 table {
   width: 100%;
