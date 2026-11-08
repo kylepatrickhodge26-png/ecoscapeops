@@ -109,7 +109,8 @@ test("a list of customers can be pasted in all at once, and importing it again a
   await page.goto("/customers/import");
   await page.getByLabel("Paste your list").fill(list);
   await page.getByRole("button", { name: "Add 2 customers" }).click();
-  await expect(page.getByRole("alert")).toHaveText("Everyone on that list is already in your customers.");
+  // (Next.js keeps its own hidden role="alert" route announcer, so look for the notice itself.)
+  await expect(page.locator(".notice.error")).toHaveText("Everyone on that list is already in your customers.");
   await page.goto("/customers");
   await expect(page.locator("tbody tr")).toHaveCount(2);
 });
