@@ -1,4 +1,6 @@
-# EcoScape Ops
+# Groundcrew (EcoScape Ops)
+
+Groundcrew is the app's name on screen (set in `src/lib/brand.ts`); the project and folder are still called EcoScape Ops.
 
 Multi-tenant operations app for landscaping businesses: Next.js (App Router) on Supabase (Postgres, Auth, row-level security).
 
@@ -68,7 +70,7 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 - **Revenue (owners only).** The headline is every non-cancelled visit booked this month at its price, completed or not. Most small operators don't invoice every visit, so counting only invoiced-and-paid money would understate it, which was the prototype's original mistake. A second line shows how much of that is already completed.
 - **Estimated profit (owners only)** is this month's revenue (as above) minus this month's logged expenses.
 - **Invoice totals:** *Outstanding* (owed on sent invoices, with how much is overdue) and money *collected this month*; see Invoicing decisions for how invoiced visits count toward revenue.
-- **Quick actions (owners)**, in three rows: add a customer, book a job or start an invoice; **log gas**, **log equipment** or any other expense; and go to what needs attention, moving a day's jobs for the weather, or the crew.
+- **Quick actions (owners):** just two buttons in the header, **+ Add customer** and **+ Book a job**. Everything else lives in its own section (see *Groundcrew redesign decisions*).
 - **Today's jobs:** working solo, the owner's *route* is the day's list (it isn't repeated in a table below). With a crew, *Everyone's jobs today* lists the whole business's day under the owner's own route. The money cards are at the bottom of the page. Crew members get only their own route (see *Today and the clock*), and never see prices or money totals.
 - All the numbers come from one database function, `dashboard_summary()`, which scopes by role. A crew member's numbers can't include anyone else's jobs, and money totals are never sent to crew at all.
 
@@ -77,7 +79,7 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 - **Owner only.** Crew members can't see, log, change or delete expenses, and neither can anyone outside the business. The database enforces this.
 - **Fields** follow the prototype: date, category, amount, vendor (optional) and notes (optional).
 - **Categories:** fuel, equipment, repairs, materials, fertilizer, mulch, payroll, insurance, advertising, vehicle, other.
-- **Quick-log on the dashboard.** *Log gas* and *Log equipment* open a small form right on the dashboard: amount, plus where it was bought if you like. The expense is logged for today. *+ Other expense* opens the full form.
+- **Quick-log on the Expenses page.** *Log gas* and *Log equipment* open a small form at the top of Expenses: amount, plus where it was bought if you like. The expense is logged for today. *+ Add expense* opens the full form. (They used to be on Today.)
 - **Expenses page:** one month at a time, with that month's total, totals by category, and every entry. Entries can be edited and deleted.
 - **Dashboard profit:** this month's booked revenue minus this month's expenses, in the business's time zone.
 - Each expense records who logged it; that can't be faked or changed.
@@ -231,6 +233,22 @@ Scheduling follows the prototype's Schedule screen, since `SPEC.md` isn't in the
 - **Most-used first on long pages.** A customer's page opens with their services and visits, then their invoices; their details, account invite and photos follow. The Invoices page lists the invoices right under the totals, with the monthly run and the payment setup below the list. On a phone each invoice is a card (number, customer and status, then the due date and the balance) instead of a table that scrolls sideways; a cancelled invoice shows no balance.
 - **The app's name lives in one file**, `src/lib/brand.ts` (`APP_NAME`, `APP_SHORT_NAME` for under the phone icon, `APP_TAGLINE`). Page titles, sign-in screens, the installed-app name and invite messages all use it.
 
+## Groundcrew redesign decisions (simpler app)
+
+- **Name and look.** The app is called **Groundcrew** everywhere its name shows (`src/lib/brand.ts`, the installed-app name, the weather and address services' User-Agent), with lime-leaf icons. Colors are deep green bars, lime main buttons and white screens, with a matching dark mode; the color tokens are at the top of `src/app/globals.css`.
+- **One main button per screen, the rest under More.** `src/components/more-menu.tsx` drops down on a computer and slides up from the bottom on a phone, and closes after you pick something.
+  - *Customer:* main button **+ Book a service** (or **Start again**). Under More: Edit details, + New invoice, Done for the season, Delete.
+  - *Visit:* main button **Mark completed**. Under More: Move, Could not service, Edit, Delete.
+  - *Invoice:* Edit, Delete draft and Cancel invoice are under More. *Quote:* Edit, Print, Copy to a new draft, Delete draft and They said no are under More.
+  - *Requests:* main button **Add customer + book**. Under More: + quote, Add customer only, Dismiss; for the request link, Turn off and New link.
+  - *Crew:* Rename and Remove are under More. *Customers list:* no View buttons (tap the row); **Import a list** is under More.
+- **Today has two buttons:** **+ Add customer** and **+ Book a job**, in the header. A short note appears when visits need a look. The **Log gas** and **Log equipment** quick logs moved to **Money → Expenses** (logging one returns to `/expenses?logged=`).
+- **Adding a customer is one step.** The same form takes the customer and their work: **Repeat service** (like weekly mowing), **One-time job** (like a patio) or **Not yet**. The less-used fields fold under *More details*. It shares `schedule/service-fields.tsx` with Book a job; the rules are in `src/lib/schedule/service.ts`. The customer and the work are checked together before anything is saved, so you never get a customer without the work you typed. For a repeat service, the customer's preferred day follows the first visit's day.
+- **Import a list** (Customers → More → Import a list, `customers/import`): paste rows from a spreadsheet or pick a CSV. Tab or comma separators, quoted cells, a header row, column guessing (with a column picker you can change), splitting "Full name" into first and last, 500 rows at a time, and length limits on every field (`src/lib/customers/import.ts`). A preview shows what will be added. **Duplicates are skipped** (same phone, or same name and address), and rows that can't be used are left out and listed. Every imported customer belongs to the importing owner's business only.
+- **Addresses from an import** are looked up while the Customers page is open (`LocateProgress`). There is no scheduled job or paid cron; if the page is closed, the lookups wait until it's opened again.
+- **Quote "They said yes"** keeps its own form: it already offers *One time* in its *How often* choice, and the price is the quote's total, so it doesn't use the shared service fields.
+- **No database changes** came with this redesign.
+
 ## Rain days, handled for you
 
 - **Work hours** (*Weather → Work hours & rain days*, default 8am–4pm, on the quarter hour between 4am and 10pm). Rain only counts when it's during them.
@@ -331,6 +349,8 @@ src/
   lib/supabase/               server client, proxy helper, generated DB types
   lib/auth.ts                 getUser / requireMembership / requireOwner
   lib/customers/schema.ts     customer fields, validation, labels
+  lib/customers/import.ts     parsing a pasted or CSV customer list
+  components/more-menu.tsx    the More menu (drop-down on a computer, bottom sheet on a phone)
   lib/schedule/               statuses, frequencies, filters, booking/visit validation
   lib/expenses/               expense categories and validation
   lib/weather/                forecast parsing and rain risk, hourly rain during work hours, NWS client, ZIP lookup
@@ -345,11 +365,11 @@ src/
   app/auth/confirm/           email confirmation landing route
   app/onboarding/             fallback "name your business" step
   app/(app)/                  signed-in shell (sidebar)
-  app/(app)/customers/        list, new, [id], [id]/edit, server actions
+  app/(app)/customers/        list, new (customer + their work in one step), import, [id], [id]/edit, server actions
   app/(app)/schedule/         calendar/list, new booking, day/[date], jobs/[id], server actions
-  app/(app)/dashboard/        Today (home): your clock and route, crew right now, counts, quick actions, money
+  app/(app)/dashboard/        Today (home): your clock and route, crew right now, counts, + Add customer and + Book a job
   app/(app)/time-clock/       workday clock and one-tap job clock (buttons, live timer, actions)
-  app/(app)/expenses/         expense log by month, add/edit/delete (owner)
+  app/(app)/expenses/         expense log by month, Log gas / Log equipment quick logs, add/edit/delete (owner)
   app/(app)/weather/          forecast, service area, work hours, move a day, the automatic rain check, rain delays, texts and undo (owner)
   lib/quotes/                 quote statuses, validation, plain-text quote
   app/(app)/quotes/           quote list, new/edit, quote page: send, accept, decline (owner)
