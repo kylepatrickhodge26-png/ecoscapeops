@@ -1,0 +1,9 @@
+
+> ecoscape-ops@0.1.0 start
+> next start --port 3000
+
+▲ Next.js 16.3.6
+- Local:         http://localhost:3000
+- Network:       http://10.1.0.157:3000
+✓ Ready in 89ms
+✓ Running next.config.ts took 29ms
