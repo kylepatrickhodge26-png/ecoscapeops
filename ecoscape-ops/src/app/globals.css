@@ -3301,12 +3301,3 @@ td:first-child {
 .route-pin.done {
   opacity: 0.5;
 }
-.crew-all-jobs {
-  margin: 14px 0 0;
-  font-size: 14px;
-  color: var(--ink-soft);
-}
-.crew-all-jobs a {
-  font-weight: 600;
-  color: var(--moss-700);
-}

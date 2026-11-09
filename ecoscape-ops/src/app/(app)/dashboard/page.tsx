@@ -275,9 +275,6 @@ async function CrewDashboard({
       </div>
       <WorkdayCard />
       <TodayRoute stops={stops} clock={clock} emptyText="Nothing is assigned to you today." showPhone={false} />
-      <p className="crew-all-jobs">
-        <Link href="/my-jobs">My jobs</Link> · coming up and past visits
-      </p>
       {area && (
         <div className="grid today-weather">
           <WeatherCard area={area} business={business} today={summary.today} isOwner={false} />

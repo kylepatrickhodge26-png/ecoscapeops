@@ -36,9 +36,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </div>
         {role === "owner" && <SearchBox />}
-        {/* Owners get three tabs; money, crew and settings live behind Menu. Crew get no tab bar:
-            Today is their whole app, with a link to all their jobs. */}
-        {role === "owner" && <NavLinks sections={sections.filter((s) => TAB_KEYS.includes(s.key))} />}
+        {/* Owners get three tabs; money, crew and settings live behind Menu. Crew keep Today and My jobs. */}
+        <NavLinks sections={role === "owner" ? sections.filter((s) => TAB_KEYS.includes(s.key)) : sections} />
         <div className="sidebar-foot">
           <div className="signed-in-as" title={user.email}>
             {user.email}
