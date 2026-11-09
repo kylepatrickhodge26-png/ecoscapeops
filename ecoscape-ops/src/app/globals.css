@@ -3301,3 +3301,117 @@ td:first-child {
 .route-pin.done {
   opacity: 0.5;
 }
+
+/* ---------- Schedule: the days list ---------- */
+.sched-days {
+  display: grid;
+  gap: 18px;
+  max-width: 720px;
+}
+.sched-attention {
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px;
+  min-height: 56px;
+  border-radius: 14px;
+  background: var(--clay-soft);
+  border: 1px solid var(--clay);
+  color: var(--ink);
+  text-decoration: none;
+}
+.sched-attention span {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.sched-day h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 0 0 6px;
+  font-family: var(--font-display), serif;
+  font-size: 20px;
+}
+.sched-date {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+.sched-count {
+  margin-left: auto;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+.sched-day ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.sched-job {
+  display: flex;
+  align-items: stretch;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.sched-job-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  align-content: center;
+  padding: 12px 14px;
+  min-height: 64px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.sched-job-main b {
+  font-size: 16px;
+}
+.sched-job-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px 8px 0;
+}
+.sched-move {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 64px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  color: var(--accent-strong);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+}
+.sched-more {
+  display: flex;
+  gap: 18px;
+  margin: 0;
+  font-size: 14px;
+}
+.sched-more a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+/* On a phone, Days is the one view; the switch and the month link stay on computers. */
+@media (max-width: 900px) {
+  .sched-switch,
+  .sched-more-cal {
+    display: none;
+  }
+}
