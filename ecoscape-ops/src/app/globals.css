@@ -7,20 +7,20 @@
   --bar-ink: #eaf6e3;
   --bar-soft: #c9dccf;
   --bar-muted: #9fbcab;
-  --accent: #84cc16;
-  --accent-strong: #65a30d;
-  --accent-ink: #10241b;
+  --accent: #2e6b3a;
+  --accent-strong: #245a2f;
+  --accent-ink: #ffffff;
   --moss-900: #0e3b2c;
   --moss-800: #145040;
   --moss-700: #1b6a4f;
   --moss-600: #2e7d5b;
   --sage: #84cc16;
-  --paper: #f6f8f4;
-  --paper-2: #edf2ea;
-  --ink: #10241b;
-  --ink-soft: #55655c;
-  --line: #dfe6dc;
-  --line-strong: #c6d1c2;
+  --paper: #f4f1ea;
+  --paper-2: #ebe6da;
+  --ink: #1a1d19;
+  --ink-soft: #565a54;
+  --line: #ddd8cc;
+  --line-strong: #cbc5b5;
   --sky: #0e7490;
   --sky-soft: #dff3f8;
   /* Rain likely during work hours: marks, notices. */
@@ -40,6 +40,9 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    --accent: #6fbf80;
+    --accent-strong: #5aae6c;
+    --accent-ink: #0a1a10;
     --bar: #0a2a1f;
     --bar-2: #113a2c;
     --moss-900: #0a2a1f;
@@ -66,6 +69,9 @@
   }
 }
 :root[data-theme="dark"] {
+  --accent: #6fbf80;
+  --accent-strong: #5aae6c;
+  --accent-ink: #0a1a10;
   --bar: #0a2a1f;
   --bar-2: #113a2c;
   --moss-900: #0a2a1f;
@@ -3252,4 +3258,55 @@ td:first-child {
   flex-direction: column;
   gap: 4px;
   margin: 0;
+}
+
+/* ---------- Route map on Today ---------- */
+.route-map {
+  height: 240px;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--paper-2);
+  z-index: 0;
+}
+@media (min-width: 901px) {
+  .route-map {
+    height: 320px;
+  }
+}
+.route-pin-wrap {
+  background: none;
+  border: none;
+}
+.route-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #10241b;
+  color: #fff;
+  font: 600 13px/1 var(--font-body), system-ui, sans-serif;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.route-pin.next {
+  background: #2e6b3a;
+  width: 34px;
+  height: 34px;
+  margin: -2px;
+}
+.route-pin.done {
+  opacity: 0.5;
+}
+.crew-all-jobs {
+  margin: 14px 0 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.crew-all-jobs a {
+  font-weight: 600;
+  color: var(--moss-700);
 }

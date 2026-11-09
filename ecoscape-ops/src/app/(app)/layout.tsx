@@ -11,6 +11,9 @@ import { NavLinks, SectionLinks } from "./nav-links";
 import { RainCheck } from "./rain-check";
 import { SearchBox } from "./search-box";
 
+// The only tabs: everything else is inside a job, a customer or the Menu.
+const TAB_KEYS: string[] = ["home", "schedule", "customers"];
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, business, role } = await requireMembership();
   let sections;
@@ -33,12 +36,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </div>
         {role === "owner" && <SearchBox />}
-        <NavLinks sections={sections} />
+        {/* Owners get three tabs; money, crew and settings live behind Menu. Crew get no tab bar:
+            Today is their whole app, with a link to all their jobs. */}
+        {role === "owner" && <NavLinks sections={sections.filter((s) => TAB_KEYS.includes(s.key))} />}
         <div className="sidebar-foot">
           <div className="signed-in-as" title={user.email}>
             {user.email}
           </div>
           <div className="sidebar-actions">
+            {role === "owner" && (
+              <Link href="/more" className="linklike">
+                Menu
+              </Link>
+            )}
             <Link href="/help" className="linklike">
               Help
             </Link>

@@ -133,6 +133,8 @@ async function OwnerDashboard({
     address: j.customer.property_address,
     access: j.customer.access_instructions,
     customerNotes: j.customer.service_notes,
+    lat: j.customer.geo_lat,
+    lon: j.customer.geo_lon,
     href: `/schedule/jobs/${j.id}`,
   }));
 
@@ -258,6 +260,8 @@ async function CrewDashboard({
     address: j.property_address,
     access: j.access_instructions,
     customerNotes: j.service_notes,
+    lat: j.geo_lat,
+    lon: j.geo_lon,
     href: `/my-jobs#job-${j.id}`,
   }));
 
@@ -270,7 +274,10 @@ async function CrewDashboard({
         </div>
       </div>
       <WorkdayCard />
-      <TodayRoute stops={stops} clock={clock} emptyText="Nothing is assigned to you today." />
+      <TodayRoute stops={stops} clock={clock} emptyText="Nothing is assigned to you today." showPhone={false} />
+      <p className="crew-all-jobs">
+        <Link href="/my-jobs">My jobs</Link> · coming up and past visits
+      </p>
       {area && (
         <div className="grid today-weather">
           <WeatherCard area={area} business={business} today={summary.today} isOwner={false} />
