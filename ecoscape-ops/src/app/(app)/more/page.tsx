@@ -19,6 +19,7 @@ export default async function MorePage() {
       </div>
       <HubTiles
         tiles={[
+          { href: "/money", title: "Money", text: "Quotes, invoices, expenses and reports." },
           { href: "/crew", title: "Crew", text: "Add the people who work with you and give them their own login." },
           { href: "/time", title: "Time", text: "Hours on each job, and which work pays best per hour." },
           { href: "/settings", title: "Settings", text: "Shop address, work hours, checklists, photo storage and your customer FAQ." },

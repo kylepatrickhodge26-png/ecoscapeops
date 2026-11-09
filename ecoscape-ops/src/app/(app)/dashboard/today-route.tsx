@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { RouteMap } from "@/components/route/route-map";
 import { StatusPill } from "@/components/job-status";
 import { directionsLink } from "@/lib/maps";
 import { isClosed, type JobStatus } from "@/lib/schedule/constants";
@@ -17,6 +18,9 @@ export type TodayStop = {
   address: string;
   access: string;
   customerNotes: string;
+  // Where the visit is, when it has been looked up (for the map).
+  lat?: number | null;
+  lon?: number | null;
   // Where to see everything about the visit (checklist, photos, notes).
   href: string;
 };
@@ -28,12 +32,15 @@ export function TodayRoute({
   clock,
   emptyText,
   canMove = false,
+  showPhone = true,
 }: {
   stops: TodayStop[];
   clock: MyClock;
   emptyText: string;
   // The owner can move a stop to another day; crew can't (they use Could not service).
   canMove?: boolean;
+  // Crew don't get customers' phone numbers, only the address and notes.
+  showPhone?: boolean;
 }) {
   const moveLink = (s: TodayStop) =>
     canMove && s.id !== clock.jobId && (s.status === "scheduled" || s.status === "assigned" || s.status === "weather_delay") ? (
@@ -61,6 +68,14 @@ export function TodayRoute({
 
   return (
     <div className="today-route" data-testid="today-route">
+      <RouteMap
+        label="Today's route on a map"
+        stops={stops.flatMap((s) =>
+          s.lat != null && s.lon != null
+            ? [{ n: position(s), name: s.customerName, lat: s.lat, lon: s.lon, done: isClosed(s.status), next: s === focus }]
+            : [],
+        )}
+      />
       {focus ? (
         <section className={`now-card${current ? " on" : ""}`} aria-label={current ? "Now" : "Next up"} data-today-stop={focus.id}>
           <div className="now-label">
@@ -74,7 +89,7 @@ export function TodayRoute({
           )}
           <div className="now-service">
             {focus.service}
-            {focus.phone && (
+            {showPhone && focus.phone && (
               <>
                 {" · "}
                 <a href={`tel:${focus.phone.replace(/[^\d+]/g, "")}`}>Call</a>

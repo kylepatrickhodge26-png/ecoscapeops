@@ -127,7 +127,7 @@ test("the owner clocks into their own jobs from Today too", async ({ page }) => 
 test("Today is the first tab, and everything else is one tap away", async ({ page, browser }) => {
   await signUpBusiness(page, "Menu Lawns");
   const nav = page.getByRole("navigation", { name: "Main" });
-  await expect(nav.getByRole("link")).toHaveText(["Today", "Schedule", "Customers", "Money", "More"]);
+  await expect(nav.getByRole("link")).toHaveText(["Today", "Schedule", "Customers"]);
   await expect(nav.getByRole("link", { name: "Today" })).toHaveAttribute("aria-current", "page");
   const maria = await joinCrew(browser, await addCrewMember(page, "Maria"));
   await expect(maria.getByRole("navigation", { name: "Main" }).getByRole("link")).toHaveText(["Today", "My jobs"]);
