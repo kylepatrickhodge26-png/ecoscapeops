@@ -2,8 +2,12 @@
 
 import { AssignToField } from "@/components/assign-to-field";
 import type { AssigneeOption } from "@/lib/crew";
+import { dayChoices } from "@/lib/schedule/move";
 import { FREQUENCY_LABELS, VISITS_AHEAD } from "@/lib/schedule/constants";
 import { REPEAT_FREQUENCIES, type ServiceField, type ServiceKind } from "@/lib/schedule/service";
+
+// Common jobs, offered as you type so a phone doesn't need much typing.
+const COMMON_SERVICES = ["Mowing", "Mow + edge", "Mow + trim", "Spring cleanup", "Fall cleanup", "Leaf removal", "Mulch", "Hedge trimming", "Weeding"];
 
 // The work to book: a repeat service (like weekly mowing) or a one-time job (like a patio).
 // Used by Book a job and by Add customer, which can book their work in the same step.
@@ -80,7 +84,14 @@ export function ServiceFields({
                 defaultValue={defaults.service_name}
                 placeholder={kind === "repeat" ? "Mowing" : "Paver patio"}
                 maxLength={100}
+                list="common-services"
+                autoComplete="off"
               />
+              <datalist id="common-services">
+                {COMMON_SERVICES.map((n) => (
+                  <option key={n} value={n} />
+                ))}
+              </datalist>
               {error("service_name")}
             </div>
             <div className="field">
@@ -108,6 +119,13 @@ export function ServiceFields({
             <div className="field">
               <label htmlFor="start_date">{kind === "one_time" ? "Visit date" : "First visit"}</label>
               <input {...field("start_date")} type="date" min={today} value={startDate} onChange={(e) => onStartDateChange(e.target.value)} />
+              <div className="day-chips" role="group" aria-label="Quick pick for the first visit">
+                {dayChoices(today, null, 5).map((c) => (
+                  <button key={c.date} type="button" className={`day-chip${c.date === startDate ? " on" : ""}`} aria-pressed={c.date === startDate} onClick={() => onStartDateChange(c.date)}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
               {error("start_date")}
             </div>
           </div>
