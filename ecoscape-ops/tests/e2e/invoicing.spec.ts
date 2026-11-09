@@ -3,7 +3,7 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 import { formatShortDate, todayInTimeZone } from "../../src/lib/dates";
 import { formatPrice } from "../../src/lib/schedule/constants";
 import { randomNumber } from "./fakes";
-import { PASSWORD, bookService, signUpBusiness, uniqueEmail } from "./helpers";
+import { bookService, openMore, PASSWORD, signUpBusiness, uniqueEmail } from "./helpers";
 
 const TIME_ZONE = "America/New_York";
 test.use({ timezoneId: TIME_ZONE });
@@ -17,7 +17,8 @@ async function addCustomer(page: Page, c: { firstName: string; lastName: string;
   await page.getByLabel("First name").fill(c.firstName);
   await page.getByLabel("Last name").fill(c.lastName);
   if (c.phone) await page.getByLabel("Phone").fill(c.phone);
-  if (c.optIn) await page.getByLabel("Customer has opted in to SMS").check();
+  if (c.optIn) await page.getByLabel("OK to text them").check();
+  await page.getByLabel("Not yet").check();
   await page.getByRole("button", { name: "Add customer" }).click();
   await expect(page.getByText("Customer added.")).toBeVisible();
   return new URL(page.url()).pathname.split("/")[2];
@@ -335,6 +336,7 @@ test("a pay link works only once the invoice is sent, and stops when it's cancel
   // No payment apps set up yet, so there's nothing to pay with.
   await expect(lee.getByText("To pay this invoice, please contact Link Lawns.")).toBeVisible();
 
+  await openMore(page);
   await page.getByRole("button", { name: "Cancel invoice" }).click();
   await page.getByRole("button", { name: "Yes, cancel it" }).click();
   await expect(page.getByText("Invoice cancelled.")).toBeVisible();

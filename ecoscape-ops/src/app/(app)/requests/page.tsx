@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 
 import { ConfirmButton } from "@/components/confirm-button";
+import { MoreMenu } from "@/components/more-menu";
 import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
 import { formatShortDate } from "@/lib/dates";
@@ -75,12 +76,23 @@ export default async function RequestsPage(props: PageProps<"/requests">) {
             <CopyButton text={url} label="Copy link" />
           </div>
           <div className="head-actions">
-            <form action={setRequestLink.bind(null, !enabled)}>
-              <button className={`btn small ${enabled ? "secondary" : ""}`} type="submit">
-                {enabled ? "Turn off" : "Turn on"}
-              </button>
-            </form>
-            <RegenerateButton />
+            {!enabled && (
+              <form action={setRequestLink.bind(null, true)}>
+                <button className="btn small" type="submit">
+                  Turn on
+                </button>
+              </form>
+            )}
+            <MoreMenu>
+              {enabled && (
+                <form action={setRequestLink.bind(null, false)} className="menu-form">
+                  <button className="btn small secondary" type="submit">
+                    Turn off
+                  </button>
+                </form>
+              )}
+              <RegenerateButton />
+            </MoreMenu>
           </div>
         </div>
       </div>
@@ -97,22 +109,29 @@ export default async function RequestsPage(props: PageProps<"/requests">) {
               {fresh.map((r) => (
                 <li key={r.id} data-request={r.name}>
                   <RequestBody r={r} date={day(r.created_at)} />
-                  <form action={convertRequest.bind(null, r.id)} className="head-actions">
-                    <button className="btn small" type="submit" name="next" value="quote">
-                      Add customer + quote
-                    </button>
-                    <button className="btn small secondary" type="submit" name="next" value="book">
-                      Add customer + book
-                    </button>
-                    <button className="btn small secondary" type="submit" name="next" value="customer">
-                      Add customer
-                    </button>
-                  </form>
-                  <form action={dismissRequest.bind(null, r.id)} className="head-actions">
-                    <button className="btn small secondary" type="submit">
-                      Dismiss
-                    </button>
-                  </form>
+                  {/* One main button; quoting first, adding only, or dismissing are under More. */}
+                  <div className="head-actions">
+                    <form action={convertRequest.bind(null, r.id)}>
+                      <button className="btn small" type="submit" name="next" value="book">
+                        Add customer + book
+                      </button>
+                    </form>
+                    <MoreMenu>
+                      <form action={convertRequest.bind(null, r.id)} className="menu-form">
+                        <button className="btn small secondary" type="submit" name="next" value="quote">
+                          Add customer + quote
+                        </button>
+                        <button className="btn small secondary" type="submit" name="next" value="customer">
+                          Add customer only
+                        </button>
+                      </form>
+                      <form action={dismissRequest.bind(null, r.id)} className="menu-form">
+                        <button className="btn small secondary" type="submit">
+                          Dismiss
+                        </button>
+                      </form>
+                    </MoreMenu>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -139,13 +158,15 @@ export default async function RequestsPage(props: PageProps<"/requests">) {
                         Open customer
                       </a>
                     )}
-                    <ConfirmButton
-                      action={deleteRequest.bind(null, r.id)}
-                      label="Delete"
-                      confirmLabel="Yes, delete"
-                      pendingLabel="Deleting…"
-                      confirmText={<>Delete the request from {r.name}? This can&apos;t be undone.</>}
-                    />
+                    <MoreMenu>
+                      <ConfirmButton
+                        action={deleteRequest.bind(null, r.id)}
+                        label="Delete"
+                        confirmLabel="Yes, delete"
+                        pendingLabel="Deleting…"
+                        confirmText={<>Delete the request from {r.name}? This can&apos;t be undone.</>}
+                      />
+                    </MoreMenu>
                   </div>
                 </li>
               ))}

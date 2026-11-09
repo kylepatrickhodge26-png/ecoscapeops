@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ActionButton } from "@/components/action-button";
 import { ConfirmButton } from "@/components/confirm-button";
 import { InvoiceStatusPill } from "@/components/invoice-status";
+import { MoreMenu } from "@/components/more-menu";
 import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
 import {
@@ -39,6 +40,8 @@ export const metadata: Metadata = { title: "Customer" };
 
 const NOTICES: Record<string, string> = {
   created: "Customer added.",
+  "created-booked": "Customer added, and their work is on the schedule.",
+  "created-not-booked": "Customer added, but we couldn't book their work.",
   updated: "Changes saved.",
   located: "Address looked up.",
   "access-removed": "Their account access was removed. Their login now shows nothing.",
@@ -124,11 +127,21 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
           {customer.property_address && <div className="meta">{customer.property_address}</div>}
           {contact && <div className="meta">{contact}</div>}
         </div>
+        {/* One main button: book them a service (or Start again when they're done for the season). */}
         <div className="head-actions">
           {inactive ? (
             <ActionButton action={startCustomerSeason.bind(null, customer.id)} label="Start again" pendingLabel="Starting…" />
           ) : (
-            <ConfirmButton
+            <Link className="btn small" href={`/schedule/new?customer=${customer.id}`}>
+              + Book a service
+            </Link>
+          )}
+          <MoreMenu>
+            {inactive && <Link href={`/schedule/new?customer=${customer.id}`}>+ Book a service</Link>}
+            <Link href={`/customers/${customer.id}/edit`}>Edit details</Link>
+            <Link href={`/invoices/new?customer=${customer.id}`}>+ New invoice</Link>
+            {!inactive && (
+              <ConfirmButton
               action={endCustomerSeason.bind(null, customer.id)}
               label="Done for the season"
               confirmLabel="Yes, done for the season"
@@ -146,16 +159,14 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
                 </>
               }
             />
-          )}
-          <Link className="btn secondary small" href={`/customers/${customer.id}/edit`}>
-            Edit
-          </Link>
-          <DeleteCustomerButton
-            action={deleteCustomer.bind(null, customer.id)}
-            customerName={name}
-            visitCount={visitCount ?? 0}
-            invoiceCount={invoices.length}
-          />
+            )}
+            <DeleteCustomerButton
+              action={deleteCustomer.bind(null, customer.id)}
+              customerName={name}
+              visitCount={visitCount ?? 0}
+              invoiceCount={invoices.length}
+            />
+          </MoreMenu>
         </div>
       </div>
 
@@ -182,10 +193,12 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
       {typeof notice === "string" && NOTICES[notice] && (
         <Notice tone="success">
           {NOTICES[notice]}
-          {notice === "created" && (
+          {(notice === "created" || notice === "created-not-booked") && (
             <>
               {" "}
-              <Link href={`/schedule/new?customer=${customer.id}`}>Book their first service →</Link>
+              <Link href={`/schedule/new?customer=${customer.id}`}>
+                {notice === "created" ? "Book their first service →" : "Try booking it again →"}
+              </Link>
             </>
           )}
         </Notice>
@@ -240,9 +253,6 @@ export default async function CustomerPage(props: PageProps<"/customers/[id]">) 
       <div className="panel" aria-labelledby="customer-invoices">
         <div className="panel-head">
           <h3 id="customer-invoices">Invoices</h3>
-          <Link className="btn secondary small" href={`/invoices/new?customer=${customer.id}`}>
-            + New invoice
-          </Link>
         </div>
         <div className="panel-body">
           <BillMonthlyToggle enabled={customer.bill_monthly} save={setBillMonthly.bind(null, customer.id)} />

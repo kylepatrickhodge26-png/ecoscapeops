@@ -2,6 +2,8 @@ import "server-only";
 
 import { z } from "zod";
 
+import { APP_NAME } from "@/lib/brand";
+
 import { parseNwsForecast, type ForecastDay } from "./forecast";
 import { parseNwsHourly, type ForecastHour } from "./hourly";
 
@@ -9,7 +11,7 @@ import { parseNwsHourly, type ForecastHour } from "./hourly";
 // to identify itself with a User-Agent, and to cache what it gets.
 // https://www.weather.gov/documentation/services-web-api
 
-const USER_AGENT = "EcoScape Ops (github.com/kylepatrickhodge26-png/ecoscapeops)";
+const USER_AGENT = `${APP_NAME} (github.com/kylepatrickhodge26-png/ecoscapeops)`;
 
 // NWS_BASE_URL and WEATHER_CACHE_SECONDS are only for tests.
 function config() {

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ConfirmButton } from "@/components/confirm-button";
+import { MoreMenu } from "@/components/more-menu";
 import { InvoiceStatusPill } from "@/components/invoice-status";
 import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
@@ -68,12 +69,12 @@ export default async function InvoicePage(props: PageProps<"/invoices/[id]">) {
         </div>
       </div>
 
+      {/* Sending (a draft) or recording a payment (sent) is the main thing, in the panels below;
+          editing, deleting and cancelling are under More. */}
+      {(isDraft || (invoice.status === "sent" && invoice.payments.length === 0)) && (
       <div className="job-actions">
-        {isDraft && (
-          <Link className="btn secondary small" href={`/invoices/${invoice.id}/edit`}>
-            Edit
-          </Link>
-        )}
+        <MoreMenu>
+        {isDraft && <Link href={`/invoices/${invoice.id}/edit`}>Edit</Link>}
         {isDraft && (
           <ConfirmButton
             action={deleteDraftInvoice.bind(null, invoice.id)}
@@ -97,7 +98,9 @@ export default async function InvoicePage(props: PageProps<"/invoices/[id]">) {
             }
           />
         )}
+        </MoreMenu>
       </div>
+      )}
 
       {typeof notice === "string" && NOTICES[notice] && <Notice tone="success">{NOTICES[notice]}</Notice>}
       {balance < 0 && <Notice tone="warn">Overpaid by {formatPrice(-balance)}. Refund the difference to the customer.</Notice>}

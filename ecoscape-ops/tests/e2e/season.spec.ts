@@ -1,7 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
 import { addDays, todayInTimeZone } from "../../src/lib/dates";
-import { PASSWORD, signUpBusiness, uniqueEmail } from "./helpers";
+import { chooseFrequency, type Frequency, openMore, PASSWORD, signUpBusiness, uniqueEmail } from "./helpers";
 
 // Done for the season: one tap takes a customer's repeat visits off the schedule (one-time
 // jobs stay), repeat bookings made meanwhile wait, and Start again brings them back. Crew
@@ -14,6 +14,7 @@ async function addCustomer(page: Page, first: string, last: string) {
   await page.goto("/customers/new");
   await page.getByLabel("First name").fill(first);
   await page.getByLabel("Last name").fill(last);
+  await page.getByLabel("Not yet").check();
   await page.getByRole("button", { name: "Add customer" }).click();
   await expect(page.getByText("Customer added.")).toBeVisible();
   return new URL(page.url()).pathname.split("/")[2];
@@ -21,9 +22,9 @@ async function addCustomer(page: Page, first: string, last: string) {
 
 async function book(page: Page, customerId: string, service: string, often: string, date: string, assignee?: string) {
   await page.goto(`/schedule/new?customer=${customerId}`);
-  await page.getByLabel("Service").fill(service);
+  await page.getByLabel("Service", { exact: true }).fill(service);
   await page.getByLabel("Price ($)").fill("40");
-  await page.getByLabel("How often").selectOption(often);
+  await chooseFrequency(page, often as Frequency);
   await page.getByLabel(/First visit|Visit date/).fill(date);
   if (assignee) await page.getByLabel("Assign to").selectOption({ label: assignee });
   await page.getByRole("button", { name: /^Book/ }).click();
@@ -57,7 +58,8 @@ test("Done for the season takes repeat visits off, and Start again brings them b
   await page.goto(`/customers/${jane}`);
   await expect(upcomingRows(page)).toHaveCount(7);
 
-  // One tap (and a yes): the repeat visits come off; the cleanup stays.
+  // From More, one tap (and a yes): the repeat visits come off; the cleanup stays.
+  await openMore(page);
   await page.getByRole("button", { name: "Done for the season" }).click();
   await expect(page.getByText(/Their 6 upcoming repeat visits come off the schedule/)).toBeVisible();
   await page.getByRole("button", { name: "Yes, done for the season" }).click();
@@ -82,6 +84,7 @@ test("Done for the season takes repeat visits off, and Start again brings them b
   await expect(upcomingRows(page)).toHaveCount(13);
   await expect(service(page, "Mowing")).toContainText("Next visit");
   await expect(page.locator(".details dd").first()).toHaveText("active");
+  await openMore(page);
   await expect(page.getByRole("button", { name: "Done for the season" })).toBeVisible();
 });
 

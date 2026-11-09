@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
+import type { AssigneeOption } from "@/lib/crew";
 import {
   CUSTOMER_STATUSES,
   CUSTOMER_STATUS_LABELS,
@@ -13,7 +14,11 @@ import {
   type CustomerField,
   type CustomerFormValues,
 } from "@/lib/customers/schema";
+import { weekdayOf } from "@/lib/dates";
+import { VISITS_AHEAD } from "@/lib/schedule/constants";
+import { emptyServiceFormValues, type ServiceKind } from "@/lib/schedule/service";
 
+import { ServiceFields } from "../schedule/service-fields";
 import type { CustomerFormState } from "./actions";
 
 type Props = {
@@ -21,19 +26,54 @@ type Props = {
   initialValues: CustomerFormValues;
   submitLabel: string;
   cancelHref: string;
+  // Add customer: book their work in the same step, and fold the less-used details away.
+  booking?: { today: string; firstVisit: string; assignees?: AssigneeOption[] };
 };
 
-export function CustomerForm({ action, initialValues, submitLabel, cancelHref }: Props) {
-  const [state, formAction, pending] = useActionState(action, { values: initialValues });
+// "thursday" for a Thursday; nothing for a Sunday (not a working day) or no date.
+const weekdayKey = (date: string) => (date ? PREFERRED_DAYS[weekdayOf(date) - 1] : undefined);
+
+// Fields folded under "More details" when adding a customer.
+const MORE_DETAILS: readonly CustomerField[] = [
+  "billing_address",
+  "access_instructions",
+  "service_notes",
+  "preferred_day",
+  "status",
+  "notification_preference",
+  "customer_since",
+];
+
+export function CustomerForm({ action, initialValues, submitLabel, cancelHref, booking }: Props) {
+  const [state, formAction, pending] = useActionState(action, {
+    values: initialValues,
+    service: booking ? emptyServiceFormValues(booking.firstVisit) : undefined,
+  });
   const values = state.values;
   const errors = state.fieldErrors ?? {};
-  const firstInvalid = Object.keys(errors)[0];
+  const serviceErrors = state.serviceErrors ?? {};
+  const firstInvalid = Object.keys(errors)[0] ?? Object.keys(serviceErrors)[0];
+
+  // The work being booked with a new customer, and their preferred day, which follows the
+  // first visit's weekday (for a repeat service) until it's picked by hand.
+  const [kind, setKind] = useState<ServiceKind>(state.service?.kind ?? "none");
+  const [startDate, setStartDate] = useState(state.service?.start_date ?? "");
+  const [preferredDay, setPreferredDay] = useState<string>(() =>
+    kind === "repeat" ? (weekdayKey(startDate) ?? values.preferred_day) : values.preferred_day,
+  );
+  const [dayTouched, setDayTouched] = useState(false);
+  const followDay = (date: string, k: ServiceKind) => {
+    if (dayTouched) return;
+    setPreferredDay((k === "repeat" ? weekdayKey(date) : undefined) ?? initialValues.preferred_day);
+  };
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsHaveError = MORE_DETAILS.some((f) => errors[f]);
 
   // React resets a form after its action runs, and a <select> doesn't pick up a changed
   // defaultValue, so after an error it would snap back to its original option.
   // Remounting the form whenever the submitted values change keeps every input showing
   // exactly what was submitted.
-  const formKey = JSON.stringify(values);
+  const formKey = JSON.stringify([values, state.service]);
 
   // For a new customer, default "Customer since" to today in the owner's own time zone,
   // which only the browser knows (the server would use UTC and could be a day ahead).
@@ -66,7 +106,7 @@ export function CustomerForm({ action, initialValues, submitLabel, cancelHref }:
           {state.error}
         </div>
       )}
-      {Object.keys(errors).length > 0 && (
+      {(Object.keys(errors).length > 0 || Object.keys(serviceErrors).length > 0) && (
         <div className="notice error" role="alert">
           Please fix the highlighted fields.
         </div>
@@ -114,6 +154,35 @@ export function CustomerForm({ action, initialValues, submitLabel, cancelHref }:
         <input {...field("property_address")} defaultValue={values.property_address} autoComplete="off" maxLength={300} />
         {error("property_address")}
       </div>
+      <div className="field checkbox">
+        <label>
+          <input type="checkbox" name="sms_opt_in" defaultChecked={values.sms_opt_in} />
+          OK to text them (they agreed to texts)
+        </label>
+      </div>
+
+      {booking && (
+        <ServiceFields
+          kind={kind}
+          onKindChange={(k) => {
+            setKind(k);
+            followDay(startDate, k);
+          }}
+          startDate={startDate}
+          onStartDateChange={(date) => {
+            setStartDate(date);
+            followDay(date, kind);
+          }}
+          defaults={state.service ?? emptyServiceFormValues(booking.firstVisit)}
+          errors={serviceErrors}
+          firstInvalid={firstInvalid}
+          today={booking.today}
+          assignees={booking.assignees}
+          allowNone
+        />
+      )}
+
+      <Details folded={Boolean(booking)} open={detailsOpen || detailsHaveError} onToggle={setDetailsOpen}>
       <div className="field">
         <label htmlFor="billing_address">Billing address</label>
         <input
@@ -143,7 +212,14 @@ export function CustomerForm({ action, initialValues, submitLabel, cancelHref }:
       <div className="row3">
         <div className="field">
           <label htmlFor="preferred_day">Preferred day</label>
-          <select {...field("preferred_day")} defaultValue={values.preferred_day}>
+          <select
+            {...field("preferred_day")}
+            value={preferredDay}
+            onChange={(e) => {
+              setPreferredDay(e.target.value);
+              setDayTouched(true);
+            }}
+          >
             {PREFERRED_DAYS.map((day) => (
               <option key={day} value={day}>
                 {PREFERRED_DAY_LABELS[day]}
@@ -183,21 +259,44 @@ export function CustomerForm({ action, initialValues, submitLabel, cancelHref }:
           {error("customer_since")}
         </div>
       </div>
-      <div className="field checkbox">
-        <label>
-          <input type="checkbox" name="sms_opt_in" defaultChecked={values.sms_opt_in} />
-          Customer has opted in to SMS
-        </label>
-      </div>
+      </Details>
 
       <div className="form-actions">
         <Link className="btn secondary" href={cancelHref}>
           Cancel
         </Link>
         <button className="btn" type="submit" disabled={pending}>
-          {pending ? "Saving…" : submitLabel}
+          {pending
+            ? "Saving…"
+            : !booking || kind === "none"
+              ? submitLabel
+              : kind === "one_time"
+                ? `${submitLabel} & book visit`
+                : `${submitLabel} & book ${VISITS_AHEAD} visits`}
         </button>
       </div>
     </form>
+  );
+}
+
+// Adding a customer: the less-used details fold under "More details" (opened when one of
+// them has an error). Editing shows everything.
+function Details({
+  folded,
+  open,
+  onToggle,
+  children,
+}: {
+  folded: boolean;
+  open: boolean;
+  onToggle: (open: boolean) => void;
+  children: React.ReactNode;
+}) {
+  if (!folded) return <>{children}</>;
+  return (
+    <details className="more-details" open={open} onToggle={(e) => onToggle(e.currentTarget.open)}>
+      <summary>More details (gate code, notes, billing address, preferred day…)</summary>
+      <div className="more-details-body">{children}</div>
+    </details>
   );
 }

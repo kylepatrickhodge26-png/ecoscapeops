@@ -28,7 +28,7 @@ const onOrAfter = (today: string) => (value: string) => value >= today;
 
 type FieldErrors<K extends string> = Partial<Record<K, string>>;
 
-function collectFieldErrors<K extends string>(error: z.ZodError): FieldErrors<K> {
+export function collectFieldErrors<K extends string>(error: z.ZodError): FieldErrors<K> {
   const fieldErrors: FieldErrors<K> = {};
   for (const issue of error.issues) {
     const field = issue.path[0] as K | undefined;

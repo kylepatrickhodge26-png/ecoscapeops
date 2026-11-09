@@ -2,7 +2,7 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 
 import { addDays, todayInTimeZone } from "../../src/lib/dates";
 import { geocodeQueries } from "./fakes";
-import { PASSWORD, signUpBusiness, uniqueEmail } from "./helpers";
+import { chooseFrequency, PASSWORD, signUpBusiness, uniqueEmail } from "./helpers";
 
 // Route ordering against the fake Census geocoder (tests/e2e/fake-services.mjs). The shop
 // is at 61 Clarendon Rd; the stops sit east and west of it:
@@ -25,6 +25,7 @@ async function addCustomer(page: Page, name: string, address: string) {
   await page.goto("/customers/new");
   await page.getByLabel("First name").fill(name);
   await page.getByLabel("Property address").fill(address);
+  await page.getByLabel("Not yet").check();
   await page.getByRole("button", { name: "Add customer" }).click();
   await expect(page.getByText("Customer added.")).toBeVisible();
   return new URL(page.url()).pathname.split("/")[2];
@@ -32,9 +33,9 @@ async function addCustomer(page: Page, name: string, address: string) {
 
 async function book(page: Page, customerId: string, opts: { date?: string; assignee?: string } = {}) {
   await page.goto(`/schedule/new?customer=${customerId}`);
-  await page.getByLabel("Service").fill("Mowing");
+  await page.getByLabel("Service", { exact: true }).fill("Mowing");
   await page.getByLabel("Price ($)").fill("65");
-  await page.getByLabel("How often").selectOption("One time");
+  await chooseFrequency(page, "One time");
   await page.getByLabel(/First visit|Visit date/).fill(opts.date ?? today());
   if (opts.assignee) await page.getByLabel("Assign to").selectOption({ label: opts.assignee });
   await page.getByRole("button", { name: /^Book/ }).click();

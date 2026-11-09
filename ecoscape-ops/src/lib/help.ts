@@ -127,7 +127,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     id: "undo-crew",
     section: "Today and the clock",
     question: "I finished a job by mistake. What do I do?",
-    answer: ["Tell the owner. They can open the visit, tap Edit and set its Status back to Scheduled."],
+    answer: ["Tell the owner. They can open the visit, tap More, then Edit, and set its Status back to Scheduled."],
     for: CREW,
   },
 
@@ -147,8 +147,20 @@ export const HELP_TOPICS: HelpTopic[] = [
     section: "Customers",
     question: "How do I add a customer?",
     answer: [
-      "Customers → + Add customer. A name, phone or email is enough to save. Add the property address so they show up on routes.",
-      "Only tick \"Customer has opted in to SMS\" if they've agreed to get texts. The app never texts anyone who hasn't.",
+      "Tap + Add customer (on Today or Customers). A name, phone or email is enough to save. Add the property address so they show up on routes.",
+      "Their work goes in on the same form: choose Repeat service (like weekly mowing), One-time job (like a patio) or Not yet. Less-used details are under More details.",
+      "Only tick \"OK to text them\" if they've agreed to get texts. The app never texts anyone who hasn't.",
+    ],
+    for: OWNER,
+  },
+  {
+    id: "import-customers",
+    section: "Customers",
+    question: "How do I add a whole list of customers at once?",
+    answer: [
+      "Customers → More → Import a list. Paste rows from a spreadsheet or pick a CSV file, check that each column is matched to the right field, look over the preview, then add them.",
+      "Customers who are already on file (same phone, or same name and address) and rows that can't be used are left out. Up to 500 rows at a time.",
+      "Their addresses are looked up for routes while the Customers page is open.",
     ],
     for: OWNER,
   },
@@ -187,8 +199,8 @@ export const HELP_TOPICS: HelpTopic[] = [
     section: "Customers",
     question: "How do I delete a customer?",
     answer: [
-      "Open the customer and tap Delete. That also removes their visits, invoices and photos.",
-      "If they're only done for the season, tap Stop next to their service instead, so their history stays.",
+      "Open the customer, tap More, then Delete. That also removes their visits, invoices and photos.",
+      "If they're only done for the season, tap More, then Done for the season instead, so their history stays.",
     ],
     for: OWNER,
   },
@@ -199,7 +211,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     section: "Schedule",
     question: "How do I book a job?",
     answer: [
-      "Tap Book a job (on Today or the Schedule). Pick the customer, the service, the price, how often and the first visit.",
+      "Tap + Book a job (on Today or the Schedule). Pick the customer, then choose Repeat service or One-time job, and fill in the service, the price, how often and the first visit.",
       "For repeat work the app keeps the next 6 visits on the schedule, adding the next one as each is done. Overdue visits don't count toward the 6.",
     ],
     for: OWNER,
@@ -243,8 +255,8 @@ export const HELP_TOPICS: HelpTopic[] = [
     section: "Schedule",
     question: "How do I pause a customer for the season, or stop a service?",
     answer: [
-      "End of the season: open the customer and tap Done for the season. Their upcoming repeat visits come off the schedule, and any earlier ones never marked done are cancelled (mark them done first if you did them). One-time jobs (like a fall cleanup) stay.",
-      "When they're back, tap Start again. Their repeat visits return on their regular day, with the same crew member. Marking them Inactive or Active on Edit does the same.",
+      "End of the season: open the customer, tap More, then Done for the season. Their upcoming repeat visits come off the schedule, and any earlier ones never marked done are cancelled (mark them done first if you did them). One-time jobs (like a fall cleanup) stay.",
+      "When they're back, tap Start again. Their repeat visits return on their regular day, with the same crew member. Marking them Inactive or Active under More → Edit details does the same.",
       "To end one service for good, tap Stop next to it, then Stop service. Past visits stay in their history.",
     ],
     for: OWNER,
@@ -271,7 +283,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     section: "Schedule",
     question: "How do I set which day each customer gets done?",
     answer: [
-      "Open the customer, tap Edit and set Preferred day. When you book them, First visit starts on that day, and repeat visits stay on that weekday.",
+      "Open the customer, tap More, then Edit details and set Preferred day. When you book them, First visit starts on that day, and repeat visits stay on that weekday.",
       "Already booked on the wrong day? Open their next visit, tap Move, pick the right day and tick Make (that day) their regular day. Every upcoming visit lines up on that weekday, and it becomes their regular day.",
     ],
     for: OWNER,
@@ -281,7 +293,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     section: "Schedule",
     question: "How do I change a customer's price or how often they're done?",
     answer: [
-      "Just one visit: open it, tap Edit and change the Price.",
+      "Just one visit: open it, tap More, then Edit and change the Price.",
       "From now on: on their customer page tap Stop next to the service, then + Book a service with the new price or How often. Past visits keep the price they had.",
     ],
     for: OWNER,
@@ -290,7 +302,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     id: "one-time",
     section: "Schedule",
     question: "How do I book a one-time job?",
-    answer: ["Tap + Book a job, set How often to One time and pick the Visit date. It won't repeat."],
+    answer: ["Tap + Book a job, choose One-time job and pick the Visit date. It won't repeat. When you add a new customer, you can pick One-time job on the same form."],
     for: OWNER,
   },
   {
@@ -298,8 +310,8 @@ export const HELP_TOPICS: HelpTopic[] = [
     section: "Schedule",
     question: "How do I cancel or skip one visit?",
     answer: [
-      "Open the visit and tap Could not service, then Cancel visit. The reason you type is kept on it. The rest of their visits stay booked.",
-      "To remove it completely instead, tap Delete.",
+      "Open the visit, tap More, then Could not service, then Cancel visit. The reason you type is kept on it. The rest of their visits stay booked.",
+      "To remove it completely instead, tap More, then Delete.",
     ],
     for: OWNER,
   },
@@ -309,7 +321,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     question: "What does Overdue mean?",
     answer: [
       "The visit's date has passed but it isn't marked completed or cancelled.",
-      "If you did it, open it and tap Mark completed. If not, tap Could not service to give it a new day or cancel it.",
+      "If you did it, open it and tap Mark completed. If not, tap More, then Could not service to give it a new day or cancel it.",
       "To clear a few at once: Schedule → List → Needs attention, tick them, then tap Mark visits done (the ones you did) or Cancel visits (the ones that didn't happen).",
       "Overdue visits don't use up the customer's upcoming ones: the app still keeps their next 6 on the schedule.",
     ],
@@ -319,7 +331,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     id: "undo-completed",
     section: "Schedule",
     question: "I marked a visit completed by mistake. How do I undo it?",
-    answer: ["Open the visit, tap Edit, change Status back to Scheduled and Save."],
+    answer: ["Open the visit, tap More, then Edit, change Status back to Scheduled and Save."],
     for: OWNER,
   },
 
@@ -383,8 +395,8 @@ export const HELP_TOPICS: HelpTopic[] = [
     section: "Money",
     question: "How do I log gas or equipment costs?",
     answer: [
-      "On Today, under Quick actions, tap Log gas or Log equipment and type the amount.",
-      "For anything else, go to Money → Expenses → + Add expense.",
+      "Go to Money → Expenses. At the top, tap Log gas or Log equipment and type the amount.",
+      "For anything else, tap + Add expense on the same page.",
     ],
     for: OWNER,
   },

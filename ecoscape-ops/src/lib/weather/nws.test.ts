@@ -59,7 +59,7 @@ describe("getDailyForecast", () => {
     await getDailyForecast(40.8, -73.1);
     const [[, pointsInit], [, forecastInit]] = calls(fetchMock);
     for (const init of [pointsInit, forecastInit]) {
-      expect((init.headers as Record<string, string>)["User-Agent"]).toMatch(/^EcoScape Ops \(/);
+      expect((init.headers as Record<string, string>)["User-Agent"]).toMatch(/^Groundcrew \(/);
     }
     expect(pointsInit.next).toEqual({ revalidate: 86_400 });
     expect(forecastInit.next).toEqual({ revalidate: 3600 });
@@ -108,7 +108,7 @@ describe("getHourlyForecast", () => {
     const [[pointsUrl, pointsInit], [hourlyUrl, hourlyInit]] = calls(fetchMock);
     expect(pointsUrl).toBe("https://api.weather.gov/points/40.8083,-73.1305");
     expect(hourlyUrl).toBe(HOURLY_URL);
-    expect((hourlyInit.headers as Record<string, string>)["User-Agent"]).toMatch(/^EcoScape Ops \(/);
+    expect((hourlyInit.headers as Record<string, string>)["User-Agent"]).toMatch(/^Groundcrew \(/);
     expect(pointsInit.next).toEqual({ revalidate: 86_400 });
     expect(hourlyInit.next).toEqual({ revalidate: 3600 });
   });

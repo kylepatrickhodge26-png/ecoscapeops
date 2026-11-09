@@ -175,7 +175,7 @@ const server = createServer((req, res) => {
   if (url.pathname.startsWith("/geocoder/") || url.pathname.startsWith("/__census/")) return handleCensus(url, res);
 
   // The real service refuses requests that don't say who's asking.
-  if (!req.headers["user-agent"]?.startsWith("EcoScape Ops")) {
+  if (!req.headers["user-agent"]?.startsWith("Groundcrew")) {
     return json(res, 403, { title: "Forbidden", detail: "A User-Agent is required", status: 403 });
   }
 

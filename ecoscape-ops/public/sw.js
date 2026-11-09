@@ -1,11 +1,11 @@
-// EcoScape Ops service worker.
+// Groundcrew service worker.
 //
 // It exists only so the app can be installed and so a signed-out/offline phone shows a
 // friendly page. It deliberately caches NOTHING else: no pages, no API responses, no
 // customer data, no images. Everything the app shows comes straight from the network,
 // so nothing private is ever stored on the device by the worker, and one user's data can
 // never be served to another user from a shared cache.
-const OFFLINE_CACHE = "ecoscape-offline-v1";
+const OFFLINE_CACHE = "groundcrew-offline-v2";
 const OFFLINE_URL = "/offline.html";
 
 self.addEventListener("install", (event) => {

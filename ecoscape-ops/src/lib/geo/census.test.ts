@@ -49,7 +49,7 @@ describe("censusGeocode", () => {
     expect(url.origin).toBe("https://geocoding.geo.census.gov");
     expect(url.pathname).toBe("/geocoder/locations/onelineaddress");
     expect(Object.fromEntries(url.searchParams)).toEqual({ address: "61 Clarendon Rd, Lake Ronkonkoma, NY", benchmark: "Public_AR_Current", format: "json" });
-    expect((init.headers as Record<string, string>)["User-Agent"]).toMatch(/^EcoScape Ops/);
+    expect((init.headers as Record<string, string>)["User-Agent"]).toMatch(/^Groundcrew \(/);
   });
 
   it("reports the service being down as unavailable, not as 'no such address'", async () => {

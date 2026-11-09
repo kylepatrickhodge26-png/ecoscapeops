@@ -76,8 +76,8 @@ export async function deleteExpense(id: string): Promise<{ error?: string }> {
 
 export type QuickLogState = { error?: string; amount?: string; vendor?: string };
 
-// The dashboard's one-tap log for the most common categories: today's date, an amount,
-// and optionally where.
+// Expenses' one-tap log for the most common categories (gas, equipment): today's date, an
+// amount, and optionally where.
 export async function quickLogExpense(category: string, _prev: QuickLogState, formData: FormData): Promise<QuickLogState> {
   const { business } = await requireOwner();
   const amount = String(formData.get("amount") ?? "");
@@ -104,5 +104,5 @@ export async function quickLogExpense(category: string, _prev: QuickLogState, fo
     return { error: "We couldn't log this. Please try again.", amount, vendor };
   }
 
-  redirect(`/dashboard?logged=${data.id}`);
+  redirect(`/expenses?logged=${data.id}`);
 }

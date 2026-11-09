@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { ConfirmButton } from "@/components/confirm-button";
+import { MoreMenu } from "@/components/more-menu";
 import { Notice } from "@/components/notice";
 import { requireOwner } from "@/lib/auth";
 import { getCrew } from "@/lib/crew";
@@ -70,8 +71,9 @@ export default async function CrewPage(props: PageProps<"/crew">) {
                     </div>
                   </div>
                   <div className="crew-actions">
-                    <RenameCrewMember action={renameCrewMember.bind(null, member.id)} current={member.name} />
                     {pending && <NewInviteLinkButton crewMemberId={member.id} name={member.name} />}
+                    <MoreMenu>
+                    <RenameCrewMember action={renameCrewMember.bind(null, member.id)} current={member.name} />
                     {!isOwner && (
                       <ConfirmButton
                         action={removeCrewMember.bind(null, member.id)}
@@ -87,6 +89,7 @@ export default async function CrewPage(props: PageProps<"/crew">) {
                         }
                       />
                     )}
+                    </MoreMenu>
                   </div>
                 </li>
               );
