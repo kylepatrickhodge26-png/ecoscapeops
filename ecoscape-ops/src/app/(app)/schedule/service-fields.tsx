@@ -119,7 +119,7 @@ export function ServiceFields({
             <div className="field">
               <label htmlFor="start_date">{kind === "one_time" ? "Visit date" : "First visit"}</label>
               <input {...field("start_date")} type="date" min={today} value={startDate} onChange={(e) => onStartDateChange(e.target.value)} />
-              <div className="day-chips" role="group" aria-label="Quick pick for the first visit">
+              <div className="day-chips" role="group" aria-label="Pick a day">
                 {dayChoices(today, null, 5).map((c) => (
                   <button key={c.date} type="button" className={`day-chip${c.date === startDate ? " on" : ""}`} aria-pressed={c.date === startDate} onClick={() => onStartDateChange(c.date)}>
                     {c.label}
