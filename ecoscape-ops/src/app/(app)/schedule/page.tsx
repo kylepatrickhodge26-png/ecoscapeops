@@ -11,6 +11,7 @@ import { FREQUENCY_LABELS, isScheduleFilter } from "@/lib/schedule/constants";
 import { createClient } from "@/lib/supabase/server";
 
 import { AutoRainNotices } from "../weather/rain-notices";
+import { ScheduleDays } from "./schedule-days";
 import { ScheduleCalendar } from "./schedule-calendar";
 import { ScheduleList } from "./schedule-list";
 
@@ -21,7 +22,8 @@ export default async function SchedulePage(props: PageProps<"/schedule">) {
   const params = await props.searchParams;
   const today = todayInTimeZone(business.time_zone);
 
-  const view = params.view === "list" ? "list" : "calendar";
+  // Days is the home view; a month in the link (month arrows, after booking) opens the calendar.
+  const view = params.view === "list" ? "list" : params.view === "calendar" || isISOMonth(params.month) ? "calendar" : "days";
   const month = isISOMonth(params.month) ? params.month : monthOf(today);
   const filter = isScheduleFilter(params.filter) ? params.filter : "upcoming";
 
@@ -33,7 +35,10 @@ export default async function SchedulePage(props: PageProps<"/schedule">) {
           <div className="meta">Today is {formatShortDate(today)}</div>
         </div>
         <div className="head-actions">
-          <nav className="segmented" aria-label="View">
+          <nav className="segmented sched-switch" aria-label="View">
+            <Link href="/schedule" aria-current={view === "days" ? "page" : undefined}>
+              Days
+            </Link>
             <Link href={`/schedule?month=${month}`} aria-current={view === "calendar" ? "page" : undefined}>
               Calendar
             </Link>
@@ -57,7 +62,9 @@ export default async function SchedulePage(props: PageProps<"/schedule">) {
       )}
       <AutoRainNotices businessId={business.id} today={today} />
 
-      {view === "calendar" ? (
+      {view === "days" ? (
+        <ScheduleDays businessId={business.id} today={today} showCrew={showAssignment(await getCrew(business.id, user.id))} />
+      ) : view === "calendar" ? (
         <ScheduleCalendar business={business} month={month} today={today} />
       ) : (
         <ScheduleList

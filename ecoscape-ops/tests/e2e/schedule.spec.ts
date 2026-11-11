@@ -53,7 +53,7 @@ test("booking a weekly service puts the next 6 visits on the schedule", async ({
   await expect(firstCell.locator(".cal-job")).toHaveAttribute("data-status", "scheduled");
   await expect(firstCell.getByText("John Smith")).toBeAttached();
 
-  await page.getByRole("link", { name: "List" }).click();
+  await page.goto("/schedule?view=list&filter=upcoming");
   await expect(listedDates(page)).toHaveText([0, 7, 14, 21, 28, 35].map((d) => formatShortDate(addDays(firstTuesday, d))));
   await expect(page.locator(".job-table tbody tr").first()).toContainText("Mowing · $65.00");
 });
@@ -220,7 +220,7 @@ test("old visits can be cleared from Needs attention: ticked, then marked done o
 test("every status has its own shape and color", async ({ page }) => {
   const customerId = await setUpCustomer(page, "Shapes Lawns");
   await bookService(page, { customerId, startDate: addDays(today(), 1) });
-  await page.goto("/schedule");
+  await page.goto("/schedule?view=calendar");
 
   const legend = page.locator(".status-legend li");
   await expect(legend).toHaveCount(8);
@@ -338,4 +338,18 @@ test("on a phone, the calendar shows status shapes and a day opens its visits", 
   await cell.click();
   await expect(page).toHaveURL(new RegExp(`/schedule/day/${start}$`));
   await expect(page.locator(".job-table tbody tr")).toHaveCount(1);
+});
+
+
+test("Schedule opens to the next days as a simple list, and Move goes straight to the day picker", async ({ page }) => {
+  const customerId = await setUpCustomer(page, "Days Lawns");
+  await bookService(page, { customerId, startDate: addDays(today(), 1) });
+  await page.goto("/schedule");
+
+  const tomorrow = page.getByRole("region", { name: "Tomorrow" });
+  await expect(tomorrow).toContainText("John Smith");
+  await expect(page.getByRole("region", { name: "Today" })).toContainText("Nothing booked today.");
+  await tomorrow.getByRole("link", { name: "Move" }).click();
+  await expect(page).toHaveURL(/move=1/);
+  await expect(page.getByRole("form", { name: "Move to another day" })).toBeVisible();
 });
