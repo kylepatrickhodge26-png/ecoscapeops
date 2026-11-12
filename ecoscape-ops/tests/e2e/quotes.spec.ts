@@ -63,6 +63,7 @@ test("another business doesn't see the quote", async ({ browser }) => {
 
 
 test("common jobs fill in the quote's job name with one tap", async ({ page }) => {
+  await signUpBusiness(page, "Quick Jobs Co");
   await page.goto("/quotes/new");
   await page.getByRole("group", { name: "Common jobs" }).getByRole("button", { name: "Christmas lighting" }).click();
   await expect(page.getByLabel("What's the job?")).toHaveValue("Christmas lighting");
