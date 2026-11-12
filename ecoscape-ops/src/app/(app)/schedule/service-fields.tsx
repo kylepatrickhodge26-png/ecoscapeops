@@ -3,11 +3,8 @@
 import { AssignToField } from "@/components/assign-to-field";
 import type { AssigneeOption } from "@/lib/crew";
 import { dayChoices } from "@/lib/schedule/move";
-import { FREQUENCY_LABELS, VISITS_AHEAD } from "@/lib/schedule/constants";
+import { COMMON_SERVICES, FREQUENCY_LABELS, VISITS_AHEAD } from "@/lib/schedule/constants";
 import { REPEAT_FREQUENCIES, type ServiceField, type ServiceKind } from "@/lib/schedule/service";
-
-// Common jobs, offered as you type so a phone doesn't need much typing.
-const COMMON_SERVICES = ["Mowing", "Mow + edge", "Mow + trim", "Spring cleanup", "Fall cleanup", "Leaf removal", "Mulch", "Hedge trimming", "Weeding"];
 
 // The work to book: a repeat service (like weekly mowing) or a one-time job (like a patio).
 // Used by Book a job and by Add customer, which can book their work in the same step.

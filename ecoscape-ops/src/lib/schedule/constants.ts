@@ -95,3 +95,17 @@ export function isScheduleFilter(value: unknown): value is ScheduleFilter {
 export function formatPrice(price: number): string {
   return price.toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
+
+// Jobs a landscaper books again and again; offered as you type and as tap-to-fill buttons.
+export const COMMON_SERVICES = [
+  "Mowing",
+  "Mow + edge",
+  "Spring cleanup",
+  "Fall cleanup",
+  "Leaf cleanup",
+  "Weeding",
+  "Mulch",
+  "Hedge trimming",
+  "Christmas lighting",
+  "Patio / hardscape",
+];

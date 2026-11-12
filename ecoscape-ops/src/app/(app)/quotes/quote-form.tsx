@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import type { QuoteFormValues, QuoteLineInput } from "@/lib/quotes/schema";
-import { formatPrice } from "@/lib/schedule/constants";
+import { COMMON_SERVICES, formatPrice } from "@/lib/schedule/constants";
 
 import type { QuoteFormState } from "./actions";
 
@@ -37,6 +37,7 @@ function Fields({
   formAction,
   pending,
 }: Props & { state: QuoteFormState; formAction: (formData: FormData) => void; pending: boolean }) {
+  const [title, setTitle] = useState(state.values.title);
   const [customerId, setCustomerId] = useState(state.values.customer_id);
   const [lines, setLines] = useState<QuoteLineInput[]>(state.values.lines);
   const errors = state.fieldErrors ?? {};
@@ -115,7 +116,19 @@ function Fields({
       <div className="row2">
         <div className="field">
           <label htmlFor="title">What&apos;s the job?</label>
-          <input id="title" name="title" defaultValue={state.values.title} maxLength={100} placeholder="e.g. Spring cleanup" {...invalid("title")} />
+          <input id="title" name="title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} placeholder="e.g. Spring cleanup" list="quote-jobs" autoComplete="off" {...invalid("title")} />
+          <datalist id="quote-jobs">
+            {COMMON_SERVICES.map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
+          <div className="day-chips" role="group" aria-label="Common jobs">
+            {COMMON_SERVICES.slice(2).map((n) => (
+              <button key={n} type="button" className={`day-chip${title === n ? " on" : ""}`} aria-pressed={title === n} onClick={() => setTitle(n)}>
+                {n}
+              </button>
+            ))}
+          </div>
           {err("title")}
         </div>
         <div className="field">

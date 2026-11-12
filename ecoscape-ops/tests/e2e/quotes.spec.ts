@@ -60,3 +60,10 @@ test("another business doesn't see the quote", async ({ browser }) => {
   await b.goto("/quotes");
   await expect(b.getByText("Private Prospect")).toHaveCount(0);
 });
+
+
+test("common jobs fill in the quote's job name with one tap", async ({ page }) => {
+  await page.goto("/quotes/new");
+  await page.getByRole("group", { name: "Common jobs" }).getByRole("button", { name: "Christmas lighting" }).click();
+  await expect(page.getByLabel("What's the job?")).toHaveValue("Christmas lighting");
+});
